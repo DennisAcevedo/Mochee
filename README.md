@@ -18,6 +18,16 @@ Keys are read only by the dev server, never by the browser:
 
 Both files are git-excluded and denied by the dev server's file serving. Without a Gemini key the document features run in a labelled demo mode (answers built from the best matching passage, quizzes cut from real sentences); without an ElevenLabs key he falls back to the browser voice.
 
+## Layout
+
+- `src/`: the frontend. React UI, the 3D stage (react-three-fiber), the lesson runner, play and physics.
+- `public/`: frontend assets, including the Blender-built `models/tutor.glb`.
+- `server/`: the backend. The Gemini ask proxy, the ElevenLabs voice proxy and the document API (PDF ingest, SQLite FTS5, cited answers, quizzes). It runs as Vite plugins, so `npm run dev` serves both.
+- `shared/`: what both sides import. The `/api/ask` contract (`askTypes.ts`), the document API contract (`docsTypes.ts`) and the lesson's notes lines (`lessonNotes.ts`), which the ask server lists in Gemini's prompt.
+- `tests/`: backend and animation unit tests, and the Playwright e2e. `BLENDER/tutor/`: the character build. `lab/`: one page per slice for isolated checks.
+
+`server/` never imports from `src/`, and `shared/` imports from neither; `npm run test:server` fails if that changes.
+
 ## Tests
 
 ```
