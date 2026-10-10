@@ -33,8 +33,8 @@ type PageLoad = { state: 'loading' } | { state: 'ok'; page: PageText } | { state
 const WINDOW_TITLE_MAX = 64 // characters of the title a window tab keeps (as the New tab page's PDF rows)
 
 // The tab to show `docId` in: the one already showing it (the active tab
-// first, either window), else an empty New tab, else a fresh tab; the notes
-// window first. Null when both windows are full.
+// first), else an empty New tab, else a fresh tab. Null when the window's
+// tab strip is full.
 function tabFor(docId: string): [WinId, string] | null {
   const w = useWindows.getState()
   for (const win of WIN_IDS) {
@@ -55,7 +55,7 @@ function tabFor(docId: string): [WinId, string] | null {
 
 // The primary action: the page pops out into the stage's browser window, in
 // its own tab, maximized so it reads at full size; this drawer folds away so
-// nothing covers it. Both windows full of tabs: the browser's viewer instead.
+// nothing covers it. No room for another tab: the browser's viewer instead.
 function openInWindow(doc: DocumentInfo, page: number) {
   const target = tabFor(doc.id)
   if (!target) {

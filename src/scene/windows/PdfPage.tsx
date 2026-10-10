@@ -134,7 +134,7 @@ export function PdfPage({ win, tab, box }: { win: WinId; tab: PdfTab; box: Conte
     }
   }, [])
 
-  // The parsed PDF (shared with the other window), or the text fallback.
+  // The parsed PDF (cached per document across page turns), or the text fallback.
   useEffect(() => {
     if (!drawable) {
       setBody({ kind: 'text', note: textNote(original ?? '') })
@@ -142,10 +142,8 @@ export function PdfPage({ win, tab, box }: { win: WinId; tab: PdfTab; box: Conte
     }
     const { doc, release } = openPdf(tab.docId)
     let live = true
-    console.log('[pdfdbg] open', tab.docId, tab.page) /*DBG*/
     doc.then(
       (d) => {
-        console.log('[pdfdbg] parsed', tab.docId, tab.page, live) /*DBG*/
         if (!live) return
         setPages(d.numPages)
         if (tab.page > d.numPages) setBody({ kind: 'text', note: `This PDF has ${d.numPages} page${d.numPages === 1 ? '' : 's'}` })
@@ -194,17 +192,13 @@ export function PdfPage({ win, tab, box }: { win: WinId; tab: PdfTab; box: Conte
     const caps = gl.capabilities
     const r = renderPage(d, tab.page, px, caps.maxTextureSize, caps.getMaxAnisotropy())
     job.current = r
-    const t0 = performance.now() /*DBG*/
-    console.log('[pdfdbg] draw', tab.docId, tab.page, px) /*DBG*/
     r.promise.then(
       (image) => {
-        console.log('[pdfdbg] drawn', tab.docId, tab.page, px, Math.round(performance.now() - t0), alive.current) /*DBG*/
         if (job.current === r) job.current = null
         if (!alive.current) disposeImage(image)
         else setBody({ kind: 'image', img: image })
       },
-      (e: unknown) => {
-        console.log('[pdfdbg] failed', tab.docId, tab.page, px, String(e), r.cancelled, alive.current) /*DBG*/
+      () => {
         if (job.current === r) job.current = null
         if (r.cancelled || !alive.current) return
         // A failed sharper copy keeps the page already shown.

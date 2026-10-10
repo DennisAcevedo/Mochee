@@ -280,6 +280,8 @@
 
 .viewer {
   display: grid;
+  /* minmax(0, ...): a long nowrap title would otherwise widen the column past the drawer */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 

@@ -3,19 +3,19 @@ import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { CanvasTexture, SRGBColorSpace } from 'three'
 import { DOCS_ROUTES } from '../../../shared/docsTypes'
 
-// Real PDF pages for the windows' PDF tabs. pdfjs-dist (loaded on first use, so
+// Real PDF pages for the window's PDF tabs. pdfjs-dist (loaded on first use, so
 // the stage bundle stays lean) parses the stored original from the documents
 // API and draws one page into a canvas that becomes a three.js texture.
-// Parsed documents are cached per docId and reference counted, so the two
-// windows can share one. A page is drawn at the pixel width the window shows it
-// at; PdfPage asks for a sharper copy when the window grows (maximize). The
-// file is parsed as data only: no XFA, no scripts.
+// Parsed documents are cached per docId and reference counted, so turning a
+// page (which remounts the tab) never parses again. A page is drawn at the
+// pixel width the window shows it at; PdfPage asks for a sharper copy when the
+// window grows (maximize). The file is parsed as data only: no XFA, no scripts.
 // The legacy build, worker included: the modern one calls Math.sumPrecise while
 // it converts embedded fonts, and where the browser lacks it (Chromium 145) the
 // fonts fail and accented names come out as the wrong glyphs.
 
 export const PDF_TEXTURE = {
-  keepDocs: 3, // parsed documents kept once nobody shows them (each window shows one page)
+  keepDocs: 3, // parsed documents kept once no tab shows them (switching back skips the parse)
   minPx: 512, // narrowest render
   maxPx: 3072, // widest render; the GPU's max texture size can cap it lower
   stepPx: 128, // render widths round up to this, so small size changes reuse the texture
@@ -170,13 +170,13 @@ export function renderPage(doc: PDFDocumentProxy, n: number, px: number, maxText
       await task.promise
       const texture = new CanvasTexture(canvas)
       texture.colorSpace = SRGBColorSpace
-      texture.anisotropy = anisotropy // the windows turn toward the stage centre
+      texture.anisotropy = anisotropy // the window turns toward the stage centre
       return { texture, aspect: canvas.height / canvas.width, px: canvas.width }
     } catch (err) {
       canvas.width = canvas.height = 0
       throw err
     } finally {
-      page.cleanup() // a no-op while the other window still renders this page
+      page.cleanup() // a no-op while another render of this page is still running
     }
   })()
   return {

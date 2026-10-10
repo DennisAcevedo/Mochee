@@ -28,10 +28,10 @@ const ICON = {
 type CardId = Exclude<HubView, 'home'>
 
 const CARDS: { id: CardId; testId: string; label: string; short: string; grad: [string, string]; d: string }[] = [
-  { id: 'upload', testId: 'hub-card-upload', label: 'Upload Materials', short: 'PDFs he reads and sorts into topics.', grad: ['#dbeafe', '#bfdbfe'], d: ICON.upload },
+  { id: 'upload', testId: 'hub-card-upload', label: 'Upload Materials', short: 'Notes, slides or papers he reads into topics.', grad: ['#dbeafe', '#bfdbfe'], d: ICON.upload },
   { id: 'quiz', testId: 'hub-card-quiz', label: 'Create Quiz', short: 'Questions from your material.', grad: ['#ccfbf1', '#99f6e4'], d: ICON.quiz },
   { id: 'chat', testId: 'hub-card-chat', label: 'Chat with Gemini Guy', short: 'Answers that cite the page.', grad: ['#f3e8ff', '#e9d5ff'], d: ICON.chat },
-  { id: 'tutor', testId: 'hub-card-tutor', label: 'Start Tutor Session', short: 'He walks you through a PDF.', grad: ['#dcfce7', '#bbf7d0'], d: ICON.tutor },
+  { id: 'tutor', testId: 'hub-card-tutor', label: 'Start Tutor Session', short: 'He walks you through a file.', grad: ['#dcfce7', '#bbf7d0'], d: ICON.tutor },
   { id: 'record', testId: 'hub-card-record', label: 'Record a Lecture', short: 'Class audio to quizzable notes.', grad: ['#fef3c7', '#fde68a'], d: ICON.mic },
   { id: 'mini', testId: 'hub-card-mini', label: 'Mini Apps', short: 'Flashcards, timer, key terms.', grad: ['#fee2e2', '#fecaca'], d: ICON.apps },
 ]
