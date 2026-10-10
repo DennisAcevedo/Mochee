@@ -43,6 +43,8 @@ export const XP_COLOR: Record<XpReason, string> = {
   stepDone: PALETTE.lime,
   quizCorrect: PALETTE.indigo,
   lessonDone: PALETTE.violet,
+  hoops: '#F08A24', // basketball orange
+  trick: PALETTE.coral,
 }
 
 // Ball and snack colours rotate through these.

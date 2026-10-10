@@ -745,3 +745,87 @@
     transform: translateY(-6px) scale(0.92);
   }
 }
+
+/* Basketball (play mode): "Shoot hoops" + the ball-trick chevron, and the SHOTS chip (HoopsControls.tsx). */
+
+.hoops {
+  display: flex;
+  align-items: center;
+  gap: calc(5 * var(--px));
+}
+
+.hoopsMain {
+  width: calc(66 * var(--px));
+}
+
+.moreHoops {
+  background: linear-gradient(180deg, #f6a75a, #f08a24);
+  box-shadow: inset 0 calc(-3 * var(--px)) 0 #b9601a;
+}
+
+.menuXp {
+  font-size: 11px;
+  font-weight: 900;
+  color: color-mix(in oklab, var(--c), #000 25%);
+}
+
+.score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(46 * var(--px));
+  height: calc(46 * var(--px));
+  padding: 0 calc(6 * var(--px));
+  border-radius: calc(12 * var(--px));
+  background: var(--ink);
+  color: #fff;
+  box-shadow: inset 0 calc(-3 * var(--px)) 0 #000;
+}
+
+.scoreLabel {
+  font-size: calc(7.5 * var(--px));
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #f6a75a;
+}
+
+.scoreNum {
+  font-size: calc(10 * var(--px));
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreNum b {
+  font-size: calc(15 * var(--px));
+  font-weight: 900;
+}
+
+.scoreMade {
+  animation: scorePop 0.5s var(--spring);
+}
+
+.scoreMiss {
+  animation: nope 0.38s ease;
+}
+
+@keyframes scorePop {
+  0% {
+    scale: 1;
+    background: #f08a24;
+  }
+  40% {
+    scale: 1.18;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scoreMade,
+  .scoreMiss {
+    animation: none;
+  }
+}

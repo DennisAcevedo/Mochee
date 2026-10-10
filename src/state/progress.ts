@@ -5,7 +5,8 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 // XP persists in localStorage through a wrapper that swallows every storage
 // error, so private windows and blocked site data just start fresh each visit.
 
-export type XpReason = 'poke' | 'highfive' | 'catch' | 'snack' | 'dance' | 'stepDone' | 'quizCorrect' | 'lessonDone'
+// hoops = a made jump shot, trick = a dribble / kick / juggle / dunk (src/scene/hoops).
+export type XpReason = 'poke' | 'highfive' | 'catch' | 'snack' | 'dance' | 'stepDone' | 'quizCorrect' | 'lessonDone' | 'hoops' | 'trick'
 
 export const XP_REWARD: Record<XpReason, number> = {
   poke: 5,
@@ -16,6 +17,8 @@ export const XP_REWARD: Record<XpReason, number> = {
   stepDone: 20,
   quizCorrect: 50,
   lessonDone: 100,
+  hoops: 15,
+  trick: 10,
 }
 
 // Short label for the floating "+N XP" toast, per reason.
@@ -28,6 +31,8 @@ export const XP_LABEL: Record<XpReason, string> = {
   stepDone: 'Step done',
   quizCorrect: 'Correct!',
   lessonDone: 'Lesson complete',
+  hoops: 'Swish!',
+  trick: 'Nice moves!',
 }
 
 // Total XP needed to reach `level` (level 1 needs 0).

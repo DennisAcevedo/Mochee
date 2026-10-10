@@ -128,6 +128,9 @@ export interface DirectorState {
   roamX: number | null
   // Stepped aside from a maximized window: wins over roamX and `spot` until cleared.
   asideX: number | null
+  // The yaw he turns to when standing (radians, 0 = the camera); null = face the camera.
+  // The Play tab's ball moves (src/scene/hoops) turn him to the hoop with it.
+  faceYaw: number | null
 
   walkTo: (spot: Spot) => void // also ends roaming: the lesson's spot wins at once
   setFocus: (focus: Focus) => void
@@ -142,6 +145,7 @@ export interface DirectorState {
   resetStage: () => void
   roamTo: (x: number | null) => void
   stepAside: (x: number | null) => void
+  faceTo: (yaw: number | null) => void
 }
 
 let nextId = 1
@@ -158,6 +162,7 @@ const initialStage = () => ({
   caption: null as string | null,
   roamX: null as number | null,
   asideX: null as number | null,
+  faceYaw: null as number | null,
 })
 
 export const useDirector = create<DirectorState>((set) => ({
@@ -177,4 +182,5 @@ export const useDirector = create<DirectorState>((set) => ({
   resetStage: () => set(initialStage()),
   roamTo: (roamX) => set({ roamX }),
   stepAside: (asideX) => set({ asideX }),
+  faceTo: (faceYaw) => set({ faceYaw }),
 }))

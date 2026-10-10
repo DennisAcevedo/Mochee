@@ -12,7 +12,8 @@ import {
 } from '@react-three/rapier'
 import type { RigidBodyType } from '@dimforge/rapier3d-compat'
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { DoubleSide, Quaternion, Vector3, type Object3D, type Vector3Tuple } from 'three'
+import { DoubleSide, Quaternion, Vector3, type Group, type Object3D, type Vector3Tuple } from 'three'
+import { Basketball } from '../hoops/Basketball'
 import { useDirector } from '../../state/director'
 import { useMode } from '../../state/mode'
 import { useProgress } from '../../state/progress'
@@ -136,6 +137,21 @@ const aim = new Vector3()
 export function Ball() {
   const api = useRef<ToyApi | null>(null)
   const onReady = useMemo(() => (a: ToyApi) => (api.current = a), [])
+  const look = useRef<Group>(null)
+
+  // The Play tab's ball moves borrow it (src/scene/hoops/BallProp.tsx).
+  useEffect(() => {
+    playHandlers.ball = {
+      body: () => api.current?.body() ?? null,
+      busy: () => api.current?.busy() ?? false,
+      show: (shown) => {
+        if (look.current) look.current.visible = shown
+      },
+    }
+    return () => {
+      playHandlers.ball = null
+    }
+  }, [])
 
   // shootBall(): a ballistic arc whose apex stays under the ceiling and that
   // comes down through the rim (the HUD's keyboard alternative to throwing).
@@ -184,15 +200,10 @@ export function Ball() {
       onReady={onReady}
     >
       <BallCollider ref={setBallCollider} args={[B.radius]} density={B.density} restitution={B.restitution} friction={B.friction} />
-      <mesh castShadow>
-        <sphereGeometry args={[B.radius, 32, 24]} />
-        <meshStandardMaterial color={B.color} roughness={0.38} />
-      </mesh>
-      {/* A sun band so the spin reads. */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[B.radius * 0.995, B.radius * 0.09, 10, 40]} />
-        <meshStandardMaterial color={B.stripe} roughness={0.4} />
-      </mesh>
+      {/* A basketball: the seams make the spin read. */}
+      <group ref={look}>
+        <Basketball radius={B.radius} />
+      </group>
     </GrabbableToy>
   )
 }

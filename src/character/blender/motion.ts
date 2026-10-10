@@ -17,6 +17,7 @@ export interface MotionInput {
   gesture: (Gesture & { fade?: number }) | null // a new id starts it; fade defaults to MOTION.fadeGesture
   loopFade?: number // crossfade between base loops (defaults to MOTION.fadeLoop)
   cut?: boolean // drop the one-shot in progress (or waiting) and fade to the loop now
+  face?: number | null // the yaw he settles to when standing (null / unset = the camera, 0): the Play tab turns him to the hoop
 }
 
 const TAU = Math.PI * 2
@@ -140,9 +141,13 @@ export class TutorMotion {
     return (duration * this.reps(hit.clip, duration)) / MOTION.timeScale
   }
 
-  // Whether he is walking, settling, or about to start toward `target`.
-  willMove(target: { x: number; z: number }): boolean {
-    return this.phase !== 'still' || Math.hypot(target.x - this.pos.x, target.z - this.pos.z) > WALK.arriveEps
+  // Whether he is walking, settling, or about to start toward `target` (or to turn to `face`).
+  willMove(target: { x: number; z: number }, face?: number | null): boolean {
+    return (
+      this.phase !== 'still' ||
+      Math.hypot(target.x - this.pos.x, target.z - this.pos.z) > WALK.arriveEps ||
+      Math.abs(angleDiff(this.yaw, face ?? 0)) > WALK.settleAngle
+    )
   }
 
   private startGesture(clip: OneShotClip, fade: number): void {
@@ -155,8 +160,8 @@ export class TutorMotion {
   }
 
   // Walking: turn toward the travel direction, accelerate, ease into the spot,
-  // then turn back to the camera. Returns true while he is not settled.
-  private walk(dt: number, target: { x: number; z: number }): boolean {
+  // then turn back to the camera (or to `face`). Returns true while he is not settled.
+  private walk(dt: number, target: { x: number; z: number }, face = 0): boolean {
     const dx = target.x - this.pos.x
     const dz = target.z - this.pos.z
     const dist = Math.hypot(dx, dz)
@@ -180,8 +185,8 @@ export class TutorMotion {
       return true
     }
     this.speed = 0
-    this.yaw = dampAngle(this.yaw, 0, WALK.turnBackK, dt)
-    if (Math.abs(this.yaw) > WALK.settleAngle) {
+    this.yaw = dampAngle(this.yaw, face, WALK.turnBackK, dt)
+    if (Math.abs(angleDiff(this.yaw, face)) > WALK.settleAngle) {
       this.phase = 'settling'
       return true
     }
@@ -201,7 +206,7 @@ export class TutorMotion {
       this.pending = null
     }
 
-    const moving = this.walk(dt, input.target)
+    const moving = this.walk(dt, input.target, input.face ?? 0)
 
     if (moving) {
       // A spot change cuts a one-shot; requests made mid-walk wait for arrival.

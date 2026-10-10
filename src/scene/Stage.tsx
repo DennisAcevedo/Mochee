@@ -22,6 +22,7 @@ import { PlayProps } from './fx/PlayProps'
 import { AbilityProps, ReturnExperiment, RoomEvolution } from './evolution'
 import { Lights } from './Lights'
 import { PhysicsRoom, PhysicsTutor, Toys } from './physics'
+import { BallProp } from './hoops/BallProp'
 import { LessonRoom } from './room/LessonRoom'
 import styles from './Stage.module.css'
 
@@ -111,6 +112,7 @@ export function Stage({ children }: Props) {
                 </PhysicsTutor>
               </group>
               {live && <Toys />}
+              {live && <BallProp />}
             </PhysicsRoom>
           </Suspense>
           {live && (

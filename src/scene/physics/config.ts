@@ -69,16 +69,17 @@ export const PHYSICS = {
     },
   },
 
+  // A basketball sized to the one in his hands in the play_* clips (model radius 0.2, BLENDER/tutor/author_play.py).
   ball: {
-    radius: 0.2,
-    color: PALETTE.coral,
-    stripe: PALETTE.sun,
+    radius: 0.2 * TUTOR_SCALE,
+    color: '#F08A24', // basketball orange
+    stripe: '#3A2416', // the seams
     density: 0.6,
     restitution: 0.72,
     friction: 0.5,
     linearDamping: 0.02,
     angularDamping: 0.3,
-    spawn: [1.75, FLOOR_Y + 0.2, 1.3] as [number, number, number],
+    spawn: [1.75, FLOOR_Y + 0.2 * TUTOR_SCALE, 1.3] as [number, number, number],
     spinPerSpeed: 2.5,
   },
 

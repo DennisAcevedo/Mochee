@@ -201,9 +201,9 @@ export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneak
       loop: useTumbles.getState().hold ?? d.loop, // a tumble outranks the lesson's loop
       speaking: useTutorStore.getState().mic === 'speaking',
       gesture: d.gesture,
-      moving: motion.willMove(target),
+      moving: motion.willMove(target, d.faceYaw),
     })
-    motion.update(dt, { target, loop: out.loop, speaking: false, gesture: out.gesture, loopFade: out.loopFade, cut: out.cut })
+    motion.update(dt, { target, loop: out.loop, speaking: false, gesture: out.gesture, loopFade: out.loopFade, cut: out.cut, face: d.faceYaw })
     // The intro spin: extra yaw, rise and stretch on the placement (scaled about his feet).
     const L = introDriven ? spin.layer.update(dt, intro) : spin.layer.rest()
     const g = placement.current

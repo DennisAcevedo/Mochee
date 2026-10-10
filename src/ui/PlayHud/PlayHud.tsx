@@ -15,6 +15,7 @@ import {
   xpForLevel,
   type Dance,
 } from '../../state/progress'
+import { HoopsControls } from './HoopsControls'
 import { useCooldown, useXpToasts } from './hooks'
 import { LevelUpBanner } from './LevelUpBanner'
 import styles from './PlayHud.module.css'
@@ -286,6 +287,7 @@ export function PlayHud({ toastDirection = 'down', banner = true, className }: P
         <XpMeter />
         <div className={styles.divider} aria-hidden="true" />
         <div className={styles.actions}>
+          <HoopsControls />
           {ACTIONS.map((a) => (
             <PlayButton
               key={a.action}
