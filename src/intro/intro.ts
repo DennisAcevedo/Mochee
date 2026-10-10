@@ -1,6 +1,8 @@
 import { gsap } from 'gsap'
 import { INTRO } from '../animation/config'
 import { intro, INTRO_REST } from '../animation/introState'
+import { tutorActor } from '../character/blender/actor'
+import { INTRO_LAYER } from '../character/blender/config'
 import { CAMERA_REST, resetSceneRig, sceneRig } from '../scene/sceneRig'
 import { useTutorStore } from '../state/store'
 import { introTargets as T } from './targets'
@@ -16,6 +18,10 @@ const UI_PROPS = 'opacity,visibility,transform,transformOrigin,transition'
 let master: gsap.core.Timeline | null = null
 
 const store = () => useTutorStore.getState()
+
+// Where the camera pushes in to: the Blender tutor stands on the floor and
+// keeps his feet in the start box; the classic stand-in floats, face-height.
+const pushPose = () => (tutorActor.classic ? INTRO.push : INTRO_LAYER.push)
 const els = (...list: (HTMLElement | undefined)[]) => list.filter((e): e is HTMLElement => !!e)
 const uiEls = () => els(T.topBar, T.board, T.sidebar, T.inputBar)
 const overlayEls = () => els(T.overlay, T.title, T.subtitle, T.zs, T.startCta, T.startButton)
@@ -127,8 +133,9 @@ function buildFull() {
   tl.to(els(T.zs), { scale: 0, autoAlpha: 0, duration: E.duration - pop, ease: 'power2.in' }, pop)
   tl.set(els(T.overlay), { autoAlpha: 0 }, E.duration)
 
-  // 2. Camera pushes in on the face.
-  tl.to(sceneRig.cam, { px: P.position[0], py: P.position[1], pz: P.position[2], tx: P.target[0], ty: P.target[1], tz: P.target[2], duration: P.duration, ease: P.ease }, P.at)
+  // 2. Camera pushes in on him.
+  const { position: PP, target: PT } = pushPose()
+  tl.to(sceneRig.cam, { px: PP[0], py: PP[1], pz: PP[2], tx: PT[0], ty: PT[1], tz: PT[2], duration: P.duration, ease: P.ease }, P.at)
 
   // 3. Wake: eyes pop open with a twinkle, surprised hop, cap pops off and lands.
   const wake = P.at + P.duration

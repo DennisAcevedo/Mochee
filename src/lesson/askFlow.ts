@@ -92,7 +92,7 @@ function deliver(reply: AskReply, trace: LatencyTrace) {
 
   const pointing = focus === 'notes' ? 'point_left' : focus === 'board' ? 'point_right' : 'talk'
   const loop = isLoopGesture(reply.gesture) && reply.gesture !== 'talk' ? reply.gesture : pointing
-  if (isOneShotGesture(reply.gesture)) d.play(reply.gesture)
+  if (isOneShotGesture(reply.gesture)) d.play(reply.gesture, { vary: true })
 
   const w = useWalkthrough.getState()
   w.setLoopOverride(loop)

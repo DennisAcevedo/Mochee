@@ -1,12 +1,15 @@
 import { create } from 'zustand'
+import { notesTabs } from '../../shared/lessonNotes'
+import { CELEBRATIONS, type Celebration } from '../character/blender/config'
 import { script } from '../data/mockLesson'
 import { BUILTIN_TOPIC_REF, GROWTH, isExperimentRunning, skipExperiment, useExperimentRun } from '../growth'
-import { useDirector, type LoopClip } from '../state/director'
+import { useDirector, type LoopClip, type Spot } from '../state/director'
 import { useGrowth } from '../state/growth'
-import { unlockedDances, useProgress, type XpReason } from '../state/progress'
+import { DANCE_UNLOCKS, useProgress, type XpReason } from '../state/progress'
 import { useTutorStore, type Mode } from '../state/store'
 import { stripMarks } from './markup'
 import type { LatencyTrace } from './latency'
+import { openCelebrations, pickNoRepeat } from './roam'
 import { prefetchSpeech, setVoiceEnabled, speak, stopSpeaking } from './speech'
 import { QUIZ_FEEDBACK, RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 
@@ -21,7 +24,12 @@ const RUNNER = {
   walkMs: 950, // time to cross between spots before he starts talking
   gapMs: 650, // breath between steps while playing
   autoStartMs: 1400, // after the intro hands over to the live lesson
+  hintDelayMs: 1300, // a wrong answer: the shrug plays out (1.2 s clip), then he goes to the notes
 } as const
+
+// Where a wrong quick-check answer sends him: the notes line that unlocks it
+// (waits are start minus arrival), pointed at from in front of the notes window.
+const QUIZ_HINT = { line: 'l4-wait', spot: 'left' as Spot, loop: 'point_left' as LoopClip } as const
 
 // One-time rewards besides the per-step ones (prefixed so they never clash with step ids).
 const REWARD_KEYS = { quiz: 'reward:quizCorrect', lesson: 'reward:lessonDone' } as const
@@ -61,6 +69,7 @@ export interface WalkthroughState {
 const timers = new Set<ReturnType<typeof setTimeout>>()
 let heldPhase: RunPhase = 'idle'
 let expectLine: string | null = null // the line we're about to say ourselves, so the voice hook skips it
+let hinting = false // pointing at the notes after a wrong answer; cancelled with the timers
 
 function later(ms: number, fn: () => void) {
   const t = setTimeout(() => {
@@ -75,6 +84,7 @@ function cancelAll() {
   timers.clear()
   stopSpeaking()
   recordQuiz()
+  endHint()
 }
 
 function micIdle() {
@@ -120,7 +130,9 @@ function apply(index: number) {
   const s = useWalkthrough.getState()
   const step = s.steps[index]
   if (!step) return
-  const moving = useDirector.getState().spot !== step.spot
+  // Roaming counts as being somewhere else: walkTo (setStage) calls him back.
+  const d = useDirector.getState()
+  const moving = d.spot !== step.spot || d.roamX !== null
   useWalkthrough.setState({
     index,
     phase: moving ? 'walking' : 'speaking',
@@ -182,17 +194,45 @@ function advanceOrFinish() {
   later(RUNNER.gapMs, () => apply(index + 1))
 }
 
-const presenting = (phase: RunPhase) => phase === 'walking' || phase === 'speaking' || phase === 'gap'
+export const presenting = (phase: RunPhase) => phase === 'walking' || phase === 'speaking' || phase === 'gap'
 
 // ---- Quick check
 
+// A right answer's celebration: random among the unlocked CELEBRATIONS, never
+// the same one twice in a row (the drawers' quiz uses it too, tutorCues.ts).
+let lastCelebration: Celebration | null = null
+export function nextCelebration(rng: () => number = Math.random): Celebration {
+  const open = openCelebrations(CELEBRATIONS, DANCE_UNLOCKS, useProgress.getState().level)
+  lastCelebration = pickNoRepeat(open, lastCelebration, rng)
+  return lastCelebration
+}
+
 function celebrate() {
   const d = useDirector.getState()
-  const dances = unlockedDances(useProgress.getState().level)
-  d.play(dances[Math.floor(Math.random() * dances.length)] ?? 'celebrate')
+  d.play(nextCelebration(), { vary: true }) // a hop or celebrate pick rotates through the cheers (CLIP_VARIANTS)
   d.burst('confetti', 'board')
   d.burst('stars', 'tutor')
   rewardOnce(REWARD_KEYS.quiz, 'quizCorrect')
+}
+
+// After a wrong answer's shrug: open the notes on the line that helps, walk
+// over and point at it while the feedback plays. The focus (and so the
+// camera) stays put, so the quick-check keys stay where the student saw them.
+function showHint() {
+  if (useTutorStore.getState().mic !== 'speaking') return // the feedback already ended: no hint to point at
+  const d = useDirector.getState()
+  const tab = notesTabs.findIndex((t) => t.lines.some((l) => l.id === QUIZ_HINT.line))
+  if (tab >= 0) d.setNotesTab(tab)
+  d.setHighlight(QUIZ_HINT.line)
+  d.walkTo(QUIZ_HINT.spot)
+  useWalkthrough.setState({ loopOverride: QUIZ_HINT.loop })
+  hinting = true
+}
+
+function endHint() {
+  if (!hinting) return
+  hinting = false
+  if (useWalkthrough.getState().loopOverride === QUIZ_HINT.loop) useWalkthrough.setState({ loopOverride: null })
 }
 
 // The built-in quiz's answer counts toward topic mastery once its feedback
@@ -220,12 +260,19 @@ function onQuizAnswer(correct: boolean) {
   const d = useDirector.getState()
   const text = correct ? QUIZ_FEEDBACK.correct : QUIZ_FEEDBACK.wrong
   if (correct) celebrate()
-  else d.play('shrug')
+  else {
+    d.play('shrug', { urgent: true, vary: true }) // over a step gesture still queued from his walk in; shrug, facepalm, headshake in turn
+    later(RUNNER.hintDelayMs, showHint)
+  }
   d.setCaption(text)
   if (onQuizStep) useWalkthrough.setState({ quizResult: correct ? 'correct' : 'wrong', phase: 'speaking', loopOverride: null })
   speak(text, () => {
     micIdle()
     const learned = recordQuiz()
+    // The hint has been said. He stays by the notes (the lane never covers the
+    // quick-check keys): a walk back here would hold a right answer's dance
+    // until he arrived, since one-shots wait out a walk.
+    endHint()
     if (!onQuizStep) return
     if (correct) {
       useWalkthrough.setState({ lineDone: true })

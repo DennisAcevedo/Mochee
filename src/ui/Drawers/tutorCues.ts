@@ -1,20 +1,21 @@
 import { isLoopGesture } from '../../lesson/askGestures'
 import type { GroundedAnswer } from '../../../shared/docsTypes'
-import { useWalkthrough } from '../../lesson/runner'
+import { nextCelebration, useWalkthrough } from '../../lesson/runner'
 import { readingMs, speak } from '../../lesson/speech'
 import { useDirector } from '../../state/director'
-import { unlockedDances, useProgress } from '../../state/progress'
 import type { LatencyTrace } from '../../lesson/latency'
 
-// How the tutor on stage reacts to what happens in the drawers: he says a
-// document answer (voice + caption) with its gesture, and dances or shrugs at
-// quiz results. The guided lesson holds while he answers and picks back up after.
+// How the tutor on stage reacts to what happens in the drawers: he thinks
+// while a document question is pending, says the answer (voice + caption)
+// with its gesture, and celebrates or shrugs at quiz results. The guided
+// lesson holds while he answers and picks back up after.
 
 const CUES = {
   safetyMs: 15_000, // allow the speech transport's 14-second deadline before releasing the stage
 } as const
 
 let turn = 0
+let thinking = false // the think loop is ours, for a pending chat question
 
 function finish(my: number) {
   if (my !== turn) return
@@ -25,10 +26,32 @@ function finish(my: number) {
   useWalkthrough.getState().release()
 }
 
+// A chat question went out (pending) or came back (not pending). He thinks
+// until the answer arrives; performAnswer then takes over. Called by
+// CharacterDirector, which watches the chat store.
+export function thinkWhileChatPending(pending: boolean) {
+  if (pending) {
+    if (thinking) return
+    thinking = true
+    useWalkthrough.getState().hold()
+    useWalkthrough.getState().setLoopOverride('think')
+    return
+  }
+  // The answer, if any, is performed in the same task the pending flag drops
+  // in (chatStore.send); look once that has run. A failed question just stops thinking.
+  queueMicrotask(() => {
+    if (!thinking) return
+    thinking = false
+    if (useWalkthrough.getState().loopOverride === 'think') useWalkthrough.getState().setLoopOverride(null)
+    useWalkthrough.getState().release()
+  })
+}
+
 // Says a grounded answer on stage. Loop cues play for the length of the line;
 // one-shot cues fire once while he talks.
 export function performAnswer(answer: GroundedAnswer, trace?: LatencyTrace) {
   const my = ++turn
+  thinking = false // the answer replaces the think
   const d = useDirector.getState()
   useWalkthrough.getState().hold()
   const loop = isLoopGesture(answer.cue) ? answer.cue : 'talk'
@@ -40,14 +63,14 @@ export function performAnswer(answer: GroundedAnswer, trace?: LatencyTrace) {
   setTimeout(() => finish(my), readingMs(answer.answer) + CUES.safetyMs)
 }
 
-// Quiz result on stage: an unlocked dance and confetti, or a shrug.
+// Quiz result on stage: a celebration (never the same twice running) and
+// confetti, or a shrug.
 export function performQuizResult(correct: boolean) {
   const d = useDirector.getState()
   if (!correct) {
-    d.play('shrug')
+    d.play('shrug', { urgent: true }) // the student's answer wins over anything still queued
     return
   }
-  const dances = unlockedDances(useProgress.getState().level)
-  d.play(dances[Math.floor(Math.random() * dances.length)] ?? 'celebrate')
+  d.play(nextCelebration())
   d.burst('confetti')
 }
