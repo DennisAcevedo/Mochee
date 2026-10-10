@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type DragEvent } from 'react'
 import { notesTabs } from '../../../shared/lessonNotes'
-import { DOCS_LIMITS, type DocumentInfo } from '../../../shared/docsTypes'
+import { DEFAULT_DOC_KIND, DOCS_LIMITS, type DocumentInfo } from '../../../shared/docsTypes'
 import { PALETTE } from '../../scene/layout3d'
 import { useDrawers } from '../../state/drawers'
 import { errorText } from './docsClient'
@@ -52,7 +52,7 @@ export function LearningDrawer() {
 function UploadZone() {
   const upload = useDocs((d) => d.upload)
   const uploadError = useDocs((d) => d.uploadError)
-  const addPdf = useDocs((d) => d.addPdf)
+  const addFile = useDocs((d) => d.addFile)
   const clearUploadError = useDocs((d) => d.clearUploadError)
   const selectDocument = useDrawers((d) => d.selectDocument)
   const input = useRef<HTMLInputElement>(null)
@@ -60,7 +60,7 @@ function UploadZone() {
 
   const take = async (file: File | undefined) => {
     if (!file) return
-    const doc = await addPdf(file)
+    const doc = await addFile(file, DEFAULT_DOC_KIND)
     if (doc) selectDocument(doc.id)
   }
 

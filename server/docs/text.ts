@@ -1,3 +1,4 @@
+import { UPLOAD_EXTENSIONS } from '../../shared/docsTypes.ts'
 import { DOCS_CONFIG, STOPWORDS } from './config.ts'
 
 // Pure text helpers: page normalisation, chunking, sentence splitting, query
@@ -12,10 +13,14 @@ export interface Chunk {
   text: string
 }
 
-// NFKC, tabs/runs of spaces to one space, at most one blank line between paragraphs.
+// NFKC, control characters dropped, tabs/runs of spaces to one space, at most
+// one blank line between paragraphs. pdfjs maps some math glyphs (LaTeX's minus
+// sign) to U+0000, and node:sqlite stores a string only up to its first NUL, so
+// a page with one would be saved cut short.
 export function normalizePageText(raw: string): string {
   return raw
     .normalize('NFKC')
+    .replace(/[\u0000-\u0008\u000e-\u001f\u007f]/g, '')
     .replace(/\r\n?/g, '\n')
     .replace(/[^\S\n]+/g, ' ')
     .replace(/ *\n */g, '\n')
@@ -120,6 +125,41 @@ export function ftsQuery(question: string): string | null {
 // Lower-case words of a text, for overlap scoring (demo answers, topic keywords).
 export const words = (text: string) => text.normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []
 
+// Page text with [p.N] markers spread over pages from..to within about `budget`
+// chars, so a prompt sees the whole document rather than its opening pages.
+// Every page gets a fair share of its opening text (where headings sit; short
+// pages hand their slack to long ones). When a share would fall under
+// samplePageMinChars, evenly spaced pages are sampled instead of all of them.
+export function sampleAcross(pages: string[], budget: number, from = 1, to = pages.length): string {
+  const first = Math.max(1, from)
+  const last = Math.min(pages.length, to)
+  const n = last - first + 1
+  if (n <= 0 || budget <= 0) return ''
+  const count = Math.min(n, Math.max(1, Math.floor(budget / DOCS_CONFIG.samplePageMinChars)))
+  const picked = [...new Set(Array.from({ length: count }, (_, k) => first + (count === 1 ? 0 : Math.round((k * (n - 1)) / (count - 1)))))]
+  const marker = (p: number) => `[p.${p}]\n`.length + 2
+  let left = budget - picked.reduce((sum, p) => sum + marker(p), 0)
+  const share = new Map<number, number>()
+  // Water-fill: shortest pages first, each takes min(its length, an even split of what is left).
+  const byLength = [...picked].sort((a, b) => (pages[a - 1]?.length ?? 0) - (pages[b - 1]?.length ?? 0))
+  byLength.forEach((p, i) => {
+    const take = Math.max(0, Math.min(pages[p - 1]?.length ?? 0, Math.floor(left / (byLength.length - i))))
+    share.set(p, take)
+    left -= take
+  })
+  return picked.map((p) => `[p.${p}]\n${(pages[p - 1] ?? '').slice(0, share.get(p) ?? 0)}\n\n`).join('')
+}
+
+// Drops page references a model writes into a line ("(p. 9)", "(pp. 15, 17)",
+// "[page 3]"): the line's page field carries the page, checked against the text.
+export const stripPageRefs = (s: string) => s.replace(/\s*[([]\s*(?:pp?\.?|pages?)\s*\d+(?:\s*(?:[-–,]|and)\s*\d+)*\s*[)\]]/gi, '').trim()
+
+// Content words of a text for page matching: words of 4+ letters that are not
+// stopwords, and numbers of 2+ digits (results lines are full of them).
+export function contentWords(text: string): Set<string> {
+  return new Set(words(text).filter((w) => (/^\d+$/.test(w) ? w.length >= 2 : w.length >= 4 && !STOPWORDS.has(w))))
+}
+
 // The x-filename header travels percent-encoded (headers are ASCII); a bad
 // encoding keeps the raw value. Used only for the title and the extension check.
 export function decodeFilename(name: string): string {
@@ -130,11 +170,13 @@ export function decodeFilename(name: string): string {
   }
 }
 
+const UPLOAD_EXT = new RegExp(`\\.(${Object.keys(UPLOAD_EXTENSIONS).join('|')})$`, 'i')
+
 // Title from an untrusted client filename: basename, no extension, safe characters, capped.
 export function titleFromFilename(name: string): string {
   const base = decodeFilename(name).split(/[\\/]/).pop() ?? ''
   const title = base
-    .replace(/\.pdf$/i, '')
+    .replace(UPLOAD_EXT, '')
     .normalize('NFKC')
     .replace(/[^\p{L}\p{N} ._()\-,&'+]/gu, ' ')
     .replace(/\s+/g, ' ')

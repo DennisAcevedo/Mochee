@@ -1,7 +1,8 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { Citation, TopicInfo } from '../../shared/docsTypes.ts'
+import { DEFAULT_DOC_KIND, type Citation, type DocKind, type TopicInfo } from '../../shared/docsTypes.ts'
+import { DEFAULT_TUTOR_ID, type LessonPack } from '../../shared/lessonPack.ts'
 import type { Chunk } from './text.ts'
 
 // Data access for documents, chunks, topics, quiz questions and attempts
@@ -14,6 +15,8 @@ export interface DocumentRow {
   savedPath: string // relative to the data dir; never sent to a client
   pageCount: number
   createdAt: string
+  tutorId: string // the class it belongs to; NULL in old rows reads as DEFAULT_TUTOR_ID
+  kind: DocKind // NULL in old rows reads as DEFAULT_DOC_KIND
 }
 
 export interface QuestionRow {
@@ -45,11 +48,26 @@ CREATE TABLE IF NOT EXISTS topics (id TEXT PRIMARY KEY, documentId TEXT NOT NULL
 CREATE TABLE IF NOT EXISTS questions (id TEXT PRIMARY KEY, documentId TEXT NOT NULL, topicId TEXT NOT NULL, prompt TEXT NOT NULL, choicesJson TEXT NOT NULL, answerIndex INTEGER NOT NULL, explanation TEXT NOT NULL, citationJson TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS attempts (seq INTEGER PRIMARY KEY AUTOINCREMENT, attemptId TEXT NOT NULL UNIQUE, questionId TEXT NOT NULL, choice INTEGER NOT NULL, correct INTEGER NOT NULL, createdAt TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS attempts_question ON attempts (questionId, seq);
+CREATE TABLE IF NOT EXISTS lesson_packs (documentId TEXT PRIMARY KEY, json TEXT NOT NULL, createdAt TEXT NOT NULL);
 `
+
+const DOC_COLUMNS = `id, title, savedPath, pageCount, createdAt, COALESCE(tutorId, ?) AS tutorId, COALESCE(kind, '${DEFAULT_DOC_KIND}') AS kind`
 
 type Row = Record<string, unknown>
 const str = (v: unknown) => String(v ?? '')
 const num = (v: unknown) => Number(v ?? 0)
+
+function toDocument(r: Row): DocumentRow {
+  return {
+    id: str(r.id),
+    title: str(r.title),
+    savedPath: str(r.savedPath),
+    pageCount: num(r.pageCount),
+    createdAt: str(r.createdAt),
+    tutorId: str(r.tutorId),
+    kind: r.kind === 'paper' ? 'paper' : 'class',
+  }
+}
 
 function toChunk(r: Row): Chunk {
   return { id: str(r.id), documentId: str(r.documentId), page: num(r.page), startOffset: num(r.startOffset), endOffset: num(r.endOffset), text: str(r.text) }
@@ -79,6 +97,11 @@ export function openStore(dbPath: string) {
   const db = new DatabaseSync(dbPath)
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;')
   db.exec(SCHEMA)
+  // Databases from before classes existed: add the column; their rows stay NULL (= DEFAULT_TUTOR_ID).
+  const docColumns = db.prepare('PRAGMA table_info(documents)').all() as Row[]
+  if (!docColumns.some((c) => c.name === 'tutorId')) db.exec('ALTER TABLE documents ADD COLUMN tutorId TEXT')
+  // ...and before document kinds: their rows stay NULL (= DEFAULT_DOC_KIND).
+  if (!docColumns.some((c) => c.name === 'kind')) db.exec('ALTER TABLE documents ADD COLUMN kind TEXT')
 
   const inTransaction = <T>(fn: () => T): T => {
     db.exec('BEGIN')
@@ -97,7 +120,7 @@ export function openStore(dbPath: string) {
 
     insertDocument(doc: DocumentRow, pages: string[], chunks: Chunk[], topics: TopicInfo[]) {
       inTransaction(() => {
-        db.prepare('INSERT INTO documents (id, title, savedPath, pageCount, createdAt) VALUES (?, ?, ?, ?, ?)').run(doc.id, doc.title, doc.savedPath, doc.pageCount, doc.createdAt)
+        db.prepare('INSERT INTO documents (id, title, savedPath, pageCount, createdAt, tutorId, kind) VALUES (?, ?, ?, ?, ?, ?, ?)').run(doc.id, doc.title, doc.savedPath, doc.pageCount, doc.createdAt, doc.tutorId, doc.kind)
         const page = db.prepare('INSERT INTO pages (documentId, page, text) VALUES (?, ?, ?)')
         pages.forEach((text, i) => page.run(doc.id, i + 1, text))
         const chunk = db.prepare('INSERT INTO chunks (id, documentId, page, startOffset, endOffset, text) VALUES (?, ?, ?, ?, ?, ?)')
@@ -111,19 +134,35 @@ export function openStore(dbPath: string) {
       })
     },
 
-    listDocuments(): DocumentRow[] {
-      return (db.prepare('SELECT id, title, savedPath, pageCount, createdAt FROM documents ORDER BY createdAt DESC, id').all() as Row[]).map((r) => ({
-        id: str(r.id),
-        title: str(r.title),
-        savedPath: str(r.savedPath),
-        pageCount: num(r.pageCount),
-        createdAt: str(r.createdAt),
-      }))
+    // No tutorId = every class. A class filter matches COALESCE(tutorId, default), so legacy rows land in the default class.
+    listDocuments(tutorId?: string): DocumentRow[] {
+      const rows =
+        tutorId === undefined
+          ? db.prepare(`SELECT ${DOC_COLUMNS} FROM documents ORDER BY createdAt DESC, id`).all(DEFAULT_TUTOR_ID)
+          : db.prepare(`SELECT ${DOC_COLUMNS} FROM documents WHERE COALESCE(tutorId, ?) = ? ORDER BY createdAt DESC, id`).all(DEFAULT_TUTOR_ID, DEFAULT_TUTOR_ID, tutorId)
+      return (rows as Row[]).map(toDocument)
     },
 
     getDocument(id: string): DocumentRow | null {
-      const r = db.prepare('SELECT id, title, savedPath, pageCount, createdAt FROM documents WHERE id = ?').get(id) as Row | undefined
-      return r ? { id: str(r.id), title: str(r.title), savedPath: str(r.savedPath), pageCount: num(r.pageCount), createdAt: str(r.createdAt) } : null
+      const r = db.prepare(`SELECT ${DOC_COLUMNS} FROM documents WHERE id = ?`).get(DEFAULT_TUTOR_ID, id) as Row | undefined
+      return r ? toDocument(r) : null
+    },
+
+    allPages(documentId: string): string[] {
+      return (db.prepare('SELECT text FROM pages WHERE documentId = ? ORDER BY page').all(documentId) as Row[]).map((r) => str(r.text))
+    },
+
+    questionIds(documentId: string): string[] {
+      return (db.prepare('SELECT id FROM questions WHERE documentId = ? ORDER BY rowid').all(documentId) as Row[]).map((r) => str(r.id))
+    },
+
+    getLessonPack(documentId: string): LessonPack | null {
+      const r = db.prepare('SELECT json FROM lesson_packs WHERE documentId = ?').get(documentId) as Row | undefined
+      return r ? (JSON.parse(str(r.json)) as LessonPack) : null
+    },
+
+    putLessonPack(pack: LessonPack) {
+      db.prepare('INSERT OR REPLACE INTO lesson_packs (documentId, json, createdAt) VALUES (?, ?, ?)').run(pack.documentId, JSON.stringify(pack), pack.createdAt)
     },
 
     topics(documentId: string): TopicInfo[] {

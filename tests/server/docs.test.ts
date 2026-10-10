@@ -351,6 +351,38 @@ describe('HTTP middleware', () => {
     assert.equal(JSON.stringify(list.json).includes('savedPath'), false, 'storage paths never leave the server')
   })
 
+  // Raw GET: status, headers and the exact bytes (the original file is binary, not JSON).
+  function getRaw(path: string, method = 'GET'): Promise<{ status: number; headers: Record<string, unknown>; bytes: Buffer }> {
+    return new Promise((resolve, reject) => {
+      const req = request({ ...base, path, method }, (res) => {
+        const parts: Buffer[] = []
+        res.on('data', (c: Buffer) => parts.push(c))
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, headers: res.headers, bytes: Buffer.concat(parts) }))
+      })
+      req.on('error', reject)
+      req.end()
+    })
+  }
+
+  test('the original PDF opens inline, byte for byte, for "Open full PDF"', async () => {
+    const [doc] = (await send('/api/documents', 'GET', {})).json as DocumentInfo[]
+    const r = await getRaw(`/api/documents/${doc.id}/file`)
+    assert.equal(r.status, 200)
+    assert.equal(r.headers['content-type'], 'application/pdf')
+    assert.match(String(r.headers['content-disposition']), /^inline; filename\*=UTF-8''.+\.pdf$/)
+    assert.equal(r.headers['x-content-type-options'], 'nosniff')
+    assert.equal(Number(r.headers['content-length']), pdf.length)
+    assert.ok(r.bytes.equals(pdf), 'served bytes are the uploaded bytes')
+  })
+
+  test('the original file route refuses bad ids, unknown ids and other methods', async () => {
+    assert.equal((await getRaw('/api/documents/not-an-id/file')).status, 400)
+    assert.equal((await getRaw('/api/documents/..%2F..%2Fgeminiguy.db/file')).status, 400)
+    assert.equal((await getRaw('/api/documents/0123456789abcdef/file')).status, 404)
+    const [doc] = (await send('/api/documents', 'GET', {})).json as DocumentInfo[]
+    assert.equal((await getRaw(`/api/documents/${doc.id}/file`, 'DELETE')).status, 405)
+  })
+
   test('upload rejects non-PDFs (type, extension and magic bytes)', async () => {
     const pdfHeaders = { 'content-type': 'application/pdf', 'x-filename': 'notes.pdf' }
     assert.deepEqual(await send('/api/documents', 'POST', { 'content-type': 'text/plain', 'x-filename': 'notes.pdf' }, pdf), { status: 415, json: { error: 'not-pdf' } })

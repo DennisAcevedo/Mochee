@@ -1,12 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { createReadStream, statSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
-import { DOCS_ROUTES } from '../../shared/docsTypes.ts'
+import { DOCS_ROUTES, uploadFormat } from '../../shared/docsTypes.ts'
+import { STUDY_LIMITS, STUDY_ROUTES } from '../../shared/lessonPack.ts'
 import { hasGeminiKey, hasVoiceKey, KEY_FILES, readGeminiKey } from '../keys.ts'
 import { refuseCrossSite } from '../requestGuard.ts'
 import { DOCS_CONFIG } from './config.ts'
-import { hasPdfMagic } from './pdf.ts'
-import { createDocsService, type DocsService, type Reply, type ServiceOptions } from './service.ts'
+import { hasMagic } from './formats.ts'
+import { audioType } from './lecture.ts'
+import { createDocsService, docKindFrom, needsGemini, refusedFormat, tutorIdFrom, type DocsService, type Reply, type ServiceOptions } from './service.ts'
 import { decodeFilename } from './text.ts'
 
 // The documents backend on the dev and preview servers (routes in
@@ -18,6 +21,7 @@ export interface DocsMiddlewareOptions {
   root: string
   dataDir?: string // default <root>/.data
   maxUploadBytes?: number // default DOCS_LIMITS.maxUploadBytes (tests lower it)
+  maxAudioBytes?: number // default STUDY_LIMITS.maxAudioBytes (tests lower it)
   readKey?: ServiceOptions['readKey']
   gemini?: ServiceOptions['gemini']
 }
@@ -33,11 +37,28 @@ class BodyError extends Error {
 }
 
 function send(res: ServerResponse, reply: Reply) {
+  if (reply.file) return sendFile(res, reply.file)
   res.statusCode = reply.status
   res.setHeader('content-type', 'application/json; charset=utf-8')
   res.setHeader('cache-control', 'no-store')
   res.setHeader('x-content-type-options', 'nosniff')
   res.end(JSON.stringify(reply.body))
+}
+
+// A stored original: inline so the browser's own viewer opens it (whole PDF,
+// page jumps via #page=N; text; images), else a download (DOCX, PPTX, HTML).
+// The sandbox CSP keeps a downloaded HTML page from ever running as this origin.
+function sendFile(res: ServerResponse, file: NonNullable<Reply['file']>) {
+  res.statusCode = 200
+  res.setHeader('content-type', file.type)
+  res.setHeader('content-length', statSync(file.path).size)
+  res.setHeader('content-disposition', `${file.inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.name)}`)
+  if (!file.inline) res.setHeader('content-security-policy', 'sandbox')
+  res.setHeader('cache-control', 'private, max-age=300')
+  res.setHeader('x-content-type-options', 'nosniff')
+  createReadStream(file.path)
+    .on('error', () => res.destroy())
+    .pipe(res)
 }
 
 // Buffers at most `limit` bytes. Past the limit it stops buffering at once and
@@ -92,17 +113,46 @@ function isForbiddenPath(url: string): boolean {
   return KEY_FILES.some((f) => p.endsWith(`/${f.toLowerCase()}`))
 }
 
+// Any accepted file (shared/docsTypes.ts UPLOAD_FORMATS). Format, class and
+// kind are checked before any bytes are read; an image needs the key too.
 async function upload(service: DocsService, req: IncomingMessage, maxBytes: number): Promise<Reply> {
-  const type = String(req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase()
+  const type = String(req.headers['content-type'] ?? '')
   const filename = decodeFilename(String(req.headers['x-filename'] ?? ''))
-  if (type !== 'application/pdf' || !/\.pdf$/i.test(filename)) return { status: 415, body: { error: 'not-pdf' } }
+  const format = uploadFormat(filename, type)
+  if (!format) return { status: 415, body: { error: refusedFormat(filename, type, null) } }
+  const tutorId = tutorIdFrom(headerOf(req, 'x-tutor-id'))
+  const kind = docKindFrom(headerOf(req, 'x-doc-kind'))
+  if (!tutorId || !kind) return { status: 400, body: { error: 'bad-request' } }
+  if (needsGemini(format) && !service.hasKey()) {
+    req.resume() // discard the body; the reply goes out with connection: close
+    return { status: 503, body: { error: 'no-key' } }
+  }
   const bytes = await readBody(req, maxBytes)
-  if (!hasPdfMagic(bytes)) return { status: 415, body: { error: 'not-pdf' } }
-  return service.ingest(bytes, filename)
+  if (!hasMagic(format, bytes)) return { status: 415, body: { error: refusedFormat(filename, type, format) } }
+  return service.ingest(bytes, filename, tutorId, kind, type)
 }
 
-async function route(service: DocsService, root: string, maxBytes: number, req: IncomingMessage): Promise<Reply | null> {
-  const path = (req.url ?? '').split('?')[0]
+const headerOf = (req: IncomingMessage, name: string): string | undefined => {
+  const v = req.headers[name]
+  return Array.isArray(v) ? v[0] : v
+}
+
+// Raw audio -> transcript document. Type, class and key are checked before any bytes are read.
+async function lectureUpload(service: DocsService, req: IncomingMessage, maxBytes: number): Promise<Reply> {
+  const contentType = String(req.headers['content-type'] ?? '')
+  if (!audioType(contentType)) return { status: 415, body: { error: 'not-audio' } }
+  const tutorId = tutorIdFrom(headerOf(req, 'x-tutor-id'))
+  if (!tutorId) return { status: 400, body: { error: 'bad-request' } }
+  if (!service.hasKey()) {
+    req.resume() // discard the body; the reply goes out with connection: close
+    return { status: 503, body: { error: 'no-key' } }
+  }
+  const bytes = await readBody(req, maxBytes)
+  return service.lecture(bytes, contentType, headerOf(req, 'x-filename') ?? '', tutorId)
+}
+
+async function route(service: DocsService, root: string, maxBytes: number, maxAudioBytes: number, req: IncomingMessage): Promise<Reply | null> {
+  const [path, query = ''] = (req.url ?? '').split('?')
   const method = req.method ?? 'GET'
   const methodNotAllowed: Reply = { status: 405, body: { error: 'method' } }
 
@@ -111,7 +161,12 @@ async function route(service: DocsService, root: string, maxBytes: number, req: 
     return { status: 200, body: { ok: true, geminiConfigured: hasGeminiKey(root), voiceConfigured: hasVoiceKey(root) } }
   }
   if (path === DOCS_ROUTES.documents) {
-    if (method === 'GET') return service.list()
+    if (method === 'GET') {
+      const raw = new URLSearchParams(query).get('tutorId')
+      if (raw === null) return service.list()
+      const tutorId = tutorIdFrom(raw)
+      return tutorId && raw.trim() ? service.list(tutorId) : { status: 400, body: { error: 'bad-request' } }
+    }
     if (method === 'POST') return upload(service, req, maxBytes)
     return methodNotAllowed
   }
@@ -126,6 +181,29 @@ async function route(service: DocsService, root: string, maxBytes: number, req: 
     }
     return service.page(id, page[2])
   }
+  const file = /^\/api\/documents\/([^/]+)\/file$/.exec(path)
+  if (file) {
+    if (method !== 'GET') return methodNotAllowed
+    let id: string
+    try {
+      id = decodeURIComponent(file[1])
+    } catch {
+      return { status: 400, body: { error: 'bad-request' } }
+    }
+    return service.file(id)
+  }
+  const lesson = /^\/api\/documents\/([^/]+)\/lesson$/.exec(path)
+  if (lesson) {
+    if (method !== 'POST') return methodNotAllowed
+    let id: string
+    try {
+      id = decodeURIComponent(lesson[1])
+    } catch {
+      return { status: 400, body: { error: 'bad-request' } }
+    }
+    return service.lesson(id)
+  }
+  if (path === STUDY_ROUTES.lectures) return method === 'POST' ? lectureUpload(service, req, maxAudioBytes) : methodNotAllowed
   if (path.startsWith(`${DOCS_ROUTES.documents}/`)) return { status: 404, body: { error: 'not-found' } }
   if (path === DOCS_ROUTES.chat) return method === 'POST' ? service.chat(await readJson(req)) : methodNotAllowed
   if (path === DOCS_ROUTES.quiz) return method === 'POST' ? service.quiz(await readJson(req)) : methodNotAllowed
@@ -143,19 +221,22 @@ export function docsMiddleware(options: DocsMiddlewareOptions): Connect.NextHand
       gemini: options.gemini,
     }))
   const maxBytes = options.maxUploadBytes ?? DOCS_CONFIG.limits.maxUploadBytes
+  const maxAudioBytes = options.maxAudioBytes ?? STUDY_LIMITS.maxAudioBytes
 
   const handler = (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
     const url = req.url ?? ''
     if (isForbiddenPath(url)) return send(res, { status: 404, body: { error: 'not-found' } })
     if (!url.startsWith('/api/')) return next()
     if (req.method === 'POST') {
-      // Uploads check their own content type (application/pdf) in upload().
-      const isUpload = url.split('?')[0] === DOCS_ROUTES.documents
+      // Uploads check their own content type (an UPLOAD_FORMATS type in upload(), audio/* in lectureUpload()).
+      const postPath = url.split('?')[0]
+      const isUpload = postPath === DOCS_ROUTES.documents || postPath === STUDY_ROUTES.lectures
       const refused = refuseCrossSite(req, isUpload ? null : 'application/json')
       if (refused) return send(res, { status: refused.status, body: { error: refused.error } })
     }
-    route(getService(), options.root, maxBytes, req)
+    route(getService(), options.root, maxBytes, maxAudioBytes, req)
       .then((reply) => {
+        if (reply?.status === 503) res.setHeader('connection', 'close')
         if (reply) send(res, reply)
         else next()
       })

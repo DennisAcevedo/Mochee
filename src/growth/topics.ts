@@ -139,6 +139,9 @@ export function sampleDocument(n: number): DocumentInfo {
     title: pick.title,
     pageCount: 2,
     createdAt: new Date(0).toISOString(),
+    tutorId: 'cs111', // DEFAULT_TUTOR_ID in shared/lessonPack.ts: the sample CS111 class
+    original: 'pdf',
+    kind: 'class',
     topics: pick.topics.map((t) => ({ ...t, id: n < samples.length ? t.id : `${t.id}-${n}`, documentId: id })),
   }
 }
