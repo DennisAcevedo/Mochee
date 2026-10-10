@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import type { Group, Mesh } from 'three'
 import { CHARACTER, type Pose } from '../animation/config'
 import { useLook, type FrameSource } from '../animation/useLook'
@@ -27,6 +27,10 @@ export interface CharacterProps {
   introDriven?: boolean // reads the Stage 2 intro state (the lesson only)
   frame?: FrameSource // rect the cursor is normalized against
   lite?: boolean // tick at LITE.tickHz instead of every frame (idle Home cards)
+  // Ghost: the tick still runs and moves the (hidden) rig, but only the ground
+  // shadow draws. The intro uses it to steer the Blender tutor (IntroTutor).
+  ghost?: boolean
+  rootOut?: RefObject<Group | null> // receives the rig's root group
 }
 
 // Which material each accessory's colour lands on.
@@ -53,6 +57,8 @@ export function Character({
   introDriven = false,
   frame,
   lite = false,
+  ghost = false,
+  rootOut,
 }: CharacterProps) {
   const materials = useMaterials()
   const refs: RigRefs = {
@@ -96,29 +102,39 @@ export function Character({
     }
   }, [materials, accessory, look.accColor])
 
+  useEffect(() => {
+    if (!rootOut) return
+    rootOut.current = refs.root.current
+    return () => {
+      rootOut.current = null
+    }
+  })
+
   usePoses(state, pose === undefined ? undefined : { pose, speaking })
   useLook(state, frame)
   useTick(refs, state, { size, roam, rleft, rright, accessory, introDriven, lite })
 
   return (
     <group name="character">
-      <group ref={refs.root} name="root">
-        <Body groupRef={refs.body} materials={materials}>
-          <Face refs={refs} materials={materials} />
-          <Cap capRef={refs.cap} tasselRef={refs.tassel} materials={materials} color={look.cap}>
-            <CapLeaf accessory={accessory} materials={materials} />
-          </Cap>
-          <BodyAccessories accessory={accessory} materials={materials} />
-        </Body>
-        <Book groupRef={refs.book} materials={materials} />
+      <group visible={!ghost}>
+        <group ref={refs.root} name="root">
+          <Body groupRef={refs.body} materials={materials}>
+            <Face refs={refs} materials={materials} />
+            <Cap capRef={refs.cap} tasselRef={refs.tassel} materials={materials} color={look.cap}>
+              <CapLeaf accessory={accessory} materials={materials} />
+            </Cap>
+            <BodyAccessories accessory={accessory} materials={materials} />
+          </Body>
+          <Book groupRef={refs.book} materials={materials} />
+        </group>
+        <Hands
+          leftRef={refs.hand_L}
+          rightRef={refs.hand_R}
+          material={materials.hand}
+          left={<Mic groupRef={refs.mic} materials={materials} />}
+          right={<Pencil accessory={accessory} materials={materials} />}
+        />
       </group>
-      <Hands
-        leftRef={refs.hand_L}
-        rightRef={refs.hand_R}
-        material={materials.hand}
-        left={<Mic groupRef={refs.mic} materials={materials} />}
-        right={<Pencil accessory={accessory} materials={materials} />}
-      />
       <Shadow meshRef={refs.shadow} material={materials.blob} />
     </group>
   )

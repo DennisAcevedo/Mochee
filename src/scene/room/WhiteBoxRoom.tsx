@@ -12,12 +12,13 @@ import {
 import { FLOOR_Y, PALETTE, ROOM, SPOTS, WINDOWS } from '../layout3d'
 import { roundedRect } from '../windows/shapes'
 import { blobTexture, glowTexture, surfaceTexture } from './bakedTextures'
+import { BuildIn } from './build'
 import { ROOM_STYLE as S, type DecalKind, type Surface } from './roomStyle'
 
 // The lesson's white-box room: a one-point-perspective interior (floor, back
 // wall, two side walls, ceiling) with baked soft-white tones and corner
 // falloff, transparent shadow catchers over each surface, and the bold
-// accents (colour-block skirting, rug, rainbow arch, ceiling light, confetti
+// accents (colour-block skirting, rug, ceiling light, confetti
 // decals). Unlit surfaces keep the room the mock's exact tones under any
 // light rig; only the shadows come from the scene's key light.
 
@@ -194,24 +195,6 @@ function WindowBlobs({ map }: { map: Texture }) {
   )
 }
 
-// Half-ring rainbow on the back wall, framing the tutor from behind.
-function Arch() {
-  const { radius, bands, bandWidth, gap, opacity, segments } = S.arch
-  return (
-    <group position={[SPOTS.center.x, FLOOR_Y, BACK_Z + S.lift * 2]}>
-      {bands.map((c, i) => {
-        const outer = radius - i * (bandWidth + gap)
-        return (
-          <mesh key={c + i}>
-            <ringGeometry args={[outer - bandWidth, outer, segments, 1, 0, Math.PI]} />
-            <meshBasicMaterial color={PALETTE[c]} transparent opacity={opacity} toneMapped={false} />
-          </mesh>
-        )
-      })}
-    </group>
-  )
-}
-
 // Glowing panel on the ceiling with a coloured rim and a warm halo.
 function CeilingLight({ glow }: { glow: Texture }) {
   const { width, depth, z, radius, color, rim, rimWidth, glow: halo } = S.ceilingLight
@@ -278,12 +261,23 @@ export function WhiteBoxRoom() {
       <Surface map={tex.ceiling} width={ROOM.width} height={SIDE_LEN} position={[0, CEIL_Y, SIDE_MID_Z]} rotation={[HALF_PI, 0, 0]} shadowOpacity={0} />
       <Surface map={tex.left} width={SIDE_LEN} height={ROOM.height} position={[-HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, HALF_PI, 0]} shadowOpacity={wallShadow} />
       <Surface map={tex.right} width={SIDE_LEN} height={ROOM.height} position={[HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, -HALF_PI, 0]} shadowOpacity={wallShadow} />
-      <Arch />
-      <Decals />
-      <Skirting />
-      <Rug />
-      <WindowBlobs map={tex.blob} />
-      <CeilingLight glow={tex.glow} />
+      {/* The walls, floor and ceiling are the bare box he lands in; everything
+          below builds itself in during the intro (build.tsx). */}
+      <BuildIn part="decals" style="pop" pivot={[0, MID_Y, BACK_Z]}>
+        <Decals />
+      </BuildIn>
+      <BuildIn part="skirting" style="rise" distance={0.9}>
+        <Skirting />
+      </BuildIn>
+      <BuildIn part="rug" style="pop" pivot={[SPOTS.center.x, FLOOR_Y, SPOTS.center.z]}>
+        <Rug />
+      </BuildIn>
+      <BuildIn part="blobs" style="pop" pivot={[0, FLOOR_Y, WINDOWS.notes.position[2]]}>
+        <WindowBlobs map={tex.blob} />
+      </BuildIn>
+      <BuildIn part="ceiling" style="drop" distance={1.4}>
+        <CeilingLight glow={tex.glow} />
+      </BuildIn>
     </group>
   )
 }

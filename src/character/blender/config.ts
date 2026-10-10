@@ -39,6 +39,14 @@ export type NodeKey = keyof typeof NODE_NAMES
 export const CAP_MATERIAL = 'cap'
 export const SNEAKER_MATERIAL = 'sneaker' // the feet's coral sole band (v2 GLB); recoloured by the sneakerColor prop
 
+// v3 GLB: one node per accessory (src/character/look.ts names), all present in
+// the file; the tutor shows only the look's pick and tints its acc_<name>
+// material with accColor. The book node shows while the 'read' clip plays
+// (and the mic hides then). Older GLBs have none of these: nothing shows.
+export const ACCESSORY_NODES = ['glasses', 'leaf', 'mic', 'bowtie', 'headphones', 'scarf', 'pencil'] as const
+export const BOOK_NODE = 'book'
+export const accessoryMaterial = (name: string) => `acc_${name}`
+
 // When a clip is missing from the GLB, play the next one down this chain
 // (one mapping table, so a renamed or dropped clip degrades instead of freezing).
 export const CLIP_FALLBACK: Partial<Record<Clip, Clip>> = {
@@ -66,6 +74,7 @@ export const CLIP_FALLBACK: Partial<Record<Clip, Clip>> = {
   surprise: 'shrug',
   hint: 'point_right',
   equip: 'wave',
+  read: 'think',
 }
 
 // Face per clip when the manifest does not say (the manifest wins).
@@ -89,6 +98,7 @@ export const DEFAULT_FACE: Partial<Record<Clip, FaceState>> = {
   surprise: 'surprised',
   hint: 'happy',
   equip: 'happy',
+  read: 'focused',
 }
 
 // Animation state machine (animController.ts). Every director clip belongs to
@@ -111,6 +121,7 @@ export const ANIM_STATE_NAMES = [
   'surprise',
   'equip',
   'levelup',
+  'read',
 ] as const
 export type AnimState = (typeof ANIM_STATE_NAMES)[number]
 
@@ -140,6 +151,7 @@ export const ANIM_STATES: Record<AnimState, AnimStateConfig> = {
   explain: { kind: 'loop', priority: 30, cooldown: 0.3, fade: 0.2, clips: ['talk', 'point_left', 'point_right'] },
   think: { kind: 'loop', priority: 30, cooldown: 0.3, fade: 0.2, clips: ['think'] },
   listen: { kind: 'loop', priority: 30, cooldown: 0.3, fade: 0.2, clips: ['listen'] },
+  read: { kind: 'loop', priority: 30, cooldown: 0.3, fade: 0.3, clips: ['read'] },
   idle: { kind: 'loop', priority: 0, cooldown: 0.3, fade: 0.2, clips: ['idle', 'walk'] },
   sleep: { kind: 'loop', priority: 0, cooldown: 0.3, fade: 0.3, clips: ['sleep'] },
 }

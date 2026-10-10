@@ -127,7 +127,45 @@ MATERIALS = {
     'sneaker': dict(base='#ff6b5b', rough=0.45, coat=0.35, coat_rough=0.25),  # concept sheet coral; recolourable like 'cap'
     'gold': dict(base='#ffc83d', rough=0.3, metal=0.55, coat=1.0, coat_rough=0.08),  # PALETTE.sun
     'pearl': dict(base='#fbfaff', rough=0.18, coat=1.0, coat_rough=0.05, emission='#ffffff', emission_strength=0.12),
+    # Accessories and the book (classic src/character/materials.ts). 'acc_<name>' is each
+    # accessory's main material: the app sets it to the look's accColor.
+    'acc_glasses': dict(base='#2b2b33', rough=0.35, metal=0.4),
+    'acc_leaf': dict(base='#62b46e', rough=0.45, sheen=0.6, sheen_tint='#d8ffd0'),
+    'leaf_stem': dict(base='#4a7a3a', rough=0.6),
+    'acc_mic': dict(base='#5cc4c9', rough=0.5, coat=0.2, sheen=1.0, sheen_tint='#e6fffd'),
+    'mic_body': dict(base='#3a3a46', rough=0.5, coat=0.12, sheen=1.0),
+    'acc_bowtie': dict(base='#7c5cf2', rough=0.5, sheen=1.0),
+    'acc_headphones': dict(base='#e0607a', rough=0.4, coat=0.6, coat_rough=0.2, sheen=0.5),
+    'acc_scarf': dict(base='#f2b84b', rough=0.55, coat=0.15, coat_rough=0.3, sheen=0.8, sheen_rough=0.4),
+    'acc_pencil': dict(base='#5cc4c9', rough=0.5, coat=0.3, coat_rough=0.2),
+    'pencil_wood': dict(base='#f2d3a0', rough=0.8),
+    'pencil_lead': dict(base='#2b2b33', rough=0.6),
+    'ferrule': dict(base='#d9dbe2', rough=0.4, metal=0.5),
+    'eraser': dict(base='#f2a0aa', rough=0.8),
+    'book_cover': dict(base='#1f8a92', rough=0.55, sheen=0.5),
+    'book_page': dict(base='#fbf8f0', rough=0.9),
+    'book_ink': dict(base='#c9c3b4', rough=0.9),
 }
+
+# Accessory nodes (src/character/look.ts names). Each is one node, hidden by the app
+# unless it is the tutor's pick; shapes and placements match the classic character
+# (src/character/parts/Accessories.tsx). Placements are three-space, like FACE.
+ACC = {
+    'glasses': {'rim': (0.125, 0.018), 'rim_at': (0.205, -0.01, 0.035), 'bridge': (0.045, 0.011), 'bridge_at': (0.0, 0.0, 0.045)},
+    'bowtie': {'at': (0.0, -0.4, 0.06), 'wing': (0.08, 0.15), 'wing_x': 0.08, 'flat': 0.5, 'knot': 0.038},
+    'headphones': {'x': 0.84, 'z': 0.08, 'yaw': 0.25, 'roll': 0.15, 'scale': 1.35, 'bud': 0.075, 'stem': (0.026, 0.11)},
+    'scarf': {'at': (0.0, -0.36, 0.02), 'pitch': -0.12, 'knot': 0.055,
+              'blade': [(-0.045, 0.0), (0.045, 0.0), (0.085, -0.25), (0.0, -0.33), (-0.085, -0.25)], 'depth': 0.034, 'bevel': 0.01},
+    'leaf': {'at': (-0.2, 0.935, 0.14), 'scale': 1.7},  # cap-local
+    'mic': {'hand': 'hand.R', 'at': (0.02, 0.12, 0.16), 'rot': (0.25, 0.0, -0.15), 'scale': 1.6},  # hand-local; the classic left mitten (viewer left)
+    'pencil': {'hand': 'hand.L', 'at': (-0.04, 0.12, 0.14), 'rot': (0.2, 0.0, 0.3), 'scale': 1.3},
+}
+ACCESSORIES = list(ACC)
+
+# The open book for the 'read' clip: on the root, in front of him at chest height,
+# tipped back toward his face. Hidden by the app except while reading.
+BOOK = {'at': (0.0, -0.3, 0.98), 'pitch': -0.85, 'scale': 1.25, 'spread': 0.22,
+        'cover': (0.27, 0.014, 0.36), 'page': (0.25, 0.024, 0.33), 'lines': 7}
 
 EXPORT = {'fps': 60}
 
@@ -384,6 +422,54 @@ def add_sparkle(bm, depth, bevel, xf=Matrix.Identity(4), mat=0):
     return verts
 
 
+def add_torus(bm, R, tube, segs, xf=Matrix.Identity(4), mat=0):
+    """three's closed TorusGeometry(R, tube, radial, tubular), in the xy plane."""
+    radial, tubular = segs
+    rows = [[bm.verts.new(((R + tube * math.cos(j / radial * math.tau)) * math.cos(i / tubular * math.tau),
+                           (R + tube * math.cos(j / radial * math.tau)) * math.sin(i / tubular * math.tau),
+                           tube * math.sin(j / radial * math.tau))) for j in range(radial)] for i in range(tubular)]
+    for i in range(tubular):
+        for j in range(radial):
+            a, b = rows[i][j], rows[(i + 1) % tubular][j]
+            bm.faces.new((a, b, rows[(i + 1) % tubular][(j + 1) % radial], rows[i][(j + 1) % radial]))
+    verts = [v for row in rows for v in row]
+    bmesh.ops.transform(bm, matrix=xf, verts=verts)
+    _tag(bm, verts, mat)
+    return verts
+
+
+def add_cone(bm, r, h, segs, xf=Matrix.Identity(4), mat=0):
+    """three's ConeGeometry: tip at +y."""
+    ret = bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=segs, radius1=r, radius2=0.0,
+                                depth=h, matrix=Matrix.Rotation(-math.pi / 2, 4, 'X'))
+    verts = ret['verts']
+    tip = [v for v in verts if v.co.length < 1e-9 or abs(v.co.y - h / 2) < 1e-6 and math.hypot(v.co.x, v.co.z) < 1e-6]
+    bmesh.ops.remove_doubles(bm, verts=tip, dist=1e-6)
+    verts = [v for v in verts if v.is_valid]
+    bmesh.ops.transform(bm, matrix=xf, verts=verts)
+    _tag(bm, verts, mat)
+    return verts
+
+
+def add_slab(bm, outline, depth, bevel, xf=Matrix.Identity(4), mat=0):
+    """A flat outline (xy) extruded along z, centred on z = 0, rims bevelled."""
+    front = [bm.verts.new((x, y, depth / 2)) for x, y in outline]
+    back = [bm.verts.new((x, y, -depth / 2)) for x, y in outline]
+    n = len(outline)
+    bm.faces.new(front)
+    bm.faces.new(list(reversed(back)))
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((back[i], back[j], front[j], front[i]))
+    bm.normal_update()
+    rim = [e for e in bm.edges if e.verts[0] in front + back and e.verts[1] in front + back]
+    out = bmesh.ops.bevel(bm, geom=rim, offset=bevel, segments=3, profile=0.5, affect='EDGES', clamp_overlap=True)
+    verts = [v for v in set(front + back + out['verts']) if v.is_valid]
+    bmesh.ops.transform(bm, matrix=xf, verts=verts)
+    _tag(bm, verts, mat)
+    return verts
+
+
 def add_plane(bm, w, h, xf=Matrix.Identity(4), mat=0):
     uv = bm.loops.layers.uv.verify()
     vs = [bm.verts.new((-w / 2, -h / 2, 0)), bm.verts.new((w / 2, -h / 2, 0)),
@@ -586,6 +672,102 @@ def build_body(arm, mats_by_name, pts, cap_frame):
         new_object('foot_mesh.' + sfx, bm, [M['hand'], M['sneaker']], xf, arm, 'foot.' + sfx, subsurf=MODEL['subsurf'])
 
 
+def build_accessories(arm, mats_by_name, pts, cap_frame):
+    """Every accessory plus the book, each its own node (named like look.ts) on the bone it rides."""
+    M = mats_by_name
+    body_world = T(0, MODEL['body_y'], 0)
+    built = []
+
+    def hand_frame(bone):
+        side = 1 if bone.endswith('.L') else -1
+        px, py, pz = HAND['tilt']
+        return T(*pts[bone]) @ three_euler(px, py, -side * pz)  # the mitten's own axes, as in build_body
+
+    # Glasses: two rims and a bridge, just in front of the eyes.
+    g = ACC['glasses']
+    bm = bmesh.new()
+    rx, ry, ro = g['rim_at']
+    for side in (1, -1):
+        add_torus(bm, *g['rim'], (12, 44), place_on_sphere(side * rx, ry, ro))
+    add_torus_arc(bm, *g['bridge'], (8, 20), math.pi, place_on_sphere(*g['bridge_at'][:2], g['bridge_at'][2]))
+    built.append(new_object('glasses', bm, [M['acc_glasses']], body_world, arm, 'body'))
+
+    # Bow tie: two flattened cones tip to tip with a knot.
+    b = ACC['bowtie']
+    bm = bmesh.new()
+    for sx in (-1, 1):
+        add_cone(bm, *b['wing'], 24, T(sx * b['wing_x'], 0, 0) @ Matrix.Rotation(sx * math.pi / 2, 4, 'Z') @ S(1, 1, b['flat']))
+    add_sphere(bm, b['knot'], (16, 10), S(1, 1, 0.6))
+    built.append(new_object('bowtie', bm, [M['acc_bowtie']], body_world @ place_on_sphere(*b['at'][:2], b['at'][2]), arm, 'body'))
+
+    # Earbuds ('headphones'): a bud and a stem at each side of his head.
+    h = ACC['headphones']
+    bm = bmesh.new()
+    for sx in (-1, 1):
+        xf = T(sx * h['x'], 0, h['z']) @ three_euler(0, sx * h['yaw'], sx * h['roll']) @ S(h['scale'], h['scale'], h['scale'])
+        add_sphere(bm, h['bud'], (24, 16), xf @ S(0.8, 1, 0.8))
+        add_capsule(bm, *h['stem'], (16, 9), xf @ T(0, -0.11, 0.02))
+    built.append(new_object('headphones', bm, [M['acc_headphones']], body_world, arm, 'body'))
+
+    # Tie ('scarf'): knot and blade on his front.
+    s = ACC['scarf']
+    bm = bmesh.new()
+    add_sphere(bm, s['knot'], (20, 14), S(1.15, 0.9, 0.55))
+    add_slab(bm, s['blade'], s['depth'], s['bevel'], T(0, -0.035, 0.012))
+    place = place_on_sphere(*s['at'][:2], s['at'][2]) @ Matrix.Rotation(s['pitch'], 4, 'X')
+    built.append(new_object('scarf', bm, [M['acc_scarf']], body_world @ place, arm, 'body', sharp_angle=60))
+
+    # Leaf sprout on the cap: stem and two leaves.
+    lf = ACC['leaf']
+    bm = bmesh.new()
+    add_cylinder(bm, 0.01, 0.013, 0.13, 8, T(0, 0.06, 0) @ Matrix.Rotation(-0.15, 4, 'Z'), mat=1)
+    add_sphere(bm, 0.11, (28, 14), T(0.09, 0.15, 0) @ Matrix.Rotation(0.55, 4, 'Z') @ S(1, 0.2, 0.48))
+    add_sphere(bm, 0.08, (24, 12), T(-0.06, 0.12, 0.02) @ Matrix.Rotation(-0.65, 4, 'Z') @ S(1, 0.2, 0.5))
+    k = lf['scale']
+    built.append(new_object('leaf', bm, [M['acc_leaf'], M['leaf_stem']], cap_frame @ T(*lf['at']) @ S(k, k, k), arm, 'cap'))
+
+    # Mic in his right mitten (viewer left), like the classic left hand.
+    m = ACC['mic']
+    bm = bmesh.new()
+    add_sphere(bm, 0.1, (36, 24), T(0, 0.2, 0))
+    add_capsule(bm, 0.048, 0.15, (24, 11), mat=1)
+    add_torus(bm, 0.058, 0.016, (12, 32), T(0, 0.125, 0) @ Matrix.Rotation(math.pi / 2, 4, 'X'), mat=1)
+    k = m['scale']
+    xf = hand_frame(m['hand']) @ T(*m['at']) @ three_euler(*m['rot']) @ S(k, k, k)
+    built.append(new_object('mic', bm, [M['acc_mic'], M['mic_body']], xf, arm, m['hand']))
+
+    # Pencil in his left mitten: hex barrel, sharpened tip, ferrule and eraser.
+    p = ACC['pencil']
+    bm = bmesh.new()
+    add_cylinder(bm, 0.04, 0.04, 0.32, 6)
+    add_cone(bm, 0.04, 0.09, 6, T(0, 0.205, 0), mat=1)
+    add_sphere(bm, 0.014, (10, 8), T(0, 0.245, 0), mat=2)
+    add_cylinder(bm, 0.042, 0.042, 0.035, 16, T(0, -0.177, 0), mat=3)
+    add_capsule(bm, 0.04, 0.02, (16, 9), T(0, -0.215, 0), mat=4)
+    k = p['scale']
+    xf = hand_frame(p['hand']) @ T(*p['at']) @ three_euler(*p['rot']) @ S(k, k, k)
+    built.append(new_object('pencil', bm, [M['acc_pencil'], M['pencil_wood'], M['pencil_lead'], M['ferrule'], M['eraser']],
+                            xf, arm, p['hand'], sharp_angle=50))
+
+    # The open book: two covers with page blocks, a few printed lines on each page.
+    bk = BOOK
+    bm = bmesh.new()
+    cw, ch, cd = bk['cover']
+    pw, ph, pd = bk['page']
+    for sx in (-1, 1):
+        spread = Matrix.Rotation(sx * bk['spread'], 4, 'Z')
+        add_box(bm, bk['cover'], spread @ T(sx * cw / 2, 0, 0), mat=0, bevel=0.004)
+        add_box(bm, bk['page'], spread @ T(sx * (pw / 2 + 0.003), (ch + ph) / 2 - 0.002, 0), mat=1, bevel=0.003)
+        for i in range(bk['lines']):
+            w = pw * (0.62 if i == bk['lines'] - 1 else 0.78)
+            z = -pd / 2 + pd * (i + 1.2) / (bk['lines'] + 1.4)
+            add_box(bm, (w, 0.002, 0.012), spread @ T(sx * (pw / 2 + 0.003), (ch / 2) + ph - 0.001, z), mat=2)
+    k = bk['scale']
+    xf = body_world @ T(*bk['at']) @ Matrix.Rotation(bk['pitch'], 4, 'X') @ S(k, k, k)
+    built.append(new_object('book', bm, [M['book_cover'], M['book_page'], M['book_ink']], xf, arm, 'root', sharp_angle=40))
+    return built
+
+
 # ---------------------------------------------------------------------------
 # Clips
 
@@ -736,11 +918,11 @@ def build_clips(arm, clips):
 # Export, measure, manifest
 
 def measure():
-    """Rest-pose height (floor to cap top) in model units, from evaluated meshes."""
+    """Rest-pose height (floor to cap top) in model units, from evaluated meshes (accessories and book left out)."""
     deps = bpy.context.evaluated_depsgraph_get()
     top = -1e9
     for obj in bpy.context.scene.objects:
-        if obj.type != 'MESH':
+        if obj.type != 'MESH' or obj.name in ACCESSORIES or obj.name == 'book':
             continue
         ev = obj.evaluated_get(deps)
         me = ev.to_mesh()
@@ -813,6 +995,9 @@ def write_manifest(clips, pts, height, tris):
         'restPositions': {n: [round(c, 4) for c in pts[n]] for n in BONES},
         'capMaterial': 'cap',
         'sneakerMaterial': 'sneaker',
+        'accessories': ACCESSORIES,
+        'accessoryMaterials': {a: 'acc_' + a for a in ACCESSORIES},
+        'book': 'book',
         'fps': EXPORT['fps'],
         'triangles': tris,
         'notes': [
@@ -822,6 +1007,8 @@ def write_manifest(clips, pts, height, tris):
             "cap material = white x COLOR_0 (indigo->violet). To recolour: material.vertexColors = false, color.set(x), needsUpdate = true.",
             "sneaker material = the feet's coral sole band (#ff6b5b); the upper is white. To recolour: color.set(x).",
             'Blink: eye node scale.y 1 -> 0.1. Talk: mouth node scale.y.',
+            "accessories: one node each, all visible in the file: hide every one but the look's pick. Its acc_<name> material takes accColor.",
+            "book: the open book on the root for the 'read' clip; hide it otherwise (and hide the mic while reading).",
         ],
     }
     tmp = MANIFEST_PATH + '.tmp'
@@ -867,7 +1054,7 @@ def render_previews(arm, built, out_dir):
     bm.free()
     floor_me.materials.append(make_material('preview_floor', PREVIEW['floor'], 0.8))
     scene.collection.objects.link(bpy.data.objects.new('preview_floor', floor_me))
-    for n in ('happy.L', 'happy.R'):
+    for n in ['happy.L', 'happy.R'] + ACCESSORIES:
         bpy.data.objects[n].hide_render = True
     cam_data = bpy.data.cameras.new('preview_cam')
     cam_data.lens = PREVIEW['lens']
@@ -891,6 +1078,7 @@ def render_previews(arm, built, out_dir):
     for clip, act, slot in built:
         ad.action = act
         ad.action_slot = slot
+        bpy.data.objects['book'].hide_render = clip['name'] != 'read'
         row = []
         for m in PREVIEW_MOMENTS or PREVIEW['moments']:
             scene.frame_set(int(round(clip['duration'] * m * fps)))
@@ -935,6 +1123,7 @@ def main():
     pts, cap_frame = rig_points()
     arm = build_armature(pts)
     build_body(arm, mats, pts, cap_frame)
+    build_accessories(arm, mats, pts, cap_frame)
     built = build_clips(arm, clips)
     bpy.context.view_layer.update()
     height = measure()

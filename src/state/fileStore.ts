@@ -52,3 +52,12 @@ export async function addTutorFiles(tutorId: string, files: File[]): Promise<voi
     // Private mode or quota: the in-memory copy still works for this session.
   }
 }
+
+export async function deleteTutorFiles(tutorId: string): Promise<void> {
+  memory.delete(tutorId)
+  try {
+    await run('readwrite', (s) => s.delete(tutorId))
+  } catch {
+    // Nothing stored, or storage unavailable: nothing to remove.
+  }
+}

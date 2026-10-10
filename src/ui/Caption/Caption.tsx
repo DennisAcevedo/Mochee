@@ -6,15 +6,17 @@ import { parseMarks } from '../../lesson/markup'
 import { PALETTE } from '../../scene/layout3d'
 import { useDirector } from '../../state/director'
 import { useTutorStore } from '../../state/store'
+import { CloseButton } from '../Closeable/Closeable'
 import styles from './Caption.module.css'
 
 interface Props {
   className?: string // placement override; by default it floats bottom-centre of its positioned parent
+  closeable?: boolean // an x in the bubble's corner hides captions for now (src/state/hidden.ts)
 }
 
 // What he's saying right now, big and readable. **Bold** terms come out in
 // bold with a colour-cycling marker, so the key words pop.
-export function Caption({ className }: Props) {
+export function Caption({ className, closeable = false }: Props) {
   const caption = useDirector((s) => s.caption)
   const speaking = useTutorStore((s) => s.mic === 'speaking')
   if (!caption) return null
@@ -33,7 +35,8 @@ export function Caption({ className }: Props) {
   return (
     <div className={`${styles.wrap} ${className ?? ''}`} style={paletteVars()} aria-live="polite">
       {/* Keyed by the text so each new line pops in. */}
-      <div key={caption} className={styles.bubble}>
+      <div key={caption} className={styles.bubble} data-closeable={closeable || undefined}>
+        {closeable && <CloseButton id="caption" label="captions" inset />}
         <div className={styles.who}>
           <span className={styles.name}>Gemini Guy</span>
           <span className={styles.dots} data-speaking={speaking} aria-hidden>

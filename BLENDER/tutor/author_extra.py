@@ -8,7 +8,8 @@ them. Squash/stretch values follow the concept sheet: squash 0.82-0.94,
 stretch 1.06-1.14, wobble tilts within +-10 deg.
 
 dragged / tumble are loops the physics layer holds while he is grabbed or
-flying; recover / surprise / hint / equip are one-shots.
+flying; recover / surprise / hint / equip are one-shots. read is the
+studying loop that goes with the book node.
 """
 
 import json
@@ -144,8 +145,23 @@ def equip():
     }, 'Reaches up and grabs, pulls it down onto the cap (sparkles), chest-out proud pose with a heel tap.')
 
 
+def read():
+    """Studying: both mittens hold the open book (build_tutor BOOK), head bowed, eyes tracking the lines."""
+    d = 4.0
+    lean = dict(rx=9)  # bowed toward the book
+    grip = lambda s, up=0.0, fwd=0.0: hand(s, out=-0.54, up=-0.03 + up, fwd=0.66 + fwd, pitch=-30, tilt=-20)
+    return clip('read', d, True, 'focused', [], {
+        'body': looped([K(0, body(ry=-5, **lean)), K(1.0, body(y=0.01, sy=1.01, ry=0, **lean)), K(2.0, body(ry=5, **lean)),
+                        K(2.4, body(y=0.008, ry=-4, rz=1, **lean), 'back'), K(3.2, body(y=0.012, sy=1.012, ry=-5, **lean))], d),
+        'hand.L': looped([K(0, grip(1)), K(2.0, grip(1, up=0.012))], d),
+        # His right mitten (viewer left) lifts a little at the line break, like turning a page corner.
+        'hand.R': looped([K(0, grip(-1)), K(2.0, grip(-1)), K(2.25, grip(-1, up=0.05, fwd=0.04), 'back'), K(2.6, grip(-1))], d),
+        'cap': looped([K(0, cap(rot=(4, 0, 0))), K(2.0, cap(rot=(5, 0, 2)))], d),
+    }, 'Holding the open book in both mittens, bowed 9 deg, head scanning left to right, small page-corner lift.')
+
+
 def main():
-    new = [dragged(), tumble(), recover(), surprise(), hint(), equip()]
+    new = [dragged(), tumble(), recover(), surprise(), hint(), equip(), read()]
     with open(OUT, encoding='utf-8') as f:
         data = json.load(f)
     names = {c['name'] for c in new}

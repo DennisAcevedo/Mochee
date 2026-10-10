@@ -5,7 +5,7 @@ import type { PaletteKey } from '../../growth/abilities'
 // library shelf (one book per document), topic posters on the upper side
 // walls, the trophy shelf (one trophy per mastered topic), the ability props
 // and the return experiment's scheduler race. Positions are world units and
-// are chosen to stay clear of the two windows, the rainbow arch and the
+// are chosen to stay clear of the two windows and the
 // tutor's walking line (tuned against LESSON_CAMERA at 16:9).
 
 const BACK_Z = -ROOM.backZ

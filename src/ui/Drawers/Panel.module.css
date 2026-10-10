@@ -88,10 +88,33 @@
 .panel[data-side='left'] .handle {
   right: -48px;
   border-radius: 0 16px 16px 0;
+  --handle-from: -64px 0;
 }
 .panel[data-side='right'] .handle {
   left: -48px;
   border-radius: 16px 0 0 16px;
+  --handle-from: 64px 0;
+}
+
+/* The tabs slide in from their screen edges when the lesson goes live (the
+   drawers mount then). `translate` composes with the hover scale; backwards
+   fill leaves nothing behind. */
+.handle {
+  animation: handleIn 560ms cubic-bezier(0.34, 1.56, 0.64, 1) 260ms backwards;
+}
+.panel[data-side='right'] .handle {
+  animation-delay: 330ms;
+}
+@keyframes handleIn {
+  from {
+    opacity: 0;
+    translate: var(--handle-from);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .handle {
+    animation: none;
+  }
 }
 .handle:hover {
   transform: scale(1.05);

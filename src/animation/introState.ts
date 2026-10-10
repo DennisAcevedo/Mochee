@@ -33,3 +33,8 @@ export const INTRO_REST = {
 }
 
 export const intro: IntroState = { ...INTRO_REST, snap: false, out: { rise: 0 } }
+
+// The Blender tutor's entrance into the room (read by BlenderTutor): how far
+// above his spot he is, and a landing squash pivoting on his feet. Both rest
+// at 0, which leaves his normal placement untouched.
+export const entrance = { dropY: 0, squash: 0 }

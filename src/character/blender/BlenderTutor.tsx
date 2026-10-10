@@ -5,22 +5,36 @@ import { Color, Quaternion, Vector3, type Group, type Material, type Mesh, type 
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { anchors } from '../../scene/anchors'
 import { FLOOR_Y, SPOTS, TUTOR_SCALE } from '../../scene/layout3d'
-import { useDirector, type FxKind } from '../../state/director'
+import { entrance } from '../../animation/introState'
+import { useDirector, type FxKind, type Gesture, type LoopClip } from '../../state/director'
+import type { Accessory } from '../look'
 import { useTutorStore } from '../../state/store'
 import { AnimationController, type AnimSnapshot } from './animController'
-import { ANCHOR, ANIM, LOOK, MOTION, TUTOR_ASSETS, type FaceState } from './config'
+import { ACCESSORY_NODES, accessoryMaterial, ANCHOR, ANIM, BOOK_NODE, LOOK, MOTION, TUTOR_ASSETS, type FaceState } from './config'
 import { TutorFace } from './face'
 import { loadManifest, manifestUrl } from './manifest'
 import { mapClipNames, TutorMotion, type MotionPhase } from './motion'
-import { capMeshes, collectRigNodes, sneakerMeshes } from './rigNodes'
+import { capMeshes, collectRigNodes, meshesWithMaterial, sneakerMeshes } from './rigNodes'
 
 export interface BlenderTutorProps {
   src?: string // GLB url; the manifest is read from next to it. Defaults to /models/tutor.glb
   onPoke?: () => void // pointer down on any of his meshes
   capColor?: string // recolours the 'cap' material; undefined keeps the Blender colour
   sneakerColor?: string // recolours the feet's 'sneaker' sole band (v2 GLB); undefined keeps the coral
+  accessory?: Accessory // shows that accessory node (v3 GLB); 'none' or undefined shows none
+  accColor?: string // tints the accessory's acc_<name> material; '' or undefined keeps its Blender colour
   visible?: boolean
+  // Standalone (Home cards): plays `control` instead of the director's loop and
+  // one-shots, stands at its own origin, and leaves the room's anchors, fx and
+  // status readout alone, so several can render at once.
+  standalone?: boolean
+  control?: { loop: LoopClip; gesture: Gesture | null }
+  // Bare (standalone only): model units at the parent's origin, no room scale
+  // or floor offset; the parent places him (the intro's IntroTutor).
+  bare?: boolean
 }
+
+const ORIGIN = { x: 0, z: 0 }
 
 // Live readout for lab pages and end-to-end checks; never read by the app.
 export const tutorStatus = {
@@ -56,14 +70,33 @@ function chainQuat(from: Object3D | null, stop: Object3D, out: Quaternion): Quat
 // The Blender tutor (public/models/tutor.glb) standing in the room. Plays the
 // director's loop, one-shots and walks; the face, the cursor look and the
 // anchors are layered in code. See docs/specs/2026-10-10-whitebox-stage.md.
-export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneakerColor, visible = true }: BlenderTutorProps) {
+export function BlenderTutor({
+  src = TUTOR_ASSETS.model,
+  onPoke,
+  capColor,
+  sneakerColor,
+  accessory = 'none',
+  accColor,
+  visible = true,
+  standalone = false,
+  control,
+  bare = false,
+}: BlenderTutorProps) {
   const gltf = useGLTF(src)
   const manifest = use(loadManifest(manifestUrl(src)))
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   const placement = useRef<Group>(null)
+  const controlRef = useRef(control)
+  controlRef.current = control
+  // What he plays: the director, or the card's own control.
+  const source = () => {
+    const d = useDirector.getState()
+    const c = controlRef.current
+    return { loop: c?.loop ?? d.loop, gesture: c ? c.gesture : d.gesture, target: standalone ? ORIGIN : SPOTS[d.spot] }
+  }
 
-  // Own copy of the scene (useGLTF caches one per URL) with own cap materials.
+  // Own copy of the scene (useGLTF caches one per URL) with own cap, sneaker and accessory materials.
   const scene = useMemo(() => {
     const s = cloneSkinned(gltf.scene)
     s.traverse((o) => {
@@ -72,19 +105,29 @@ export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneak
       const mats = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as Material[]
       mesh.castShadow = mats.every((m) => !m.transparent)
     })
-    for (const mesh of [...capMeshes(s), ...sneakerMeshes(s)]) {
+    const own: Mesh[] = [...capMeshes(s), ...sneakerMeshes(s)]
+    for (const name of ACCESSORY_NODES) own.push(...meshesWithMaterial(s, accessoryMaterial(name)))
+    for (const mesh of new Set(own)) {
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map((m) => m.clone()) : mesh.material.clone()
     }
     return s
   }, [gltf.scene])
   const nodes = useMemo(() => collectRigNodes(scene), [scene])
+  const props3 = useMemo(() => {
+    const acc = new Map<string, Object3D>()
+    for (const name of ACCESSORY_NODES) {
+      const node = scene.getObjectByName(name)
+      if (node) acc.set(name, node)
+    }
+    return { acc, book: scene.getObjectByName(BOOK_NODE) ?? null }
+  }, [scene])
   const clipNames = useMemo(() => mapClipNames(gltf.animations.map((c) => c.name)), [gltf.animations])
   const { actions } = useAnimations(gltf.animations, scene)
 
   // Director -> state machine (priorities, cooldowns, queue) -> motion (mixer fades and walking).
   const { motion, anim } = useMemo(() => {
-    const d = useDirector.getState()
-    const motion = new TutorMotion((name) => actions[name], clipNames, manifest, SPOTS[d.spot], 0)
+    const d = source()
+    const motion = new TutorMotion((name) => actions[name], clipNames, manifest, d.target, 0)
     const ctrl = new AnimationController((clip) => motion.gestureSeconds(clip), d.loop, 0, d.gesture?.id ?? 0)
     return { motion, anim: { ctrl, clock: 0, seen: -1 } }
   }, [actions, clipNames, manifest])
@@ -95,11 +138,12 @@ export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneak
   )
 
   useEffect(() => {
+    if (standalone) return
     tutorStatus.loaded = true
     return () => {
       tutorStatus.loaded = false
     }
-  }, [])
+  }, [standalone])
 
   // Cap recolour. The Blender cap is white x an indigo->violet vertex
   // gradient, so a custom colour turns the gradient off (a flat bold cap);
@@ -132,26 +176,55 @@ export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneak
     }
   }, [scene, sneakerColor])
 
+  // Accessory tint: the picked accessory's main material takes accColor, every
+  // other one goes back to its Blender colour.
+  useEffect(() => {
+    type AccMat = Material & { color?: Color; userData: { base?: Color } }
+    for (const name of ACCESSORY_NODES) {
+      const mats = meshesWithMaterial(scene, accessoryMaterial(name))
+        .flatMap((m) => (Array.isArray(m.material) ? m.material : [m.material]))
+        .filter((m) => m.name === accessoryMaterial(name)) as AccMat[]
+      for (const m of mats) {
+        if (!m.color) continue
+        m.userData.base ??= m.color.clone()
+        const tint = name === accessory && accColor
+        try {
+          if (tint) m.color.set(tint)
+          else m.color.copy(m.userData.base)
+        } catch {
+          m.color.copy(m.userData.base)
+        }
+      }
+    }
+  }, [scene, accessory, accColor])
+
   // Before the mixer: put the body back to rest (the look is additive), then
   // let the controller pick clips and move him, so fades start this frame.
   useFrame((_, delta) => {
     const dt = Math.min(MOTION.maxDt, delta)
     const body = nodes.body
     if (body) body.node.quaternion.copy(body.restQuat)
-    const d = useDirector.getState()
-    const target = SPOTS[d.spot]
+    const d = source()
+    const target = d.target
     anim.clock += Math.min(ANIM.maxDt, delta) // real seconds: cooldowns and clip ends match the mixer
     const out = anim.ctrl.sync(anim.clock, {
       loop: d.loop,
-      speaking: useTutorStore.getState().mic === 'speaking',
+      speaking: !standalone && useTutorStore.getState().mic === 'speaking',
       gesture: d.gesture,
       moving: motion.willMove(target),
     })
     motion.update(dt, { target, loop: out.loop, speaking: false, gesture: out.gesture, loopFade: out.loopFade, cut: out.cut })
     const g = placement.current
-    if (g) {
-      g.position.set(motion.pos.x, FLOOR_Y, motion.pos.z)
+    if (g && bare) {
+      g.position.set(0, 0, 0)
+      g.rotation.y = 0
+      g.scale.setScalar(1)
+    } else if (g) {
+      // entrance: the intro drops him in from above and squashes him on landing (feet pivot).
+      g.position.set(motion.pos.x, FLOOR_Y + (standalone ? 0 : entrance.dropY), motion.pos.z)
       g.rotation.y = motion.yaw
+      const sq = standalone ? 0 : entrance.squash
+      g.scale.set(TUTOR_SCALE * (1 + sq * 0.5), TUTOR_SCALE * (1 - sq), TUTOR_SCALE * (1 + sq * 0.5))
     }
   }, -1)
 
@@ -162,9 +235,14 @@ export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneak
     if (!g) return
     const dt = Math.min(MOTION.maxDt, delta)
     look.t += dt
-    const speaking = useTutorStore.getState().mic === 'speaking'
+    const speaking = !standalone && useTutorStore.getState().mic === 'speaking'
     const faceState = motion.face()
     face.update(dt, look.t, faceState, speaking || motion.requested === 'talk')
+
+    // The look's accessory; while reading, the book instead of the mic.
+    const reading = motion.playing === 'read'
+    for (const [name, node] of props3.acc) node.visible = name === accessory && !(reading && name === 'mic')
+    if (props3.book) props3.book.visible = reading
 
     // Cursor look: head-to-cursor in NDC, small, damped, quieter during clips.
     let yawT = 0
@@ -188,6 +266,8 @@ export function BlenderTutor({ src = TUTOR_ASSETS.model, onPoke, capColor, sneak
       look.q.multiply(look.q2.setFromAxisAngle(look.v.set(1, 0, 0), look.pitch))
       body.quaternion.premultiply(qp).premultiply(look.q).premultiply(qp.invert())
     }
+
+    if (standalone) return // the room's fx, anchors and status belong to the lesson tutor
 
     // Timed fx from the manifest.
     look.fx.length = 0

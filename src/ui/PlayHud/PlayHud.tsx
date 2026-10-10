@@ -15,6 +15,7 @@ import {
   xpForLevel,
   type Dance,
 } from '../../state/progress'
+import { CloseButton } from '../Closeable/Closeable'
 import { useCooldown, useXpToasts } from './hooks'
 import { LevelUpBanner } from './LevelUpBanner'
 import styles from './PlayHud.module.css'
@@ -267,9 +268,10 @@ interface Props {
   toastDirection?: 'up' | 'down' // which way the "+N XP" toasts float
   banner?: boolean // render the level-up banner here (fixed, centred)
   className?: string
+  closeable?: boolean // an x on the strip hides the HUD for now (src/state/hidden.ts)
 }
 
-export function PlayHud({ toastDirection = 'down', banner = true, className }: Props) {
+export function PlayHud({ toastDirection = 'down', banner = true, className, closeable = false }: Props) {
   const level = useProgress((s) => s.level)
   const toasts = useXpToasts()
   const [nope, wiggle] = useNope()
@@ -277,6 +279,7 @@ export function PlayHud({ toastDirection = 'down', banner = true, className }: P
   return (
     <div className={[styles.hud, className].filter(Boolean).join(' ')} role="region" aria-label="Play with Gemini Guy">
       <div className={styles.strip}>
+        {closeable && <CloseButton id="hud" label="play bar" />}
         <XpMeter />
         <div className={styles.divider} aria-hidden="true" />
         <div className={styles.actions}>

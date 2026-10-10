@@ -1,5 +1,6 @@
 /* Guided-lesson control pill. --step is the current step's accent, --on-step the text on it. */
 .bar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;

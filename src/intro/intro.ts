@@ -1,14 +1,23 @@
 import { gsap } from 'gsap'
 import { INTRO } from '../animation/config'
-import { intro, INTRO_REST } from '../animation/introState'
-import { CAMERA_REST, resetSceneRig, sceneRig } from '../scene/sceneRig'
+import { entrance, intro, INTRO_REST } from '../animation/introState'
+import { roomBuild, setRoomBuild, type BuildPart } from '../scene/room/build'
+import { resetSceneRig, sceneRig } from '../scene/sceneRig'
+import { useDirector } from '../state/director'
 import { useTutorStore } from '../state/store'
 import { introTargets as T } from './targets'
 import { unlockAudio } from './unlockAudio'
 
 // The start-screen → lesson sequence. One GSAP master timeline drives the
-// intro state the character tick reads, the camera rig, and the DOM.
-// Every number lives in INTRO (src/animation/config.ts).
+// intro state the classic character's tick reads, the camera rig, the Blender
+// tutor's entrance and the DOM. Every number lives in INTRO
+// (src/animation/config.ts).
+//
+// The classic character sleeps, wakes and spins on the start screen, then
+// rockets out of frame; the bare white box fades in under the room camera and
+// the Blender tutor drops in from above the ceiling. Once he lands, the room
+// builds itself around him (src/scene/room/build.tsx), then the lesson goes
+// live, which animates in the lesson UI and starts the walkthrough.
 
 const TAU = Math.PI * 2
 const UI_PROPS = 'opacity,visibility,transform,transformOrigin,transition'
@@ -17,7 +26,7 @@ let master: gsap.core.Timeline | null = null
 
 const store = () => useTutorStore.getState()
 const els = (...list: (HTMLElement | undefined)[]) => list.filter((e): e is HTMLElement => !!e)
-const uiEls = () => els(T.topBar, T.board, T.sidebar, T.inputBar)
+const uiEls = () => els(T.topBar, T.dock)
 const overlayEls = () => els(T.overlay, T.title, T.subtitle, T.zs, T.startCta, T.startButton)
 
 export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -25,20 +34,23 @@ export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-mo
 function killAll() {
   master?.kill()
   master = null
-  gsap.killTweensOf([intro, sceneRig, sceneRig.cam, ...uiEls(), ...overlayEls(), ...els(T.backdrop)])
+  gsap.killTweensOf([intro, entrance, roomBuild, sceneRig, sceneRig.cam, ...uiEls(), ...overlayEls(), ...els(T.backdrop)])
 }
 
 function focusStart() {
   setTimeout(() => T.startButton?.focus({ preventScroll: true }), 50)
 }
 
-// Start-screen state: sleeping character in the start box, UI hidden. Safe to
-// call before first paint (from a layout effect) and again for a replay.
+// Start-screen state: sleeping character in the start box, room and UI
+// hidden. Safe to call before first paint (from a layout effect) and again
+// for a replay.
 export function showStartScreen() {
   killAll()
   Object.assign(intro, INTRO_REST)
   intro.snap = true
+  Object.assign(entrance, { dropY: 0, squash: 0 })
   resetSceneRig()
+  useTutorStore.setState({ roomShown: false })
   gsap.set(uiEls(), { clearProps: UI_PROPS })
   gsap.set(uiEls(), { autoAlpha: 0 })
   gsap.set(overlayEls(), { clearProps: 'all' })
@@ -60,50 +72,31 @@ export function playIntro() {
   master = prefersReducedMotion() ? buildReduced() : buildFull()
 }
 
-// The board grows out of wherever the character is standing.
-function aimBoard() {
-  const el = T.board
-  if (!el) return
-  const r = el.getBoundingClientRect()
-  gsap.set(el, { transformOrigin: `${sceneRig.charScreen.x - r.left}px ${sceneRig.charScreen.y - r.top}px` })
+// The room takes over: the classic character unmounts, the room and the
+// Blender tutor show, the tutor waiting `dropY` above his spot. `built` = 0
+// shows only the bare box, for the build sequence to fill in.
+function showRoom(dropY: number, built: number) {
+  entrance.dropY = dropY
+  entrance.squash = 0
+  setRoomBuild(built)
+  useTutorStore.setState({ roomShown: true })
 }
 
-// Step 9, shared by both versions: wave, type the greeting, settle.
-function greet(tl: gsap.core.Timeline, at: number, roamDuration: number) {
-  const G = INTRO.greet
-  const typeAt = at + G.lead
-  const chars = store().session.greeting.length
-  const typeDuration = chars / G.charsPerSecond
-  const settleAt = typeAt + typeDuration
-  const typer = { n: 0 }
-  let shown = -1
+// Landing: stars and a ring at his feet, and a wave.
+function landed(withFx: boolean) {
+  const d = useDirector.getState()
+  if (withFx) {
+    d.burst('ring')
+    d.burst('stars')
+  }
+  d.play('wave')
+}
 
-  tl.call(() => store().setIntroPose('wave'), [], at)
-  tl.call(() => store().startGreeting(), [], typeAt)
-  tl.to(
-    typer,
-    {
-      n: chars,
-      duration: typeDuration,
-      ease: 'none',
-      onUpdate: () => {
-        const n = Math.round(typer.n)
-        if (n !== shown) store().typeGreeting((shown = n))
-      },
-    },
-    typeAt,
-  )
-  tl.call(
-    () => {
-      store().completeGreeting()
-      store().setIntroPose(null) // explain, from the lesson state
-      store().setPhase('live')
-    },
-    [],
-    settleAt,
-  )
-  tl.to(intro, { roam: 1, duration: roamDuration, ease: INTRO.roam.ease }, settleAt)
-  tl.call(finish, [], settleAt + roamDuration)
+// The lesson goes live: mounts the mode switch, HUD, drawers and caption with
+// their own entrance animations, and starts the walkthrough after its short delay.
+function goLive() {
+  store().setIntroPose(null)
+  store().setPhase('live')
 }
 
 function finish() {
@@ -111,9 +104,20 @@ function finish() {
   master = null
 }
 
+// Step 9's DOM half, shared by both versions: the top bar drops in and the
+// dock (walkthrough bar + ask box) rises.
+function revealUi(tl: gsap.core.Timeline, at: number, motion: boolean) {
+  const U = INTRO.ui
+  const from = (vars: gsap.TweenVars): gsap.TweenVars => ({ ...(motion ? vars : {}), autoAlpha: 0 })
+  const to = (vars: gsap.TweenVars): gsap.TweenVars => ({ ...(motion ? vars : {}), autoAlpha: 1, duration: U.duration, ease: U.ease, immediateRender: false })
+  tl.fromTo(els(T.topBar), from({ y: U.topBarY }), to({ y: 0 }), at)
+  tl.fromTo(els(T.dock), from({ y: U.dockY }), to({ y: 0 }), at + U.stagger * 3)
+  tl.set(uiEls(), { clearProps: UI_PROPS }, at + U.stagger * 3 + U.duration)
+}
+
 function buildFull() {
   const tl = gsap.timeline()
-  const { exit: E, push: P, wake: W, windup: WU, spin: S, pull: PO, land: L, backdrop: B, ui: U } = INTRO
+  const { exit: E, push: P, wake: W, windup: WU, spin: S, launch: LA, room: R, backdrop: B, drop: D, ui: U } = INTRO
 
   // 1. Start screen leaves: button squishes and shrinks away with its rings,
   //    logo and subtitle float up, the z's pop and vanish.
@@ -156,43 +160,45 @@ function buildFull() {
   tl.to(intro, { squash: 0, twist: 0, duration: S.twistRelease, ease: 'power2.out' }, spin)
   tl.to(intro, { spin: turns + S.overshoot, duration: S.duration, ease: S.ease }, spin)
   tl.to(intro, { spin: turns, duration: S.wobbleDuration, ease: S.wobbleEase }, spin + S.duration)
-  tl.set(intro, { spin: 0 }, spin + S.duration + S.wobbleDuration) // same angle, unwound
 
-  // 6. Pull out to the teaching shot while arcing over to the teaching spot.
-  const pull = spin + S.duration - PO.overlap
-  const rest = { px: CAMERA_REST.px, py: CAMERA_REST.py, pz: CAMERA_REST.pz, tx: CAMERA_REST.tx, ty: CAMERA_REST.ty, tz: CAMERA_REST.tz }
-  tl.to(sceneRig.cam, { ...rest, duration: PO.duration, ease: PO.ease }, pull)
-  tl.to(sceneRig, { frameT: 1, duration: PO.duration, ease: PO.ease }, pull)
-  tl.to(intro, { travel: 1, duration: PO.duration, ease: PO.travelEase }, pull)
-  tl.to(intro, { lift: PO.arc, duration: PO.duration * PO.arcPeak, ease: PO.arcUpEase }, pull)
-  tl.to(intro, { lift: 0, duration: PO.duration * (1 - PO.arcPeak), ease: PO.arcDownEase }, pull + PO.duration * PO.arcPeak)
+  // 6. Launch: he rockets straight up out of frame, stretched tall.
+  const launch = spin + S.duration + LA.delay
+  tl.to(intro, { hop: LA.height, duration: LA.duration, ease: LA.ease }, launch)
+  tl.to(intro, { squash: -LA.stretch, duration: LA.duration * 0.6, ease: 'power2.out' }, launch)
 
-  // 7. Land: squash, elastic settle; the start gradient gives way to the stage.
-  const land = pull + PO.duration
-  tl.to(intro, { squash: L.squash, duration: L.squashDuration, ease: 'power2.out' }, land)
-  tl.to(intro, { squash: 0, duration: L.settleDuration, ease: L.settleEase }, land + L.squashDuration)
-  tl.to(els(T.backdrop), { autoAlpha: 0, duration: B.duration, ease: B.ease }, land - B.lead)
-  tl.to(sceneRig, { clipT: 1, duration: L.clipDuration, ease: 'power2.out' }, land)
+  // 7. The room: the start gradient gives way to the bare white box as the
+  //    camera settles into the room shot and the canvas clips to the stage.
+  const room = launch + LA.duration * R.lead
+  tl.call(() => showRoom(D.height, 0), [], room)
+  tl.to(els(T.backdrop), { autoAlpha: 0, duration: B.duration, ease: B.ease }, room)
+  tl.to(sceneRig, { roomT: 1, frameT: 1, clipT: 1, duration: R.duration, ease: R.ease }, room)
 
-  // 8. UI staggers in: top bar down, board out of the character, sidebar from
-  //    the right, input bar up.
-  const ui = land + U.delay
-  const from = (vars: gsap.TweenVars): gsap.TweenVars => ({ ...vars, autoAlpha: 0 })
-  const to = (vars: gsap.TweenVars): gsap.TweenVars => ({ ...vars, autoAlpha: 1, duration: U.duration, ease: U.ease, immediateRender: false })
-  tl.set(els(T.sidebar), { transition: 'none' }, 0)
-  tl.call(aimBoard, [], ui)
-  tl.fromTo(els(T.topBar), from({ y: U.topBarY }), to({ y: 0 }), ui)
-  tl.fromTo(els(T.board), from({ scale: U.boardScale }), to({ scale: 1 }), ui + U.stagger)
-  tl.fromTo(els(T.sidebar), from({ xPercent: U.sidebarXPercent }), to({ xPercent: 0 }), ui + U.stagger * 2)
-  tl.fromTo(els(T.inputBar), from({ y: U.inputBarY }), to({ y: 0 }), ui + U.stagger * 3)
-  tl.set(uiEls(), { clearProps: UI_PROPS }, ui + U.stagger * 3 + U.duration)
+  // 8. Drop: the Blender tutor falls from above the ceiling onto his spot,
+  //    squashes on his feet and springs back up.
+  const drop = room + R.duration * D.at
+  tl.to(entrance, { dropY: 0, duration: D.duration, ease: D.ease }, drop)
+  const land = drop + D.duration
+  tl.to(entrance, { squash: D.squash, duration: D.squashIn, ease: 'power2.out' }, land)
+  tl.to(entrance, { squash: 0, duration: D.settle, ease: D.settleEase }, land + D.squashIn)
 
-  // 9. Wave, type the greeting, settle into explain and resume roaming.
-  greet(tl, land + L.squashDuration, INTRO.roam.duration)
+  tl.call(() => landed(true), [], land)
+
+  // 8b. Build: the room assembles around him, piece by piece.
+  const BU = INTRO.build
+  for (const [part, p] of Object.entries(BU.parts) as [BuildPart, { at: number; duration: number; ease: string }][]) {
+    tl.to(roomBuild, { [part]: 1, duration: p.duration, ease: p.ease }, land + p.at)
+  }
+
+  // 9. Live: the lesson UI staggers in and the walkthrough starts.
+  const live = land + BU.liveAt
+  tl.call(goLive, [], live)
+  revealUi(tl, live + U.delay, true)
+  tl.call(finish, [], live + U.delay + U.stagger * 3 + U.duration)
   return tl
 }
 
-// prefers-reduced-motion: no spin, no camera moves. Fade, wake, wave.
+// prefers-reduced-motion: no spin, no flight, no camera moves. Fade, wake,
+// fade to the room, wave.
 function buildReduced() {
   const tl = gsap.timeline()
   const R = INTRO.reduced
@@ -205,59 +211,49 @@ function buildReduced() {
   tl.to(intro, { eyePop: 1, duration: R.eyePopIn, ease: 'power2.out' }, R.fade)
   tl.to(intro, { eyePop: 0, duration: R.eyePopOut, ease: 'power2.inOut' }, R.fade + R.eyePopIn)
 
-  // Fade the scene out, cut to the teaching framing, fade everything in.
+  // Fade the scene out, cut to the room with him already on his spot, fade in.
   const cut = R.fade + R.wakeHold
   tl.to(sceneRig, { canvasOpacity: 0, duration: R.cutFade, ease: 'power1.in' }, cut)
   const reveal = cut + R.cutFade
   tl.call(
     () => {
-      sceneRig.frameT = 1
-      sceneRig.clipT = 1
-      intro.travel = 1
-      intro.snap = true
+      Object.assign(sceneRig, { roomT: 1, frameT: 1, clipT: 1 })
+      showRoom(0, 1)
     },
     [],
     reveal,
   )
   tl.to(sceneRig, { canvasOpacity: 1, duration: R.reveal, ease: 'power1.out' }, reveal)
   tl.to(els(T.backdrop), { autoAlpha: 0, duration: R.reveal, ease: 'power1.out' }, reveal)
-  tl.to(uiEls(), { autoAlpha: 1, duration: R.reveal, ease: 'power1.out' }, reveal)
-  tl.set(uiEls(), { clearProps: UI_PROPS }, reveal + R.reveal)
-
-  greet(tl, reveal, 0)
+  tl.call(() => {
+    landed(false)
+    goLive()
+  }, [], reveal)
+  revealUi(tl, reveal, false)
+  tl.call(finish, [], reveal + R.reveal)
   return tl
 }
 
-// Skip: drop the timeline and glide everything to its final state.
+// Skip: drop the timeline, fade the canvas over to the room with him already
+// standing on his spot, and bring the UI in.
 export function skipIntro() {
   if (store().phase !== 'intro') return
   killAll()
   const K = INTRO.skip
   const ease = K.ease
 
-  // Unwind the spin to one turn (same angle) and finish whichever way is shorter.
-  intro.spin = ((intro.spin % TAU) + TAU) % TAU
-  const tl = gsap.timeline({
-    onComplete: () => {
-      intro.spin = 0
-      finish()
-    },
-  })
-  const { active: _active, ...rest } = INTRO_REST
-  tl.to(intro, { ...rest, travel: 1, roam: 1, spin: intro.spin > Math.PI ? TAU : 0, duration: K.duration, ease }, 0)
-  tl.to(sceneRig.cam, { ...CAMERA_REST, duration: K.duration, ease }, 0)
-  tl.to(sceneRig, { frameT: 1, clipT: 1, canvasOpacity: 1, duration: K.duration, ease }, 0)
+  Object.assign(intro, INTRO_REST, { active: false })
+  Object.assign(sceneRig, { roomT: 1, frameT: 1, clipT: 1, canvasOpacity: 0 })
+  showRoom(0, 1)
+  const tl = gsap.timeline({ onComplete: finish })
+  tl.to(sceneRig, { canvasOpacity: 1, duration: K.duration, ease }, 0)
   tl.to(els(T.title, T.subtitle, T.zs, T.startCta, T.backdrop), { autoAlpha: 0, duration: K.duration, ease }, 0)
   tl.set(els(T.overlay), { autoAlpha: 0 }, K.duration)
-  tl.to(els(T.topBar, T.inputBar), { y: 0, autoAlpha: 1, duration: K.duration, ease }, 0)
-  tl.to(els(T.board), { scale: 1, autoAlpha: 1, duration: K.duration, ease }, 0)
-  tl.to(els(T.sidebar), { xPercent: 0, autoAlpha: 1, duration: K.duration, ease }, 0)
+  tl.to(uiEls(), { y: 0, autoAlpha: 1, duration: K.duration, ease }, 0)
   tl.set(uiEls(), { clearProps: UI_PROPS }, K.duration)
   master = tl
-
-  store().completeGreeting()
-  store().setIntroPose(null)
-  store().setPhase('live')
+  landed(false)
+  goLive()
 }
 
 export function disposeIntro() {

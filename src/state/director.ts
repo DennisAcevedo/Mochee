@@ -16,9 +16,10 @@ export type Focus = 'none' | 'notes' | 'board'
 // blender/tutor/clips.json; the character component plays these by name.
 // dragged / tumble (loops) and recover / surprise / hint / equip (one-shots)
 // are the v2 clips: physics holds dragged while he is grabbed and tumble while
-// he flies, then plays recover. An older GLB without them degrades through
+// he flies, then plays recover. read (v3) holds the open book; the tutor shows
+// the book node only while it plays. An older GLB without them degrades through
 // CLIP_FALLBACK (src/character/blender/config.ts).
-export const LOOP_CLIPS = ['idle', 'talk', 'think', 'listen', 'point_left', 'point_right', 'walk', 'sleep', 'dragged', 'tumble'] as const
+export const LOOP_CLIPS = ['idle', 'talk', 'think', 'listen', 'point_left', 'point_right', 'walk', 'sleep', 'dragged', 'tumble', 'read'] as const
 export const ONESHOT_CLIPS = [
   'wave',
   'hop',

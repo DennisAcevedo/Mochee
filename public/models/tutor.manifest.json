@@ -290,6 +290,13 @@
           "sparkles"
         ]
       ]
+    },
+    {
+      "name": "read",
+      "duration": 4.0,
+      "loop": true,
+      "face": "focused",
+      "fx": []
     }
   ],
   "bones": [
@@ -381,14 +388,35 @@
   },
   "capMaterial": "cap",
   "sneakerMaterial": "sneaker",
+  "accessories": [
+    "glasses",
+    "bowtie",
+    "headphones",
+    "scarf",
+    "leaf",
+    "mic",
+    "pencil"
+  ],
+  "accessoryMaterials": {
+    "glasses": "acc_glasses",
+    "bowtie": "acc_bowtie",
+    "headphones": "acc_headphones",
+    "scarf": "acc_scarf",
+    "leaf": "acc_leaf",
+    "mic": "acc_mic",
+    "pencil": "acc_pencil"
+  },
+  "book": "book",
   "fps": 60,
-  "triangles": 40684,
+  "triangles": 52582,
   "notes": [
     "Model units, floor at y = 0, faces +Z. .L = his left = viewer right (+X).",
     "GLTFLoader strips \".\" from node names: look up \"handL\", \"eyeL\", ... (see threeNames).",
     "happy.L/R sit over the eyes at scale 1: hide them by default and toggle .visible.",
     "cap material = white x COLOR_0 (indigo->violet). To recolour: material.vertexColors = false, color.set(x), needsUpdate = true.",
     "sneaker material = the feet's coral sole band (#ff6b5b); the upper is white. To recolour: color.set(x).",
-    "Blink: eye node scale.y 1 -> 0.1. Talk: mouth node scale.y."
+    "Blink: eye node scale.y 1 -> 0.1. Talk: mouth node scale.y.",
+    "accessories: one node each, all visible in the file: hide every one but the look's pick. Its acc_<name> material takes accColor.",
+    "book: the open book on the root for the 'read' clip; hide it otherwise (and hide the mic while reading)."
   ]
 }

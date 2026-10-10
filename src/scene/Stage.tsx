@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useEffect, useRef, type ReactNode } from 'react'
-import { ACESFilmicToneMapping, type PerspectiveCamera } from 'three'
+import { ACESFilmicToneMapping, type Group, type PerspectiveCamera } from 'three'
 import { CAMERA, CHARACTER, RENDER } from '../animation/config'
 import { Character } from '../character/Character'
 import { BlenderTutorSafe } from '../character/blender/BlenderTutorSafe'
@@ -19,9 +19,11 @@ import { FxLayer } from './fx/FxLayer'
 import { PartyLights } from './fx/PartyLights'
 import { PlayProps } from './fx/PlayProps'
 import { AbilityProps, ReturnExperiment, RoomEvolution } from './evolution'
+import { IntroTutor } from './IntroTutor'
 import { Lights } from './Lights'
 import { PhysicsRoom, PhysicsTutor, Toys } from './physics'
 import { LessonRoom } from './room/LessonRoom'
+import { BuildIn } from './room/build'
 import styles from './Stage.module.css'
 
 interface Props {
@@ -41,8 +43,12 @@ export function Stage({ children }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const setStageW = useTutorStore((s) => s.setStageW)
   const live = useTutorStore((s) => s.phase === 'live')
+  // The intro reveals the room (and drops the Blender tutor in) before going live.
+  const room = useTutorStore((s) => s.phase === 'live' || s.roomShown)
   const { regionRight } = useLayout()
   const tutor = useCurrentTutor()
+  const look = lookOf(tutor)
+  const introRoot = useRef<Group>(null)
 
   useEffect(() => {
     const el = ref.current
@@ -81,41 +87,50 @@ export function Stage({ children }: Props) {
           <GGHooks />
           {/* The room and the Blender tutor mount hidden during the intro, so the
               window fonts and the GLB are ready the moment the lesson goes live. */}
-          <group visible={live}>
+          <group visible={room}>
             <LessonRoom />
-            <RoomEvolution />
+            <BuildIn part="evolution" style="rise" distance={2.6}>
+              <RoomEvolution />
+            </BuildIn>
           </group>
           {/* Room space (no transform), so the physics bodies and the drawn tutor
               agree. Rapier loads once here, during the intro, while all of it is hidden.
               A tap on him (no drag) is the tickle: PhysicsTutor owns his pointer. */}
           <Suspense fallback={null}>
             <PhysicsRoom>
-              <group name="tutor" visible={live}>
+              <group name="tutor" visible={room}>
                 <PhysicsTutor onTap={poke}>
-                  <BlenderTutorSafe visible={live} />
+                  <BlenderTutorSafe visible={room} accessory={look.accessory} accColor={look.accColor} />
                 </PhysicsTutor>
               </group>
               {live && <Toys />}
             </PhysicsRoom>
           </Suspense>
+          {/* Up with the room, so the intro's landing burst renders. */}
+          {room && <FxLayer />}
           {live ? (
             <>
               <CapTint />
               <PartyLights />
               <PlayProps />
-              <FxLayer />
               <AbilityProps />
               <ReturnExperiment />
             </>
-          ) : (
-            <Character
-              size={CHARACTER.defaultSize}
-              roam={CHARACTER.defaultRoam}
-              rleft={L.regionLeft}
-              rright={regionRight}
-              look={lookOf(tutor)}
-              introDriven
-            />
+          ) : room ? null : (
+            <>
+              {/* The classic rig runs hidden and steers the Blender tutor (see IntroTutor). */}
+              <Character
+                size={CHARACTER.defaultSize}
+                roam={CHARACTER.defaultRoam}
+                rleft={L.regionLeft}
+                rright={regionRight}
+                look={look}
+                introDriven
+                ghost
+                rootOut={introRoot}
+              />
+              <IntroTutor rootRef={introRoot} look={look} />
+            </>
           )}
         </Canvas>
       </div>

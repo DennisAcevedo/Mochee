@@ -13,8 +13,8 @@ const frame = (over: Partial<AnimSyncInput> = {}): AnimSyncInput => ({ loop: 'id
 const play = (clip: OneShotClip) => ({ id: ++gid, clip })
 
 describe('AnimationController', () => {
-  it('maps every director clip to a state and covers all 17 states', () => {
-    assert.equal(ANIM_STATE_NAMES.length, 17)
+  it('maps every director clip to a state and covers all 18 states', () => {
+    assert.equal(ANIM_STATE_NAMES.length, 18)
     assert.equal(stateOfClip('talk', 'loop'), 'explain')
     assert.equal(stateOfClip('point_left', 'loop'), 'explain')
     assert.equal(stateOfClip('dragged', 'loop'), 'dragged')

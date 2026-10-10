@@ -54,16 +54,6 @@ export const ROOM_STYLE = {
   // Soft blob shadows on the floor under each floating window.
   windowBlob: { width: 2.8, depth: 1.3, opacity: 0.3, dz: 0.1 },
 
-  // Rainbow arch on the back wall, centred behind the tutor's centre spot.
-  arch: {
-    radius: 2.35, // outer radius
-    bands: ['coral', 'sun', 'lime', 'teal', 'violet'] as PaletteKey[],
-    bandWidth: 0.24,
-    gap: 0.05,
-    opacity: 0.9,
-    segments: 64,
-  },
-
   // Glowing ceiling light panel.
   ceilingLight: {
     width: 2.8,

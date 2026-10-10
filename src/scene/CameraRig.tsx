@@ -67,9 +67,11 @@ export function CameraRig() {
     f.h = lerp(a.h, b.h, t)
 
     // Once live, ease from the intro's pose into LESSON_CAMERA, panned toward the focused window.
+    // The intro drives the blend (sceneRig.roomT) as it reveals the room; once
+    // live it eases the rest of the way and holds there.
     const live = useTutorStore.getState().phase === 'live'
     const dt = Math.min(delta, LESSON_EASE.maxDt)
-    lesson.t = live ? MathUtils.damp(lesson.t, 1, LESSON_EASE.blend, dt) : 0
+    lesson.t = live ? Math.max(sceneRig.roomT, MathUtils.damp(lesson.t, 1, LESSON_EASE.blend, dt)) : sceneRig.roomT
     if (lesson.t > 0.999) lesson.t = 1
     const focus = useDirector.getState().focus
     const want = focus === 'notes' ? -LESSON_CAMERA.focusShift : focus === 'board' ? LESSON_CAMERA.focusShift : 0

@@ -1,11 +1,10 @@
 import { Canvas } from '@react-three/fiber'
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ACESFilmicToneMapping } from 'three'
-import { CAMERA, RENDER, type Pose } from '../animation/config'
-import type { FrameRect } from '../animation/useLook'
-import { Character } from '../character/Character'
-import { ACCESSORY_DEFAULT_COLORS, type Accessory } from '../character/look'
+import { CAMERA, RENDER } from '../animation/config'
+import { BlenderTutorSafe } from '../character/blender/BlenderTutorSafe'
+import { ACCESSORY_DEFAULT_COLORS, type Accessory, type TutorLook } from '../character/look'
 import {
   ACCESSORY_OPTIONS,
   ACCESSORY_PALETTE,
@@ -20,13 +19,44 @@ import {
 import { generateLesson, type StudyFile } from '../lesson/generateLesson'
 import { Lights } from '../scene/Lights'
 import { addTutorFiles } from '../state/fileStore'
+import type { Gesture, LoopClip } from '../state/director'
 import { formatBytes, newTutorId, useLibrary, type OutlineItem, type Tutor } from '../state/library'
 import styles from './CreateTutorPage.module.css'
+import { CardShadow } from './HomeScene'
 
 // "/new": design/Create Tutor.dc.html.
 
 const STEP_LABELS = ['Name', 'Notes', 'Look', 'Voice']
 const STUDY_STEP = 4
+
+// The live preview is the Blender tutor, standalone at the origin of its own canvas.
+const PREVIEW = {
+  scale: 1.15, // about the classic preview character's size, with room for raised hands
+  x: 0, // world units
+} as const
+
+type Flash = 'wave' | 'celebrate' // one-shots the wizard plays over the step's loop
+
+function PreviewTutor({ loop, flash, look }: { loop: LoopClip; flash: { clip: Flash; id: number } | null; look: TutorLook }) {
+  const control = useMemo(() => {
+    const gesture: Gesture | null = flash ? { id: flash.id, clip: flash.clip } : null
+    return { loop, gesture }
+  }, [loop, flash])
+  return (
+    <group position-x={PREVIEW.x} scale={PREVIEW.scale}>
+      <CardShadow />
+      <Suspense fallback={null}>
+        <BlenderTutorSafe
+          standalone
+          control={control}
+          capColor={look.cap || undefined}
+          accessory={look.accessory}
+          accColor={look.accColor}
+        />
+      </Suspense>
+    </group>
+  )
+}
 
 interface DraftFile extends StudyFile {
   id: string
@@ -67,7 +97,7 @@ export function CreateTutorPage() {
   const [playing, setPlaying] = useState<VoiceId | null>(null)
   const [study, setStudy] = useState<Study>({ lines: [], index: 0, total: 5, done: false })
   const [result, setResult] = useState<{ id: string; outline: OutlineItem[] } | null>(null)
-  const [flash, setFlash] = useState<Pose | null>(null)
+  const [flash, setFlash] = useState<{ clip: Flash; id: number } | null>(null)
 
   const nameRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
@@ -75,10 +105,10 @@ export function CreateTutorPage() {
   const playTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const studyAbort = useRef<AbortController | null>(null)
 
-  // A pose that plays for a moment, then hands back to the step's pose.
-  const flashPose = useCallback((pose: Pose, ms: number) => {
+  // A one-shot that plays for a moment, then hands back to the step's loop.
+  const flashPose = useCallback((clip: Flash, ms: number) => {
     clearTimeout(flashTimer.current)
-    setFlash(pose)
+    setFlash((f) => ({ clip, id: (f?.id ?? 0) + 1 }))
     flashTimer.current = setTimeout(() => setFlash(null), ms)
   }, [])
 
@@ -241,16 +271,10 @@ export function CreateTutorPage() {
 
   // ---- Preview
 
-  let pose: Pose = 'explain'
-  if (flash) pose = flash
-  else if (step === 1 && drag) pose = 'listen'
-  else if (step === 3) pose = playing ? 'explain' : 'listen'
-  else if (step === STUDY_STEP) pose = study.done ? 'explain' : 'read'
-
-  const previewFrame = (): FrameRect | null => {
-    const r = previewRef.current?.getBoundingClientRect()
-    return r ? { x: r.left, y: r.top, w: r.width, h: r.height } : null
-  }
+  let loop: LoopClip = 'idle'
+  if (step === 1 && drag) loop = 'listen'
+  else if (step === 3) loop = playing ? 'talk' : 'listen'
+  else if (step === STUDY_STEP) loop = study.done ? 'idle' : 'read'
 
   const accName = ACCESSORY_OPTIONS.find((a) => a.value === acc)?.label ?? ''
   const studyBar = Math.round((Math.min(study.index + (study.done ? 0 : 0.5), study.total) / study.total) * 100)
@@ -552,16 +576,7 @@ export function CreateTutorPage() {
                 style={{ pointerEvents: 'none' }}
               >
                 <Lights />
-                <Character
-                  pose={pose}
-                  speaking={!!playing}
-                  look={{ cap, accessory: acc, accColor }}
-                  size={1.35}
-                  roam={step === STUDY_STEP ? 0.05 : 0.45}
-                  rleft={0.08}
-                  rright={0.92}
-                  frame={previewFrame}
-                />
+                <PreviewTutor loop={loop} flash={flash} look={{ cap, accessory: acc, accColor }} />
               </Canvas>
             </div>
             <div className={styles.tag}>

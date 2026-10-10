@@ -15,6 +15,7 @@ export type IntroTargetName =
   | 'board'
   | 'sidebar'
   | 'inputBar'
+  | 'dock' // walkthrough bar + ask box
 
 export const introTargets: Partial<Record<IntroTargetName, HTMLElement>> = {}
 

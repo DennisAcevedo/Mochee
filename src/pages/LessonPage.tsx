@@ -1,18 +1,21 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type CSSProperties } from 'react'
 import { Navigate, useParams } from 'react-router'
 import styles from '../App.module.css'
 import { preloadBlenderTutor } from '../character/blender/BlenderTutor'
 import { MasteryInvite, refreshDocuments } from '../growth'
 import { IntroDirector } from '../intro/IntroDirector'
+import { introRef } from '../intro/targets'
 import { StageDirector } from '../lesson/StageDirector'
 import { LevelWatcher } from '../play/LevelWatcher'
 import { Stage } from '../scene/Stage'
 import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
+import { useIsHidden } from '../state/hidden'
 import { useMode } from '../state/mode'
 import { useLibrary, useTutor, type LessonStep, type Tutor } from '../state/library'
 import { useTutorStore } from '../state/store'
 import { Caption } from '../ui/Caption/Caption'
+import { ReopenChip } from '../ui/Closeable/Closeable'
 import { Drawers } from '../ui/Drawers/Drawers'
 import { useDocs } from '../ui/Drawers/docsStore'
 import { InputBar } from '../ui/InputBar/InputBar'
@@ -50,6 +53,10 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const touchStudied = useLibrary((s) => s.touchStudied)
   const phase = useTutorStore((s) => s.phase)
   const live = phase === 'live'
+  // Cards the learner closed for now; each leaves a chip that reopens it.
+  const hudHidden = useIsHidden('hud')
+  const captionHidden = useIsHidden('caption')
+  const walkHidden = useIsHidden('walkthrough')
   const greeting = steps?.[0]?.say ?? fallbackGreeting(tutor)
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
@@ -83,13 +90,33 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
       <div className={styles.page}>
         <div className={styles.main}>
           <Stage>
-            <TopBar extra={live ? <ModeSwitch /> : null} />
+            {/* Each live piece animates in as it mounts (LessonPage.module.css);
+                the intro animates the top bar and the dock itself. */}
+            <TopBar
+              extra={
+                live ? (
+                  <div className={lesson.enter} data-enter="down" style={{ '--enter-delay': '80ms' } as CSSProperties}>
+                    <ModeSwitch />
+                  </div>
+                ) : null
+              }
+            />
             {live && (
               <div className={lesson.hud}>
-                <PlayHud />
+                <div className={lesson.enter} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
+                  {hudHidden ? <ReopenChip id="hud" label="Play" icon="🎮" /> : <PlayHud closeable />}
+                </div>
               </div>
             )}
-            {live && <Caption className={lesson.caption} />}
+            {live && (
+              <div className={lesson.layer} data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
+                {captionHidden ? (
+                  <ReopenChip id="caption" label="Captions" icon="💬" className={lesson.captionChip} />
+                ) : (
+                  <Caption className={lesson.caption} closeable />
+                )}
+              </div>
+            )}
             {live && (
               <div className={lesson.invite}>
                 <MasteryInvite />
@@ -97,8 +124,10 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             )}
             {live && <Drawers />}
           </Stage>
-          <div className={lesson.dock} data-live={live || undefined}>
-            <WalkthroughBar className={lesson.walk} />
+          <div ref={introRef('dock')} className={lesson.dock} data-live={live || undefined}>
+            {/* Closed, the bar stays mounted (display: none) so its arrow keys still step the lesson. */}
+            <WalkthroughBar className={`${lesson.walk} ${walkHidden ? lesson.gone : ''}`} closeable />
+            {live && walkHidden && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
             <InputBar />
           </div>
         </div>

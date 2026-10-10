@@ -338,43 +338,65 @@ export const INTRO = {
     wrapGuard: 6, // a per-frame spin jump bigger than this is a reset, not motion
   },
 
-  // 6. Pull out to the teaching shot while arcing over.
-  pull: {
-    overlap: 0.15, // starts this long before the spin ends
-    duration: 0.95,
-    ease: 'power2.inOut', // camera and frame
-    travelEase: 'power2.inOut',
-    arc: 0.65, // peak height of the hop across
-    arcPeak: 0.5, // share of the duration spent rising
-    arcUpEase: 'sine.inOut',
-    arcDownEase: 'power2.in', // lands with some speed so the squash reads
+  // 6. Launch: after the spin the classic character rockets up out of frame,
+  //    which hides the hand-off to the Blender tutor in the room.
+  launch: {
+    delay: 0.1, // after the spin's wobble starts
+    height: 7, // world units up: well clear of the top of the frame
+    duration: 0.5,
+    ease: 'power3.in',
+    stretch: 0.22, // taller and thinner on the way up
   },
 
-  // 7. Land.
-  land: {
-    squash: 0.15,
-    squashDuration: 0.09,
-    settleDuration: 0.75,
-    settleEase: 'elastic.out(1, 0.4)',
-    clipDuration: 0.3, // canvas clip tightens to the stage
+  // 7. The room: the start gradient gives way to the white-box room while the
+  //    camera settles into the room shot (LESSON_CAMERA in scene/layout3d.ts).
+  room: {
+    lead: 0.55, // share of the launch that plays before the room starts showing
+    duration: 1.0,
+    ease: 'power2.inOut',
   },
-  backdrop: { lead: 0.35, duration: 0.7, ease: 'sine.inOut' }, // starts this long before landing
+  backdrop: { duration: 0.8, ease: 'sine.inOut' },
 
-  // 8. UI.
+  // 8. Drop: the Blender tutor falls from above the ceiling onto his spot.
+  drop: {
+    at: 0.65, // share of the room reveal before he starts falling
+    height: 4.6, // world units above the floor
+    duration: 0.55,
+    ease: 'power2.in', // gravity: lands fast so the squash reads
+    squash: 0.24,
+    squashIn: 0.08,
+    settle: 0.7,
+    settleEase: 'elastic.out(1, 0.38)',
+  },
+
+  // 8b. Build: he lands in the bare white box and the room assembles around
+  //     him, piece by piece (src/scene/room/build.tsx). `at` is seconds after
+  //     landing.
+  build: {
+    parts: {
+      rug: { at: 0.02, duration: 0.55, ease: 'back.out(2.4)' }, // pops out under his feet
+      skirting: { at: 0.14, duration: 0.6, ease: 'power3.out' }, // stripes rise from the floor
+      ceiling: { at: 0.32, duration: 0.6, ease: 'back.out(1.8)' },
+      notes: { at: 0.46, duration: 0.75, ease: 'back.out(1.3)' }, // flies in from the left
+      board: { at: 0.58, duration: 0.75, ease: 'back.out(1.3)' }, // and from the right
+      blobs: { at: 0.6, duration: 0.6, ease: 'power2.out' },
+      decals: { at: 0.72, duration: 0.6, ease: 'back.out(2)' },
+      evolution: { at: 0.86, duration: 0.65, ease: 'back.out(1.6)' }, // shelves, books and posters
+    },
+    liveAt: 1.45, // after landing: the room is built, the lesson UI comes in
+  },
+
+  // 9. Live: the lesson UI staggers in (top bar and dock here; the mode switch,
+  //    HUD, drawer tabs and caption animate on mount, see LessonPage.module.css)
+  //    and the guided lesson starts itself.
   ui: {
-    delay: 0.05, // after landing
+    delay: 0.12, // after landing
     duration: 0.55,
     stagger: 0.08,
     ease: 'power3.out',
     topBarY: -36,
-    boardScale: 0.55,
-    sidebarXPercent: 105,
-    inputBarY: 44,
+    dockY: 44,
   },
-
-  // 9. Wave, greet, settle.
-  greet: { lead: 0.7, charsPerSecond: 48 }, // wave this long before typing starts
-  roam: { duration: 1.6, ease: 'sine.inOut' },
 
   skip: { duration: 0.35, ease: 'power2.out' },
   reduced: { fade: 0.25, wakeHold: 0.35, eyePopIn: 0.12, eyePopOut: 0.25, cutFade: 0.2, reveal: 0.35 },

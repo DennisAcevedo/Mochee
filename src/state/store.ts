@@ -23,6 +23,7 @@ export interface TutorState {
   awaitingReply: boolean // between a student line and the tutor's answer
   phase: Phase
   introPose: Pose | null // the intro's pose override (sleep, wake, wave); null hands back to the lesson
+  roomShown: boolean // the intro has revealed the room and the Blender tutor (true from then on, through live)
 
   tutorSays: (text: string, extra?: Partial<Pick<TutorState, 'mode' | 'answer'>>) => void
   ask: (text: string, reply: string) => void
@@ -78,6 +79,7 @@ function initialSession() {
     awaitingReply: false,
     phase: 'start' as Phase,
     introPose: 'sleep' as Pose | null,
+    roomShown: false,
   }
 }
 

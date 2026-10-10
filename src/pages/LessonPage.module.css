@@ -51,6 +51,14 @@
   line-height: 1.32;
 }
 
+/* A closed caption's chip, where the bubble was. */
+.captionChip {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  translate: -50% 0;
+}
+
 /* Walkthrough bar stacked above the ask box. */
 .dock {
   position: relative;
@@ -83,4 +91,59 @@
   transition:
     opacity 320ms ease,
     transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* A card closed for now (src/state/hidden.ts). */
+.gone {
+  display: none;
+}
+
+/* Live UI entrances, staggered after the intro's landing (the top bar and the
+   dock are animated by the intro itself; the drawer tabs slide in from their
+   edges in Panel.module.css). They animate `translate`, not `transform`, so
+   they compose with each element's own centring and hover transforms, and
+   fill backwards only, so nothing lingers once they're in. */
+.enter,
+.layer {
+  animation: liveEnter 520ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--enter-delay, 0ms) backwards;
+}
+
+.enter[data-enter='down'] {
+  --enter-from: 0 -14px;
+}
+.enter[data-enter='drop'] {
+  --enter-from: 0 -28px;
+  --enter-scale: 0.9;
+}
+.layer[data-enter='up'] {
+  --enter-from: 0 18px;
+}
+
+/* Full-stage wrapper for chrome that positions itself against the stage. */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+@keyframes liveEnter {
+  from {
+    opacity: 0;
+    translate: var(--enter-from, 0 12px);
+    scale: var(--enter-scale, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .layer {
+    animation-name: liveFade;
+    animation-timing-function: ease;
+  }
+}
+
+@keyframes liveFade {
+  from {
+    opacity: 0;
+  }
 }

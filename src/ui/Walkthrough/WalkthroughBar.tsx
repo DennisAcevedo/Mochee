@@ -5,10 +5,12 @@ import { useShallow } from 'zustand/react/shallow'
 import { INK_ON, paletteVars } from '../../lesson/accents'
 import { useWalkthrough, type WalkthroughState } from '../../lesson/runner'
 import { PALETTE } from '../../scene/layout3d'
+import { CloseButton } from '../Closeable/Closeable'
 import styles from './WalkthroughBar.module.css'
 
 interface Props {
   className?: string
+  closeable?: boolean // an x on the corner hides the bar for now (src/state/hidden.ts); arrow keys keep working
 }
 
 const BAR = {
@@ -93,7 +95,7 @@ const Icon = {
 // The guided-lesson control pill: step chip, title + status, Back / Play-Pause /
 // Next / Restart, voice toggle, and a multicolour progress track you can click.
 // Arrow keys step through when you're not typing.
-export function WalkthroughBar({ className }: Props) {
+export function WalkthroughBar({ className, closeable = false }: Props) {
   const s = useWalkthrough(
     useShallow((st): BarView => ({
       steps: st.steps,
@@ -149,6 +151,7 @@ export function WalkthroughBar({ className }: Props) {
       role="region"
       aria-label="Guided lesson controls"
     >
+      {closeable && <CloseButton id="walkthrough" label="lesson controls" />}
       <div className={styles.row}>
         <div className={styles.chip} data-waiting={waiting}>
           {s.started ? (

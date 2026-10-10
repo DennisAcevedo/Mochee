@@ -48,6 +48,7 @@ interface LibraryState {
   addTutor: (tutor: Tutor, steps: LessonStep[]) => void
   addFiles: (id: string, files: TutorFile[]) => void
   touchStudied: (id: string) => void
+  removeTutor: (id: string) => void // the tutor and its lesson steps; its PDFs live in fileStore
 }
 
 const DAY = 86_400_000
@@ -194,6 +195,13 @@ export const useLibrary = create<LibraryState>()(
         })),
 
       touchStudied: (id) => set((s) => ({ tutors: s.tutors.map((t) => (t.id === id ? { ...t, lastStudied: Date.now() } : t)) })),
+
+      removeTutor: (id) =>
+        set((s) => {
+          const steps = { ...s.steps }
+          delete steps[id]
+          return { tutors: s.tutors.filter((t) => t.id !== id), steps }
+        }),
     }),
     { name: 'tutor-library', version: 1, partialize: (s) => ({ tutors: s.tutors, steps: s.steps }) },
   ),

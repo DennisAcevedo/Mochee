@@ -363,3 +363,127 @@
   font-size: 15px;
   color: var(--muted);
 }
+
+/* Delete: a corner button on each tutor card, then an inline confirm over the art. */
+.cardWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.cardWrap > .card {
+  flex: 1;
+}
+
+.delete {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(251, 250, 247, 0.92);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  translate: 0 0;
+  transition:
+    opacity 0.18s ease,
+    translate 0.25s var(--ease),
+    background 0.15s ease,
+    color 0.15s ease;
+}
+/* Rides the card's hover lift. */
+.cardWrap[data-hover='true'] .delete {
+  translate: 0 -4px;
+}
+.cardWrap:hover .delete,
+.cardWrap:focus-within .delete {
+  opacity: 1;
+}
+.delete:hover {
+  background: var(--error-soft);
+  color: oklch(0.45 0.12 30);
+  border-color: transparent;
+}
+.delete:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+@media (hover: none) {
+  .delete {
+    opacity: 1;
+  }
+}
+
+.confirm {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 20px;
+  height: 190px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: confirmIn 0.22s var(--ease) both;
+}
+
+@keyframes confirmIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+
+.confirmTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.confirmText {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cancel,
+.deleteConfirm {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+}
+
+.deleteConfirm {
+  border: none;
+  background: var(--error);
+  color: #fff;
+}
+.deleteConfirm:hover {
+  background: oklch(0.55 0.13 30);
+}

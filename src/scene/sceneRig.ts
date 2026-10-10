@@ -28,6 +28,7 @@ export const sceneRig = {
   frameT: 0, // 0 = start-screen box, 1 = stage
   clipT: 0, // 0 = canvas unclipped, 1 = clipped to the stage's rounded rect
   canvasOpacity: 1,
+  roomT: 0, // 0 = intro camera, 1 = the room's lesson camera (CameraRig blends; live holds it at 1)
   cam: { ...CAMERA_REST },
   charScreen: { x: 0, y: 0 }, // character root in viewport px, written by the tick
 }
@@ -39,5 +40,6 @@ export function resetSceneRig() {
   sceneRig.frameT = 0
   sceneRig.clipT = 0
   sceneRig.canvasOpacity = 1
+  sceneRig.roomT = 0
   Object.assign(sceneRig.cam, CAMERA_REST)
 }
