@@ -1,68 +1,135 @@
 import { stripMarks } from './markup'
+import type { LatencyTrace } from './latency'
 
-// The tutor's ElevenLabs voice, fetched through the server proxy (/api/tts,
-// key stays server-side). Each line's audio is kept as an object URL, so a
-// prefetch, a replay or a back-step never fetches twice. When the proxy has no
-// key or runs out of budget, the voice switches off for the visit and
-// speech.ts falls back to the browser voice.
-
-const VOICE = {
-  route: '/api/tts',
-  timeoutMs: 9_000,
-  maxCached: 48, // object URLs kept; the oldest is revoked past this
-  disableOn: [503, 429] as readonly number[], // no key, budget spent: stop asking this visit
-} as const
-
-const cache = new Map<string, Promise<string | null>>()
+const VOICE = { route: '/api/tts', timeoutMs: 14_000, maxCached: 48 }
+const cache = new Map<string, string>()
+const warming = new Map<string, Promise<string | null>>()
 let disabled = false
-
 const keyOf = (text: string) => stripMarks(text).replace(/\s+/g, ' ').trim()
 
-async function load(text: string): Promise<string | null> {
-  try {
-    const res = await fetch(VOICE.route, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(VOICE.timeoutMs),
-    })
-    if (!res.ok) {
-      if (VOICE.disableOn.includes(res.status)) disabled = true
-      return null
+function remember(key: string, blob: Blob): string {
+  const existing = cache.get(key)
+  if (existing) return existing
+  const url = URL.createObjectURL(blob)
+  cache.set(key, url)
+  while (cache.size > VOICE.maxCached) {
+    const [oldest, value] = cache.entries().next().value!
+    cache.delete(oldest)
+    URL.revokeObjectURL(value)
+  }
+  return url
+}
+
+async function request(text: string, signal: AbortSignal) {
+  const res = await fetch(VOICE.route, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text }), signal,
+  })
+  if (!res.ok) {
+    if (res.status === 503 || res.status === 429) disabled = true
+    await res.body?.cancel()
+    throw new Error('voice-unavailable')
+  }
+  return res
+}
+
+// Prefetch uses the same endpoint/cache, but never creates a player or MediaSource.
+export function voiceUrl(text: string): Promise<string | null> {
+  const key = keyOf(text)
+  const cached = cache.get(key)
+  if (cached) return Promise.resolve(cached)
+  if (disabled || !key) return Promise.resolve(null)
+  let pending = warming.get(key)
+  if (!pending) {
+    pending = request(key, AbortSignal.timeout(VOICE.timeoutMs))
+      .then(async (res) => remember(key, await res.blob()))
+      .catch(() => null)
+      .finally(() => warming.delete(key))
+    warming.set(key, pending)
+  }
+  return pending
+}
+
+export interface VoiceClip {
+  url: string
+  completed: Promise<void>
+  dispose: () => void
+}
+
+// Event waits are abortable, including sourceopen if cancelled before attaching.
+function event(target: EventTarget, name: string, signal: AbortSignal, action?: () => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const clean = () => {
+      target.removeEventListener(name, ok)
+      target.removeEventListener('error', fail)
+      signal.removeEventListener('abort', fail)
     }
-    return URL.createObjectURL(await res.blob())
+    const ok = () => { clean(); resolve() }
+    const fail = () => { clean(); reject(new Error('audio-interrupted')) }
+    if (signal.aborted) return fail()
+    target.addEventListener(name, ok, { once: true })
+    target.addEventListener('error', fail, { once: true })
+    signal.addEventListener('abort', fail, { once: true })
+    try { action?.() } catch { fail() }
+  })
+}
+
+export async function prepareVoice(text: string, signal: AbortSignal, trace: LatencyTrace): Promise<VoiceClip | null> {
+  const key = keyOf(text)
+  trace.mark('ttsRequested')
+  const cached = cache.get(key)
+  if (cached) {
+    trace.mark('audioCached')
+    return { url: cached, completed: Promise.resolve(), dispose() {} }
+  }
+  if (disabled || !key || signal.aborted) return null
+  const cancel = new AbortController()
+  const combined = AbortSignal.any([signal, cancel.signal, AbortSignal.timeout(VOICE.timeoutMs)])
+  try {
+    // Join server prefetches immediately, without waiting for their complete blob.
+    const res = await request(key, combined)
+    trace.mark('audioHeaders')
+    if (!res.body) throw new Error('empty-audio')
+    if (typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported('audio/mpeg')) {
+      const blob = await res.blob()
+      trace.mark('audioDownloaded')
+      return { url: remember(key, blob), completed: Promise.resolve(), dispose() { cancel.abort() } }
+    }
+    const media = new MediaSource()
+    const url = URL.createObjectURL(media)
+    const opened = event(media, 'sourceopen', combined)
+    const completed = (async () => {
+      const reader = res.body!.getReader()
+      try {
+        await opened
+        const buffer = media.addSourceBuffer('audio/mpeg')
+        const chunks: Uint8Array<ArrayBuffer>[] = []
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          trace.mark('audioFirstChunk')
+          const bytes = new Uint8Array(value)
+          chunks.push(bytes)
+          await event(buffer, 'updateend', combined, () => buffer.appendBuffer(bytes))
+        }
+        if (!chunks.length) throw new Error('empty-audio')
+        combined.throwIfAborted()
+        media.endOfStream()
+        remember(key, new Blob(chunks, { type: 'audio/mpeg' }))
+        trace.mark('audioDownloaded')
+      } finally {
+        await reader.cancel().catch(() => {})
+        reader.releaseLock()
+      }
+    })()
+    // Playback handles errors too; cancellation can occur before that handler attaches.
+    void completed.catch(() => {})
+    return { url, completed, dispose() { cancel.abort(); URL.revokeObjectURL(url) } }
   } catch {
+    cancel.abort()
     return null
   }
 }
 
-function trim() {
-  while (cache.size > VOICE.maxCached) {
-    const [oldest, url] = cache.entries().next().value as [string, Promise<string | null>]
-    cache.delete(oldest)
-    void url.then((u) => u && URL.revokeObjectURL(u))
-  }
-}
-
-// Audio URL for a line, or null when the ElevenLabs voice is unavailable.
-export function voiceUrl(text: string): Promise<string | null> {
-  const key = keyOf(text)
-  if (disabled || !key) return Promise.resolve(null)
-  let hit = cache.get(key)
-  if (!hit) {
-    hit = load(key).then((url) => {
-      if (!url) cache.delete(key) // let a later call retry a transient failure
-      return url
-    })
-    cache.set(key, hit)
-    trim()
-  }
-  return hit
-}
-
-// Warm the next line while the current one plays.
-export function prefetchVoice(text: string) {
-  void voiceUrl(text)
-}
-
+export function prefetchVoice(text: string) { void voiceUrl(text) }
 export const elevenVoiceDisabled = () => disabled

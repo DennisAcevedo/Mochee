@@ -4,13 +4,14 @@ import { useWalkthrough } from '../../lesson/runner'
 import { readingMs, speak } from '../../lesson/speech'
 import { useDirector } from '../../state/director'
 import { unlockedDances, useProgress } from '../../state/progress'
+import type { LatencyTrace } from '../../lesson/latency'
 
 // How the tutor on stage reacts to what happens in the drawers: he says a
 // document answer (voice + caption) with its gesture, and dances or shrugs at
 // quiz results. The guided lesson holds while he answers and picks back up after.
 
 const CUES = {
-  safetyMs: 8000, // past the reading estimate: give the stage back even if the voice never ended
+  safetyMs: 15_000, // allow the speech transport's 14-second deadline before releasing the stage
 } as const
 
 let turn = 0
@@ -26,7 +27,7 @@ function finish(my: number) {
 
 // Says a grounded answer on stage. Loop cues play for the length of the line;
 // one-shot cues fire once while he talks.
-export function performAnswer(answer: GroundedAnswer) {
+export function performAnswer(answer: GroundedAnswer, trace?: LatencyTrace) {
   const my = ++turn
   const d = useDirector.getState()
   useWalkthrough.getState().hold()
@@ -35,7 +36,7 @@ export function performAnswer(answer: GroundedAnswer) {
   useWalkthrough.getState().setLoopOverride(loop)
   d.setLoop(loop)
   d.setCaption(answer.answer)
-  speak(answer.answer, () => finish(my))
+  speak(answer.answer, () => finish(my), trace)
   setTimeout(() => finish(my), readingMs(answer.answer) + CUES.safetyMs)
 }
 

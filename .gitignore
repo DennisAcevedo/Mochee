@@ -7,3 +7,5 @@ graphify-out/cache/
 tmp/
 .data/
 __pycache__/
+gemini_API.txt
+ElevenLabsAPI.txt
