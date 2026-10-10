@@ -124,6 +124,49 @@ describe('upload formats', () => {
     const stored = buildZip({ 'word/document.xml': `<w:document><w:body>${wordPara(LECTURE[1])}</w:body></w:document>` }, { store: true })
     assert.deepEqual(readLocal('docx', stored), [LECTURE[1]], 'stored (uncompressed) entries read too')
   })
+
+  test('unclosed tags cost one pass: tiny flood files parse in milliseconds, not seconds', () => {
+    // Each of these held the dev server's one thread for 0.6 to 77 s while a
+    // pattern rescanned the rest of the part from every unclosed opener.
+    const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+    const deck = (slide: string, rels = `<Relationship Id="rId2" Type="${REL}/slide" Target="slides/slide1.xml"/>`) =>
+      buildZip({
+        'ppt/presentation.xml': '<p:presentation><p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst></p:presentation>',
+        'ppt/_rels/presentation.xml.rels': `<Relationships>${rels}</Relationships>`,
+        'ppt/slides/slide1.xml': slide,
+      })
+    const N = 20_000
+    const floods: [string, 'pptx' | 'docx' | 'html', Buffer][] = [
+      ['pptx: unclosed <a:p>', 'pptx', deck('<a:p>'.repeat(N))],
+      ['pptx: <a:t x in one a:p', 'pptx', deck(`<a:p>${'<a:t x'.repeat(N)}</a:p>`)],
+      ['pptx: unclosed <Relationship', 'pptx', deck('<a:p/>', '<Relationship '.repeat(N))],
+      ['pptx: a 200k-char attribute name', 'pptx', deck('<a:p/>', `<Relationship ${'a'.repeat(200_000)}>`)],
+      ['docx: <w:t a', 'docx', buildDocx(`<w:p>${'<w:t a'.repeat(N)}</w:p>`)],
+      ['docx: <w:br a', 'docx', buildDocx(`<w:p>${'<w:br a'.repeat(N)}</w:p>`)],
+      ['docx: <w:pageBreakBefore a', 'docx', buildDocx(`<w:p>${'<w:pageBreakBefore a'.repeat(N)}</w:p>`)],
+      ['html: <script ', 'html', Buffer.from('<script '.repeat(N))],
+      ['html: <!--', 'html', Buffer.from('<!--'.repeat(N * 2))],
+      ['html: bare <', 'html', Buffer.from('<'.repeat(40_000))],
+      ['html: <p ', 'html', Buffer.from('<p '.repeat(N * 2))],
+    ]
+    for (const [name, format, bytes] of floods) {
+      assert.ok(bytes.length < 200_000, `${name}: a small file`)
+      const t0 = performance.now()
+      try {
+        readLocal(format, bytes)
+      } catch (e) {
+        if (!(e instanceof FormatError)) throw e
+      }
+      const ms = performance.now() - t0
+      assert.ok(ms < 200, `${name}: ${ms.toFixed(0)} ms`)
+    }
+  })
+
+  test('HTML: an unclosed script or comment hides the rest; close tags match in any case', () => {
+    assert.equal(htmlToText('<p>Seen</p><script>var x = "<p>hidden</p>"').trim(), 'Seen')
+    assert.equal(htmlToText('<p>Seen</p><!-- <p>hidden</p>').trim(), 'Seen')
+    assert.equal(htmlToText('a<SCRIPT type="x">hidden</Script >b'), 'a b')
+  })
 })
 
 describe('whole-document sampling', () => {

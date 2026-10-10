@@ -103,6 +103,12 @@ function splitLong(para: string, max: number): string[] {
 
 // ---- XML and HTML text
 
+// Uploads are parsed on the dev server's only thread, so no pattern here may
+// rescan: a tag pattern stops at the next '<' ([^<>]*, never [^>]*), and an
+// open/close pair (a:p, a comment, a script) is found by one forward scan
+// (cutSpans, drawingText). With [^>]* or a lazy [\s\S]*? per opener, a 1 KB
+// DOCX of unclosed '<w:t a' blocked every route for seconds.
+
 const NAMED: Record<string, string> = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', hellip: '…',
   lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', bull: '•', middot: '·', times: '×', divide: '÷',
@@ -121,17 +127,41 @@ export function decodeEntities(s: string): string {
 
 const HTML_BLOCK = 'p|div|section|article|header|footer|main|nav|aside|h[1-6]|li|ul|ol|dl|dt|dd|tr|table|thead|tbody|blockquote|pre|figure|figcaption|hr|title'
 
+// Replaces every span from an `open` match to the first `closeOf(match)` match
+// after it with a space, in one forward pass. An opener that is never closed
+// drops the rest of the text, as a browser reads an unclosed comment or
+// script to the end. `open` must be global.
+function cutSpans(s: string, open: RegExp, closeOf: (m: RegExpExecArray) => RegExp): string {
+  let out = ''
+  let at = 0
+  for (let m = open.exec(s); m; m = open.exec(s)) {
+    const close = closeOf(m)
+    close.lastIndex = m.index + m[0].length
+    const end = close.exec(s)
+    out += `${s.slice(at, m.index)} `
+    if (!end) return out
+    at = open.lastIndex = end.index + end[0].length
+  }
+  return out + s.slice(at)
+}
+
 // Visible text of an HTML page: no scripts, styles or comments; block tags
 // become paragraph breaks, every other tag disappears.
 export function htmlToText(html: string): string {
+  const closes = new Map<string, RegExp>()
+  const closeTag = (m: RegExpExecArray) => {
+    const name = m[1].toLowerCase()
+    const re = closes.get(name) ?? new RegExp(`</${name}\\s*>`, 'gi')
+    closes.set(name, re)
+    return re
+  }
+  const bare = cutSpans(cutSpans(html, /<!--/g, () => /-->/g), /<(script|style|noscript|template|svg|math|head)\b/gi, closeTag)
   return decodeEntities(
-    html
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      .replace(/<(script|style|noscript|template|svg|math|head)\b[\s\S]*?<\/\1\s*>/gi, ' ')
+    bare
       .replace(/<br\s*\/?>/gi, '\n')
-      .replace(new RegExp(`</?(?:${HTML_BLOCK})\\b[^>]*>`, 'gi'), '\n\n')
+      .replace(new RegExp(`</?(?:${HTML_BLOCK})\\b[^<>]*>`, 'gi'), '\n\n')
       .replace(/<\/t[dh]\s*>/gi, ' \t ')
-      .replace(/<[^>]*>/g, ''),
+      .replace(/<[^<>]*>/g, ''),
   )
 }
 
@@ -202,7 +232,9 @@ function zipReader(bytes: Uint8Array) {
   }
 }
 
-const attrs = (tag: string): Record<string, string> => Object.fromEntries([...tag.matchAll(/([\w:]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]))
+// The lookbehind starts a name only at the start of a word: without it a
+// 200k-char name with no '=' after it was rescanned from every one of its characters.
+const attrs = (tag: string): Record<string, string> => Object.fromEntries([...tag.matchAll(/(?<![\w:])([\w:]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]))
 
 // ---- DOCX
 
@@ -214,7 +246,7 @@ export function docxText(bytes: Uint8Array): string {
   if (xml === null) throw new FormatError('bad-file')
   const paras: string[] = []
   let cur = ''
-  const TOKENS = /<w:p\/>|<w:p[\s>]|<\/w:p>|<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>|<w:tab\/>|<w:(?:br|cr)(\s[^>]*)?\/>|<w:pageBreakBefore(\s[^>]*)?\/>/g
+  const TOKENS = /<w:p\/>|<w:p[\s>]|<\/w:p>|<w:t(?:\s[^<>]*)?>([^<]*)<\/w:t>|<w:tab\/>|<w:(?:br|cr)(\s[^<>]*)?\/>|<w:pageBreakBefore(\s[^<>]*)?\/>/g
   for (const m of xml.matchAll(TOKENS)) {
     const tok = m[0]
     if (tok === '<w:p/>') paras.push('')
@@ -253,21 +285,27 @@ function relsOf(zip: ReturnType<typeof zipReader>, part: string): Map<string, { 
   const name = part.split('/').pop() ?? ''
   const xml = zip.text(`${dir ? `${dir}/` : ''}_rels/${name}.rels`) ?? ''
   const out = new Map<string, { type: string; target: string }>()
-  for (const m of xml.matchAll(/<Relationship\s[^>]*>/g)) {
+  for (const m of xml.matchAll(/<Relationship\s[^<>]*>/g)) {
     const a = attrs(m[0])
     if (a.Id && a.Target && a.TargetMode !== 'External') out.set(a.Id, { type: a.Type ?? '', target: resolvePart(part, a.Target) })
   }
   return out
 }
 
-// DrawingML text: one line per a:p, a:br as a line break.
+// DrawingML text: one line per a:p, a:br as a line break. Each a:p start tag
+// is matched, then its </a:p> found with one indexOf; an a:p never closed ends the part.
 function drawingText(xml: string): string[] {
   const lines: string[] = []
-  for (const p of xml.matchAll(/<a:p>([\s\S]*?)<\/a:p>|<a:p\s[^>]*>([\s\S]*?)<\/a:p>/g)) {
-    const body = p[1] ?? p[2] ?? ''
+  const open = /<a:p(?:\s[^<>]*)?>/g
+  for (let p = open.exec(xml); p; p = open.exec(xml)) {
+    if (p[0].endsWith('/>')) continue // <a:p /> holds no text
+    const from = p.index + p[0].length
+    const to = xml.indexOf('</a:p>', from)
+    if (to < 0) break
+    open.lastIndex = to + '</a:p>'.length
     let line = ''
     // a:br is often <a:br><a:rPr/></a:br>, so any a:br start tag is a line break.
-    for (const m of body.matchAll(/<a:t>([^<]*)<\/a:t>|<a:t\s[^>]*>([^<]*)<\/a:t>|<a:br\b[^>]*>/g)) line += m[0].startsWith('<a:br') ? '\n' : decodeEntities(m[1] ?? m[2] ?? '')
+    for (const m of xml.slice(from, to).matchAll(/<a:t(?:\s[^<>]*)?>([^<]*)<\/a:t>|<a:br\b[^<>]*>/g)) line += m[0].startsWith('<a:br') ? '\n' : decodeEntities(m[1] ?? '')
     if (line.trim()) lines.push(line.trim())
   }
   return lines
@@ -280,7 +318,7 @@ export function pptxPages(bytes: Uint8Array): string[] {
   const pres = zip.text('ppt/presentation.xml')
   if (pres === null) throw new FormatError('bad-file')
   const rels = relsOf(zip, 'ppt/presentation.xml')
-  let slides = [...pres.matchAll(/<p:sldId\s[^>]*>/g)].map((m) => rels.get(attrs(m[0])['r:id'] ?? '')?.target).filter((t): t is string => !!t && zip.has(t))
+  let slides = [...pres.matchAll(/<p:sldId\s[^<>]*>/g)].map((m) => rels.get(attrs(m[0])['r:id'] ?? '')?.target).filter((t): t is string => !!t && zip.has(t))
   if (!slides.length) {
     const num = (n: string) => Number(/(\d+)\.xml$/.exec(n)?.[1] ?? 0)
     slides = zip.names().filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => num(a) - num(b))
