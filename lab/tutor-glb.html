@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tutor GLB lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #f4f3f1; font-family: Figtree, system-ui, sans-serif; }
+      #stage { position: fixed; inset: 0; }
+      #bar { position: fixed; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+      #bar button { font: 800 13px Figtree, system-ui, sans-serif; border: 0; border-radius: 999px; padding: 7px 12px; color: #fff; cursor: pointer; }
+      #info { position: fixed; left: 12px; top: 12px; font: 600 12px ui-monospace, monospace; color: #1d1b24; white-space: pre; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <div id="info">loading…</div>
+    <div id="bar"></div>
+    <script type="module" src="./tutor-glb.tsx"></script>
+  </body>
+</html>
