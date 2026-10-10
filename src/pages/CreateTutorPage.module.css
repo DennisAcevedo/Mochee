@@ -33,21 +33,6 @@
   color: var(--muted);
 }
 
-.close {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-.close:hover {
-  background: #fff;
-}
-
 .columns {
   flex: 1;
   min-height: 0;

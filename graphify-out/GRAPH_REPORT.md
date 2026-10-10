@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-10-10)
 
 ## Corpus Check
-- 187 files · ~213,942 words
+- 187 files · ~213,919 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -827,11 +827,11 @@ Nodes (1): Rest-pose height (floor to cap top) in model units, from evaluated me
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `set()` connect `Community 7` to `Community 0`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 20`, `Community 21`?**
-  _High betweenness centrality (0.203) - this node is a cross-community bridge._
+  _High betweenness centrality (0.240) - this node is a cross-community bridge._
 - **Why does `get()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 9`, `Community 10`, `Community 11`, `Community 13`?**
-  _High betweenness centrality (0.116) - this node is a cross-community bridge._
-- **Why does `trim()` connect `Community 0` to `Community 4`, `Community 9`, `Community 10`, `Community 13`, `Community 18`?**
-  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+  _High betweenness centrality (0.112) - this node is a cross-community bridge._
+- **Why does `play()` connect `Community 1` to `Community 11`, `Community 4`, `Community 7`, `Community 15`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
 - **Are the 52 inferred relationships involving `set()` (e.g. with `add_cylinder()` and `add_box()`) actually correct?**
   _`set()` has 52 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 37 inferred relationships involving `get()` (e.g. with `sample()` and `main()`) actually correct?**

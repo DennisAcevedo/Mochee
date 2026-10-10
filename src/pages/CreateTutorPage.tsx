@@ -21,6 +21,7 @@ import { Lights } from '../scene/Lights'
 import { addTutorFiles } from '../state/fileStore'
 import type { Gesture, LoopClip } from '../state/director'
 import { formatBytes, newTutorId, useLibrary, type OutlineItem, type Tutor } from '../state/library'
+import { BackButton } from '../ui/BackButton/BackButton'
 import styles from './CreateTutorPage.module.css'
 import { CardShadow } from './HomeScene'
 
@@ -284,13 +285,9 @@ export function CreateTutorPage() {
       <div className={styles.wrap}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
+            <BackButton />
             <div className={styles.crumb}>New tutor</div>
           </div>
-          <Link to="/" aria-label="Close" className={styles.close}>
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 5l14 14M19 5L5 19" stroke="#6c6861" strokeWidth="2.6" strokeLinecap="round" />
-            </svg>
-          </Link>
         </div>
 
         <div className={styles.columns}>
