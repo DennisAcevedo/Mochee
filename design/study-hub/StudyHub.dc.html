@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Study hub in the Learning drawer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8f7f4}
+button,input{font-family:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid #7c5cf2;outline-offset:2px}
+.hub-card{transition:transform 200ms cubic-bezier(0.34,1.56,0.64,1),box-shadow 200ms,border-color 200ms}
+.hub-card:hover{transform:translateY(-3px);box-shadow:0 14px 26px -16px rgba(61,90,214,0.55),0 0 0 1px rgba(29,27,36,0.06)}
+.hub-card:active{transform:translateY(0) scale(0.97)}
+.hub-view{animation:hubIn 260ms cubic-bezier(0.2,0.8,0.2,1) both}
+@keyframes hubIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(234,67,53,0.45)}70%{box-shadow:0 0 0 18px rgba(234,67,53,0)}100%{box-shadow:0 0 0 0 rgba(234,67,53,0)}}
+@keyframes recDot{50%{opacity:0.25}}
+@keyframes level{0%,100%{transform:scaleY(0.25)}50%{transform:scaleY(1)}}
+@keyframes indet{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+@keyframes guyWave{0%,100%{transform:translateX(-50%) rotate(0)}25%{transform:translateX(-50%) rotate(-5deg) translateY(-3%)}75%{transform:translateX(-50%) rotate(5deg)}}
+@keyframes guyNap{0%,100%{transform:translateX(-50%) scale(1,1)}50%{transform:translateX(-50%) scale(1.03,0.97)}}
+@keyframes twinkle{0%,100%{opacity:0.35;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes menuIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.flip{transition:transform 420ms cubic-bezier(0.2,0.8,0.2,1);transform-style:preserve-3d}
+/* services-card motion: fade up 50px, 0.5s, staggered 0.1s per card, once.
+   backwards fill hands transform back to :hover after landing. */
+.card-up{display:block;animation:cardUp 0.5s cubic-bezier(0.2,0.8,0.2,1) backwards}
+@keyframes cardUp{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:none}}
+.svc{transition:transform 220ms cubic-bezier(0.34,1.56,0.64,1),box-shadow 220ms}
+.svc:hover{transform:translateY(-4px);box-shadow:0 18px 30px -18px rgba(29,27,36,0.35)}
+.svc:active{transform:scale(0.98)}
+@media (prefers-reduced-motion: reduce){.hub-card,.hub-view,.flip,.card-up,.svc{transition:none;animation:none}}
+</style>
+</helmet>
+<div style="position: relative; height: 100vh; overflow: hidden; font-family: 'Figtree', system-ui, sans-serif; color: #1d1b24; background: radial-gradient(45% 60% at 8% 70%, #d7e5ff 0%, rgba(215,229,255,0) 100%), radial-gradient(45% 55% at 92% 8%, #ffe2d3 0%, rgba(255,226,211,0) 100%), radial-gradient(40% 50% at 88% 92%, #fff1c9 0%, rgba(255,241,201,0) 100%), #f8f7f4">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 72px; display: flex; align-items: center; gap: 14px; padding: 0 24px">
+    <span style="padding: 6px 12px; border-radius: 999px; background: #1d1b24; color: #ffffff; font-size: 13px; font-weight: 800">Tutor</span>
+    <h1 style="margin: 0">
+      <button type="button" onClick="{{ toggleMenu }}" aria-haspopup="menu" aria-expanded="{{ menuExpanded }}" aria-label="{{ menuLabel }}" style="display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 8px; border: 0; border-radius: 14px; background: rgba(255,255,255,0.7); cursor: pointer; box-shadow: 0 0 0 1px rgba(29,27,36,0.06)">
+        <span aria-hidden="true" style="{{ classDotStyle }}"></span>
+        <span style="font-size: 22px; font-weight: 800; white-space: nowrap">{{ className }}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+    </h1>
+    <span style="flex: 1"></span>
+    <span role="radiogroup" aria-label="Mode" style="display: flex; padding: 4px; border-radius: 999px; background: #ffffff; box-shadow: 0 0 0 1px rgba(29,27,36,0.06)">
+      <span role="radio" aria-checked="true" style="padding: 6px 14px; border-radius: 999px; background: linear-gradient(135deg,#7c5cf2,#3d5ad6); color: #ffffff; font-size: 13px; font-weight: 800">Study</span>
+      <span role="radio" aria-checked="false" style="padding: 6px 14px; font-size: 13px; font-weight: 800; color: #4a4756">Play</span>
+    </span>
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #77738a">{{ stepLabel }}</span>
+  </header>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+    <div role="menu" aria-label="Your classes" style="position: absolute; left: 92px; top: 66px; z-index: 10; width: 370px; display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 20px; background: #ffffff; box-shadow: 0 0 0 1px rgba(29,27,36,0.06), 0 28px 50px -24px rgba(61,90,214,0.55); animation: menuIn 180ms ease-out both">
+      <span style="padding: 8px 10px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">YOUR CLASSES</span>
+      <sc-for list="{{ classList }}" as="k" hint-placeholder-count="4">
+        <button type="button" role="menuitemradio" aria-checked="{{ k.on }}" onClick="{{ k.pick }}" style="{{ k.style }}">
+          <span aria-hidden="true" style="{{ k.dot }}"></span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 15px; font-weight: 800">{{ k.name }}</span><span style="font-size: 12px; color: #77738a">{{ k.meta }}</span></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3d5ad6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{ k.checkStyle }}"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        </button>
+      </sc-for>
+      <button type="button" role="menuitem" onClick="{{ newClass }}" style="display: flex; align-items: center; gap: 12px; padding: 10px; border: 0; border-radius: 14px; background: transparent; color: #3d5ad6; font-size: 14px; font-weight: 800; cursor: pointer; text-align: left"><span aria-hidden="true" style="width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgba(61,90,214,0.1)">+</span>New class</button>
+      <p style="margin: 2px 10px 6px; font-size: 12px; line-height: 1.45; color: #77738a">Material, chat, quizzes, bosses and the tutor session all follow the class you pick.</p>
+    </div>
+  </sc-if>
+
+  <div role="radiogroup" aria-label="Mock option: tool card layout" style="position: absolute; left: 50%; top: 80px; z-index: 5; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 14px; border-radius: 999px; border: 1.5px dashed #b7b3c6; background: rgba(255,255,255,0.92); font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #77738a; white-space: nowrap">
+    MOCK OPTION · TOOL CARDS
+    <sc-for list="{{ layouts }}" as="l" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ l.on }}" onClick="{{ l.pick }}" style="{{ l.style }}">{{ l.label }}</button></sc-for>
+  </div>
+
+  <!-- the stage behind the drawers -->
+  <div aria-hidden="true" style="position: absolute; left: 50%; top: 96px; width: 760px; height: 720px; transform: translateX(-50%)">
+    <svg viewBox="0 0 24 24" style="position: absolute; left: 6%; top: 12%; width: 34px; animation: twinkle 3.2s ease-in-out infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#4285f4"></path></svg>
+    <svg viewBox="0 0 24 24" style="position: absolute; right: 9%; top: 20%; width: 26px; animation: twinkle 2.6s ease-in-out 0.6s infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#fbbc04"></path></svg>
+    <svg viewBox="0 0 24 24" style="position: absolute; right: 20%; top: 6%; width: 18px; animation: twinkle 3.8s ease-in-out 1.1s infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#ea4335"></path></svg>
+    <svg viewBox="0 0 24 24" style="position: absolute; left: 18%; top: 4%; width: 16px; animation: twinkle 2.9s ease-in-out 0.3s infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#34a853"></path></svg>
+    <svg viewBox="0 0 400 130" style="position: absolute; left: 50%; bottom: 120px; width: 400px; transform: translateX(-50%)">
+      <defs>
+        <linearGradient id="hub-rim" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#4285f4"></stop><stop offset="0.34" stop-color="#ea4335"></stop><stop offset="0.66" stop-color="#fbbc04"></stop><stop offset="1" stop-color="#34a853"></stop>
+        </linearGradient>
+      </defs>
+      <ellipse cx="200" cy="112" rx="150" ry="11" fill="rgba(70,80,140,0.16)"></ellipse>
+      <ellipse cx="200" cy="66" rx="172" ry="40" fill="#e6e4ef"></ellipse>
+      <ellipse cx="200" cy="58" rx="172" ry="40" fill="url(#hub-rim)"></ellipse>
+      <ellipse cx="200" cy="54" rx="163" ry="35" fill="#ffffff"></ellipse>
+    </svg>
+    <svg viewBox="0 0 240 268" style="{{ guyStyle }}">
+      <defs>
+        <radialGradient id="hb-body" cx="0.42" cy="0.36" r="0.7"><stop offset="0" stop-color="#ffffff"></stop><stop offset="0.7" stop-color="#f4f3f7"></stop><stop offset="1" stop-color="#dcdbe4"></stop></radialGradient>
+        <linearGradient id="hb-brim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4285f4"></stop><stop offset="0.34" stop-color="#ea4335"></stop><stop offset="0.66" stop-color="#fbbc04"></stop><stop offset="1" stop-color="#34a853"></stop></linearGradient>
+        <linearGradient id="hb-spark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ea4335"></stop><stop offset="0.38" stop-color="#fbbc04"></stop><stop offset="0.62" stop-color="#34a853"></stop><stop offset="1" stop-color="#4285f4"></stop></linearGradient>
+        <radialGradient id="hb-cap" cx="0.4" cy="0.3" r="0.8"><stop offset="0" stop-color="#ffffff"></stop><stop offset="1" stop-color="#e7e6ee"></stop></radialGradient>
+      </defs>
+      <ellipse cx="80" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+      <ellipse cx="80" cy="248" rx="26" ry="12.5" fill="url(#hb-body)"></ellipse>
+      <ellipse cx="160" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+      <ellipse cx="160" cy="248" rx="26" ry="12.5" fill="url(#hb-body)"></ellipse>
+      <ellipse cx="120" cy="150" rx="94" ry="94" fill="url(#hb-body)"></ellipse>
+      <ellipse cx="214" cy="190" rx="22" ry="19" fill="url(#hb-body)"></ellipse>
+      <g transform="rotate(-18 30 112)"><ellipse cx="30" cy="112" rx="25" ry="31" fill="url(#hb-body)"></ellipse><ellipse cx="50" cy="104" rx="10" ry="13" fill="url(#hb-body)"></ellipse></g>
+      <path d="M40 96 C 40 18, 204 14, 208 102 C 168 84, 80 82, 40 96 Z" fill="{{ capFill }}"></path>
+      <path d="M30 104 C 72 74, 172 72, 214 106 L 208 118 C 170 92, 76 92, 36 116 Z" fill="url(#hb-brim)"></path>
+      <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(110 56) scale(20)" fill="url(#hb-spark)"></path>
+      <path d="{{ browL }}" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+      <path d="{{ browR }}" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+      <ellipse cx="94" cy="146" rx="12" ry="{{ eyeRy }}" fill="#141318"></ellipse>
+      <ellipse cx="150" cy="148" rx="12" ry="{{ eyeRy }}" fill="#141318"></ellipse>
+      <circle cx="98" cy="140" r="{{ glint }}" fill="#ffffff"></circle>
+      <circle cx="154" cy="142" r="{{ glint }}" fill="#ffffff"></circle>
+      <ellipse cx="74" cy="172" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+      <ellipse cx="170" cy="175" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+      <path d="M108 166 Q 122 169 136 166 Q 134 186 122 188 Q 110 186 108 166 Z" fill="#4a2328"></path>
+      <path d="M112 179 Q 122 173 132 179 Q 128 187 122 188 Q 115 187 112 179 Z" fill="#f08a90"></path>
+    </svg>
+    <sc-if value="{{ guyBadgeOn }}" hint-placeholder-val="{{ true }}">
+      <span style="position: absolute; left: 50%; bottom: 470px; transform: translateX(-50%); padding: 7px 12px; border-radius: 12px; background: #ffffff; font-size: 13px; font-weight: 800; white-space: nowrap; box-shadow: 0 10px 22px -12px rgba(61,90,214,0.5)">{{ guyBadge }}</span>
+    </sc-if>
+  </div>
+
+  <!-- the class's notes + board windows, shown once the session starts -->
+  <sc-if value="{{ tutorLive }}" hint-placeholder-val="{{ false }}">
+    <sc-for list="{{ stageWins }}" as="w" hint-placeholder-count="2">
+      <div aria-label="{{ w.label }}" style="{{ w.style }}">
+        <div style="display: flex; align-items: flex-end; gap: 6px; padding: 8px 10px 0; background: #e9e7f0">
+          <span style="display: flex; gap: 4px; padding-bottom: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ff6b5b"></span><span style="width: 8px; height: 8px; border-radius: 50%; background: #fbbc04"></span><span style="width: 8px; height: 8px; border-radius: 50%; background: #34a853"></span></span>
+          <span style="{{ w.tabStyle }}">{{ w.tab }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px">
+          <span style="font-size: 16px; font-weight: 800">{{ w.head }}</span>
+          <sc-for list="{{ w.lines }}" as="ln" hint-placeholder-count="2"><span style="{{ ln.style }}">{{ ln.text }}</span></sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </sc-if>
+
+  <!-- LEFT: Learning drawer -->
+  <aside aria-label="Learning" style="{{ leftStyle }}">
+    <button type="button" onClick="{{ toggleLeft }}" aria-label="{{ leftHandleLabel }}" style="position: absolute; right: -48px; top: 20px; width: 42px; padding: 12px 0 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; border-radius: 0 16px 16px 0; background: rgba(255,255,255,0.92); cursor: pointer; box-shadow: 0 0 0 1px rgba(29,27,36,0.06), 0 12px 26px -12px rgba(61,90,214,0.5)">
+      <span style="width: 28px; height: 28px; display: grid; place-items: center; border-radius: 10px; background: #7c5cf2; color: #ffffff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15zM4 20.5A2.5 2.5 0 0 0 6.5 23H20"></path></svg></span>
+      <span style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 800; letter-spacing: 0.04em">Learning</span>
+    </button>
+    <div style="height: 100%; display: flex; flex-direction: column; border-radius: 26px; overflow: hidden; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(1.5); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 0 0 1px rgba(29,27,36,0.05), 0 30px 60px -30px rgba(61,90,214,0.38), 0 8px 20px -10px rgba(29,27,36,0.12)">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 18px 18px 12px">
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <span aria-hidden="true" style="width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; background: #7c5cf2; color: #ffffff; box-shadow: 0 8px 16px -8px #7c5cf2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15zM4 20.5A2.5 2.5 0 0 0 6.5 23H20"></path></svg></span>
+        </sc-if>
+        <sc-if value="{{ notHome }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ back }}" aria-label="{{ backLabel }}" style="width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: rgba(29,27,36,0.06); cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        </sc-if>
+        <h2 style="margin: 0; flex: 1; min-width: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ leftTitle }}</h2>
+        <button type="button" onClick="{{ toggleLeft }}" aria-label="Collapse Learning" style="width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: rgba(29,27,36,0.05); color: #4a4756; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+
+      <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 2px 18px 20px">
+
+        <!-- HOME: six tools -->
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">WHAT DO YOU WANT TO DO?</h3>
+              <span class="card-up" style="animation-delay: 0s">
+                <button type="button" class="svc" onClick="{{ openBoss }}" style="position: relative; width: 100%; min-height: 150px; display: flex; align-items: stretch; gap: 6px; padding: 16px 0 16px 16px; border: 0; border-radius: 22px; cursor: pointer; text-align: left; overflow: hidden; background: linear-gradient(to top, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%), linear-gradient(90deg, #ffe4d6, #ffc9dc)">
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(29,27,36,0.5)">( BOSS )</span>
+                    <span style="margin-top: auto; font-size: 17px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase">Beat the Boss</span>
+                    <span style="font-size: 12.5px; line-height: 1.4; color: rgba(29,27,36,0.72)">{{ bossName }} guards <b>{{ bossTopic }}</b>. Answer right to hit it.</span>
+                    <span style="padding: 3px 9px; border-radius: 999px; background: rgba(29,27,36,0.82); color: #ffffff; font-size: 11px; font-weight: 800">{{ bossCount }}</span>
+                  </span>
+                  <svg viewBox="0 0 260 200" width="132" aria-hidden="true" style="flex: none; align-self: flex-end; margin-right: -14px; margin-bottom: -10px">
+                    <ellipse cx="130" cy="186" rx="104" ry="9" fill="rgba(60,40,80,0.18)"></ellipse>
+                    <rect x="196" y="122" width="44" height="44" rx="12" fill="#c8f5d0"></rect><circle cx="210" cy="140" r="3.2" fill="#1d1b24"></circle><circle cx="224" cy="140" r="3.2" fill="#1d1b24"></circle><path d="M211 152q6-4 12 0" stroke="#1d1b24" stroke-width="2.4" fill="none" stroke-linecap="round"></path>
+                    <rect x="34" y="40" width="172" height="124" rx="34" fill="#55597a"></rect>
+                    <rect x="34" y="40" width="172" height="58" rx="30" fill="#6b6f92"></rect>
+                    <path d="M58 64 L96 76" stroke="#1d1b24" stroke-width="7" stroke-linecap="round"></path><path d="M150 64 L112 76" stroke="#1d1b24" stroke-width="7" stroke-linecap="round"></path>
+                    <ellipse cx="80" cy="90" rx="13" ry="11" fill="#ffffff"></ellipse><circle cx="84" cy="92" r="6" fill="#1d1b24"></circle>
+                    <ellipse cx="128" cy="90" rx="13" ry="11" fill="#ffffff"></ellipse><circle cx="124" cy="92" r="6" fill="#1d1b24"></circle>
+                    <rect x="66" y="114" width="76" height="24" rx="8" fill="#ffffff"></rect><path d="M85 114v24M104 114v24M123 114v24" stroke="#55597a" stroke-width="3"></path>
+                    <text x="176" y="150" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#ffffff">{{ bossTag }}</text>
+                    <circle cx="74" cy="168" r="16" fill="#2b2d3d"></circle><circle cx="74" cy="168" r="6" fill="#9a9db8"></circle>
+                    <circle cx="168" cy="168" r="16" fill="#2b2d3d"></circle><circle cx="168" cy="168" r="6" fill="#9a9db8"></circle>
+                  </svg>
+                </button>
+              </span>
+              <sc-if value="{{ gridLayout }}" hint-placeholder-val="{{ true }}">
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+                  <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+                    <span class="card-up" style="{{ c.upStyle }}">
+                      <button type="button" class="svc" onClick="{{ c.open }}" aria-pressed="{{ c.pressed }}" style="{{ c.gridStyle }}">
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(29,27,36,0.5)">{{ c.num }}</span>
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1d1b24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-top: 10px"><path d="{{ c.d }}"></path></svg>
+                        <span style="margin-top: auto; display: flex; flex-direction: column; gap: 4px">
+                          <span style="font-size: 12.5px; font-weight: 800; letter-spacing: 0.06em; line-height: 1.2; text-transform: uppercase">{{ c.label }}</span>
+                          <span style="font-size: 12px; line-height: 1.35; color: rgba(29,27,36,0.7)">{{ c.short }}</span>
+                        </span>
+                      </button>
+                    </span>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ carouselLayout }}" hint-placeholder-val="{{ false }}">
+                <div role="region" aria-roledescription="carousel" aria-label="Study tools" style="position: relative">
+                  <div style="overflow: hidden; margin-right: -18px">
+                    <div style="{{ trackStyle }}">
+                      <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+                        <span class="card-up" role="group" aria-roledescription="slide" aria-label="{{ c.slideLabel }}" style="{{ c.slideStyle }}">
+                          <button type="button" class="svc" onClick="{{ c.open }}" aria-pressed="{{ c.pressed }}" style="{{ c.bigStyle }}">
+                            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: rgba(29,27,36,0.5)">{{ c.num }}</span>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1d1b24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-top: 22px"><path d="{{ c.d }}"></path></svg>
+                            <span style="margin-top: auto; display: flex; flex-direction: column; gap: 8px">
+                              <span style="font-size: 17px; font-weight: 800; letter-spacing: 0.08em; line-height: 1.2; text-transform: uppercase">{{ c.label }}</span>
+                              <span style="font-size: 14px; line-height: 1.45; color: rgba(29,27,36,0.7)">{{ c.desc }}</span>
+                            </span>
+                          </button>
+                        </span>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <button type="button" onClick="{{ nextSlide }}" aria-label="Next slide" style="position: absolute; right: 2px; top: 150px; transform: translateY(-50%); width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(29,27,36,0.1); color: #1d1b24; cursor: pointer; backdrop-filter: blur(6px)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+                  <div style="display: flex; justify-content: center; gap: 6px; margin-top: 12px">
+                    <sc-for list="{{ dots }}" as="dt" hint-placeholder-count="6"><button type="button" onClick="{{ dt.go }}" aria-label="{{ dt.label }}" aria-current="{{ dt.current }}" style="{{ dt.style }}"></button></sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">YOUR MATERIAL</h3>
+              <sc-for list="{{ docs }}" as="d" hint-placeholder-count="2">
+                <div class="card-up" style="{{ d.rowStyle }}">
+                  <span aria-hidden="true" style="{{ d.badgeStyle }}">{{ d.badge }}</span>
+                  <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ d.title }}</span><span style="font-size: 12px; color: #77738a">{{ d.meta }}</span></span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ moreOn }}" hint-placeholder-val="{{ false }}"><span style="padding-left: 4px; font-size: 12px; font-weight: 700; color: #77738a">{{ moreText }}</span></sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- UPLOAD -->
+        <sc-if value="{{ isUpload }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 14px; border-radius: 18px; border: 2px dashed rgba(61,90,214,0.35); background: rgba(66,133,244,0.05)">
+              <button type="button" onClick="{{ fakeUpload }}" style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg,#7c5cf2,#3d5ad6); color: #ffffff; font-size: 14px; font-weight: 800; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"></path></svg>Add a PDF</button>
+              <span style="font-size: 13px; color: #77738a">or drop one here · up to 15 MB, 300 pages</span>
+              <sc-if value="{{ uploading }}" hint-placeholder-val="{{ false }}">
+                <span style="width: 100%; height: 6px; border-radius: 6px; overflow: hidden; background: #eceaf2"><span style="display: block; width: 40%; height: 100%; border-radius: 6px; background: #4285f4; animation: indet 1.1s ease-in-out infinite"></span></span>
+                <span style="font-size: 12px; font-weight: 700; color: #3d5ad6">Reading pages…</span>
+              </sc-if>
+            </div>
+            <button type="button" onClick="{{ goRecord }}" style="align-self: flex-start; padding: 0; border: 0; background: none; color: #b07c00; font-size: 13px; font-weight: 800; cursor: pointer">Or record a lecture instead →</button>
+            <h3 style="margin: 4px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">YOUR MATERIAL</h3>
+            <sc-for list="{{ docs }}" as="d" hint-placeholder-count="2">
+              <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,0.86); box-shadow: 0 0 0 1px rgba(29,27,36,0.06)">
+                <span style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="{{ d.badgeStyle }}">{{ d.badge }}</span><span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 14px; font-weight: 800">{{ d.title }}</span><span style="font-size: 12px; color: #77738a">{{ d.meta }}</span></span></span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px">
+                  <sc-for list="{{ d.chips }}" as="ch" hint-placeholder-count="3"><span style="{{ ch.style }}">{{ ch.text }}</span></sc-for>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- RECORD A LECTURE -->
+        <sc-if value="{{ isRecord }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 14px">
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 800; color: #4a4756">LECTURE TITLE
+              <input value="{{ recTitle }}" readonly="readonly" style="padding: 10px 12px; border: 0; border-radius: 12px; background: #ffffff; font-size: 15px; font-weight: 700; box-shadow: 0 0 0 1px rgba(29,27,36,0.1)">
+            </label>
+
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 14px 18px; border-radius: 20px; background: #ffffff; box-shadow: 0 0 0 1px rgba(29,27,36,0.06)">
+              <span style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: 0.02em">
+                <sc-if value="{{ recLive }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width: 11px; height: 11px; border-radius: 50%; background: #ea4335; animation: recDot 1s steps(1) infinite"></span></sc-if>
+                {{ recClock }}
+              </span>
+              <span aria-hidden="true" style="height: 38px; display: flex; align-items: center; gap: 3px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="22"><span style="{{ b.style }}"></span></sc-for>
+              </span>
+              <span style="display: flex; align-items: center; gap: 14px">
+                <sc-if value="{{ recShowPause }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ togglePause }}" aria-label="{{ pauseLabel }}" style="width: 48px; height: 48px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #f1eff7; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="#1d1b24" aria-hidden="true"><path d="{{ pauseIcon }}"></path></svg></button>
+                </sc-if>
+                <button type="button" onClick="{{ recMain }}" aria-label="{{ recMainLabel }}" style="{{ recMainStyle }}">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ recMainIcon }}"></path></svg>
+                </button>
+              </span>
+              <span style="font-size: 13px; font-weight: 700; color: #4a4756; text-align: center">{{ recHint }}</span>
+            </div>
+
+            <sc-if value="{{ recBusy }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: rgba(124,92,242,0.08)">
+                <span style="font-size: 14px; font-weight: 800">Gemini is transcribing {{ recClock }} of audio…</span>
+                <span style="height: 6px; border-radius: 6px; overflow: hidden; background: #e4def9"><span style="display: block; width: 40%; height: 100%; border-radius: 6px; background: #7c5cf2; animation: indet 1.1s ease-in-out infinite"></span></span>
+                <span style="font-size: 12px; color: #4a4756">Then he finds the topics and adds it to your material.</span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ recSaved }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: #e8f6ec; box-shadow: 0 0 0 1px rgba(52,168,83,0.25)">
+                <span style="font-size: 13px; font-weight: 800; color: #1f8a43">Saved to your material</span>
+                <span style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="flex: none; padding: 4px 6px; border-radius: 7px; background: #e0a100; color: #ffffff; font-size: 10px; font-weight: 800">REC</span><span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 800">{{ recTitle }}</span><span style="font-size: 12px; color: #4a4756">Transcript · 3 topics · 4 pages</span></span></span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px">
+                  <sc-for list="{{ recChips }}" as="ch" hint-placeholder-count="3"><span style="{{ ch.style }}">{{ ch.text }}</span></sc-for>
+                </span>
+                <span style="display: flex; gap: 8px">
+                  <button type="button" onClick="{{ quizOnIt }}" style="flex: 1; padding: 9px 10px; border: 0; border-radius: 11px; background: linear-gradient(135deg,#7c5cf2,#3d5ad6); color: #ffffff; font-size: 13px; font-weight: 800; cursor: pointer">Quiz me on it</button>
+                  <button type="button" onClick="{{ recAgain }}" style="flex: 1; padding: 9px 10px; border: 0; border-radius: 11px; background: #ffffff; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 0 0 1px rgba(29,27,36,0.1)">Record another</button>
+                </span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ recDenied }}" hint-placeholder-val="{{ false }}">
+              <div role="alert" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: #fff3e8; box-shadow: 0 0 0 1px rgba(255,107,91,0.3)">
+                <span style="font-size: 14px; font-weight: 800; color: #c4402f">The microphone is blocked</span>
+                <span style="font-size: 13px; color: #4a4756">Allow it from the lock icon in the address bar, then press record again.</span>
+              </div>
+            </sc-if>
+
+            <p style="margin: 0; font-size: 12px; line-height: 1.45; color: #77738a">Up to 60 minutes. The audio is sent to Gemini only to write the transcript and is not kept; the transcript becomes a document that chat, quizzes and citations can use.</p>
+            <button type="button" onClick="{{ simulateDenied }}" style="align-self: flex-start; padding: 0; border: 0; background: none; color: #77738a; font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer">Preview: microphone blocked</button>
+          </div>
+        </sc-if>
+
+        <!-- MINI APPS shelf -->
+        <sc-if value="{{ isApps }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{ apps }}" as="a" hint-placeholder-count="3">
+              <span class="card-up" style="{{ a.upStyle }}">
+                <button type="button" class="svc" onClick="{{ a.open }}" style="{{ a.style }}">
+                  <span style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(29,27,36,0.5)">{{ a.num }}</span>
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1d1b24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ a.d }}"></path></svg>
+                  </span>
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; text-align: left"><span style="font-size: 14px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase">{{ a.title }}</span><span style="font-size: 12.5px; line-height: 1.4; color: rgba(29,27,36,0.7)">{{ a.sub }}</span></span>
+                </button>
+              </span>
+            </sc-for>
+            <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: #77738a">Every tool works from your material. Each one opens here, or pops out into a tab in the notes window.</p>
+          </div>
+        </sc-if>
+
+        <!-- FLASHCARDS -->
+        <sc-if value="{{ isFlash }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 12px">
+            <span style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; color: #77738a"><span>{{ flashProgress }}</span><span>{{ flashSource }}</span></span>
+            <button type="button" onClick="{{ flip }}" aria-label="Flip card" style="position: relative; height: 210px; padding: 0; border: 0; background: none; cursor: pointer; perspective: 900px">
+              <span class="flip" style="{{ flipStyle }}">
+                <span style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px; border-radius: 20px; background: #ffffff; box-shadow: 0 0 0 1px rgba(29,27,36,0.06), 0 18px 30px -20px rgba(61,90,214,0.6); backface-visibility: hidden">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #12a4b4">TERM</span>
+                  <span style="font-size: 26px; font-weight: 800; text-align: center">{{ cardFront }}</span>
+                  <span style="font-size: 12px; color: #77738a">Tap to flip</span>
+                </span>
+                <span style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px; border-radius: 20px; background: linear-gradient(160deg,#f3efff,#e9f6ff); box-shadow: 0 0 0 1px rgba(29,27,36,0.06); backface-visibility: hidden; transform: rotateY(180deg)">
+                  <span style="font-size: 16px; font-weight: 700; line-height: 1.45; text-align: center">{{ cardBack }}</span>
+                  <span style="padding: 3px 8px; border-radius: 999px; background: #ffffff; color: #3d5ad6; font-size: 12px; font-weight: 800">{{ cardPage }}</span>
+                </span>
+              </span>
+            </button>
+            <span style="display: flex; gap: 8px">
+              <button type="button" onClick="{{ nextCard }}" style="flex: 1; padding: 10px; border: 0; border-radius: 12px; background: #fff0ee; color: #c4402f; font-size: 14px; font-weight: 800; cursor: pointer">Again</button>
+              <button type="button" onClick="{{ nextCard }}" style="flex: 1; padding: 10px; border: 0; border-radius: 12px; background: #e8f6ec; color: #1f8a43; font-size: 14px; font-weight: 800; cursor: pointer">Got it</button>
+            </span>
+            <button type="button" onClick="{{ popOut }}" style="align-self: flex-start; padding: 0; border: 0; background: none; color: #3d5ad6; font-size: 13px; font-weight: 800; cursor: pointer">Pop out to a tab ↗</button>
+          </div>
+        </sc-if>
+
+        <!-- FOCUS TIMER -->
+        <sc-if value="{{ isTimer }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+            <span style="position: relative; width: 200px; height: 200px">
+              <svg viewBox="0 0 200 200" width="200" height="200" aria-hidden="true" style="transform: rotate(-90deg)">
+                <circle cx="100" cy="100" r="86" fill="none" stroke="#eceaf2" stroke-width="14"></circle>
+                <circle cx="100" cy="100" r="86" fill="none" stroke="#34a853" stroke-width="14" stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="{{ ringOffset }}"></circle>
+              </svg>
+              <span style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 38px; font-weight: 700">{{ timerClock }}</span><span style="font-size: 12px; font-weight: 800; color: #77738a">{{ timerState }}</span></span>
+            </span>
+            <span role="radiogroup" aria-label="Length" style="display: flex; gap: 6px">
+              <sc-for list="{{ presets }}" as="p" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ p.on }}" onClick="{{ p.pick }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+            </span>
+            <span style="display: flex; gap: 8px; width: 100%">
+              <button type="button" onClick="{{ timerToggle }}" style="flex: 2; padding: 11px; border: 0; border-radius: 12px; background: #34a853; color: #ffffff; font-size: 15px; font-weight: 800; cursor: pointer">{{ timerBtn }}</button>
+              <button type="button" onClick="{{ timerReset }}" style="flex: 1; padding: 11px; border: 0; border-radius: 12px; background: #ffffff; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 0 0 1px rgba(29,27,36,0.1)">Reset</button>
+            </span>
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.45; color: #4a4756; text-align: center">Gemini Guy naps on the stage while you focus (no talking) and cheers when the time is up.</p>
+            <button type="button" onClick="{{ popOut }}" style="padding: 0; border: 0; background: none; color: #3d5ad6; font-size: 13px; font-weight: 800; cursor: pointer">Pop out to a tab ↗</button>
+          </div>
+        </sc-if>
+
+        <!-- KEY TERMS -->
+        <sc-if value="{{ isTerms }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 8px">
+            <span style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; background: #ffffff; box-shadow: 0 0 0 1px rgba(29,27,36,0.1); color: #77738a; font-size: 14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 1 1 0 15a7.5 7.5 0 1 1 0-15zM16 16l5 5"></path></svg>Filter terms</span>
+            <sc-for list="{{ terms }}" as="t" hint-placeholder-count="5">
+              <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,0.9); box-shadow: 0 0 0 1px rgba(29,27,36,0.06)">
+                <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; font-size: 14px; font-weight: 800">{{ t.term }}</span><span style="padding: 2px 7px; border-radius: 999px; background: rgba(61,90,214,0.1); color: #3d5ad6; font-size: 11px; font-weight: 800">{{ t.page }}</span></span>
+                <span style="font-size: 13px; line-height: 1.4; color: #4a4756">{{ t.def }}</span>
+              </div>
+            </sc-for>
+            <button type="button" onClick="{{ popOut }}" style="align-self: flex-start; padding: 0; border: 0; background: none; color: #3d5ad6; font-size: 13px; font-weight: 800; cursor: pointer">Pop out to a tab ↗</button>
+          </div>
+        </sc-if>
+
+        <!-- TUTOR SESSION: a lesson built from one of this class's uploads -->
+        <sc-if value="{{ isSession }}" hint-placeholder-val="{{ false }}">
+          <div class="hub-view" style="display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">LESSON FROM</h3>
+              <div role="radiogroup" aria-label="Lesson from" style="display: flex; flex-direction: column; gap: 6px">
+                <sc-for list="{{ srcDocs }}" as="d" hint-placeholder-count="3">
+                  <button type="button" role="radio" aria-checked="{{ d.on }}" onClick="{{ d.pick }}" style="{{ d.style }}">
+                    <span aria-hidden="true" style="{{ d.badgeStyle }}">{{ d.badge }}</span>
+                    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left"><span style="font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ d.title }}</span><span style="font-size: 12px; color: #77738a">{{ d.meta }}</span></span>
+                    <sc-if value="{{ d.isNew }}" hint-placeholder-val="{{ false }}"><span style="flex: none; padding: 2px 7px; border-radius: 999px; background: #e0a100; color: #ffffff; font-size: 10px; font-weight: 800">NEW</span></sc-if>
+                  </button>
+                </sc-for>
+              </div>
+              <button type="button" onClick="{{ goUpload }}" style="align-self: flex-start; padding: 2px 0 0; border: 0; background: none; color: #3d5ad6; font-size: 13px; font-weight: 800; cursor: pointer">+ Upload a PDF to learn from</button>
+            </div>
+
+            <sc-if value="{{ building }}" hint-placeholder-val="{{ false }}">
+              <div role="status" style="display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 16px; background: rgba(124,92,242,0.08)">
+                <span style="font-size: 14px; font-weight: 800">{{ buildTitle }}</span>
+                <sc-for list="{{ buildStages }}" as="b" hint-placeholder-count="4">
+                  <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700"><span aria-hidden="true" style="{{ b.dot }}">{{ b.mark }}</span><span style="{{ b.textStyle }}">{{ b.text }}</span></span>
+                </sc-for>
+                <span style="height: 6px; border-radius: 6px; overflow: hidden; background: #e4def9"><span style="display: block; width: 40%; height: 100%; border-radius: 6px; background: #7c5cf2; animation: indet 1.1s ease-in-out infinite"></span></span>
+                <span style="font-size: 12px; color: #4a4756">{{ buildFrom }}</span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ needsBuild }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ buildNow }}" style="width: 100%; padding: 12px; border: 0; border-radius: 14px; background: #1d1b24; color: #ffffff; font-size: 14px; font-weight: 800; cursor: pointer">{{ buildNowLabel }}</button>
+            </sc-if>
+
+            <sc-if value="{{ sessionReady }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">{{ sectionsHead }}</h3>
+                <sc-for list="{{ sections }}" as="s" hint-placeholder-count="5">
+                  <button type="button" onClick="{{ s.pick }}" aria-pressed="{{ s.on }}" style="{{ s.style }}">
+                    <span aria-hidden="true" style="{{ s.badgeStyle }}">{{ s.badge }}</span>
+                    <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 800; text-align: left">{{ s.title }}</span>
+                    <span style="{{ s.pageStyle }}">{{ s.page }}</span>
+                    <span style="flex: none; width: 44px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #77738a">{{ s.mins }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <button type="button" onClick="{{ startSession }}" style="width: 100%; padding: 13px; border: 0; border-radius: 14px; background: linear-gradient(135deg,#34a853,#1f8a43); color: #ffffff; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 22px -12px rgba(31,138,67,0.8)">{{ startLabel }}</button>
+              <p style="margin: 0; font-size: 12px; line-height: 1.45; color: #77738a">{{ sessionNote }}</p>
+            </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Quest drawer (opened by Create Quiz / Chat) -->
+  <aside aria-label="Quest" style="{{ rightStyle }}">
+    <div style="height: 100%; display: flex; flex-direction: column; border-radius: 26px; overflow: hidden; background: rgba(255,255,255,0.78); backdrop-filter: blur(20px) saturate(1.5); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 0 0 1px rgba(29,27,36,0.05), 0 30px 60px -30px rgba(61,90,214,0.38)">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 18px 18px 10px">
+        <span aria-hidden="true" style="width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; background: #ff6b5b; color: #ffffff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6L22 9.3l-5.4 4.8L18.2 21 12 17.3 5.8 21l1.6-6.9L2 9.3l7.1-.7z"></path></svg></span>
+        <h2 style="margin: 0; flex: 1; font-size: 22px; font-weight: 800">Quest</h2>
+        <button type="button" onClick="{{ closeRight }}" aria-label="Collapse Quest" style="width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: rgba(29,27,36,0.05); color: #4a4756; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div role="tablist" aria-label="Quest" style="display: flex; gap: 4px; margin: 0 18px 12px; padding: 4px; border-radius: 14px; background: rgba(29,27,36,0.05)">
+        <sc-for list="{{ questTabs }}" as="q" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{ q.on }}" onClick="{{ q.pick }}" style="{{ q.style }}">{{ q.label }}</button></sc-for>
+      </div>
+      <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 0 18px 20px">
+        <sc-if value="{{ questChat }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <span style="align-self: flex-end; max-width: 85%; padding: 10px 12px; border-radius: 16px 16px 4px 16px; background: linear-gradient(135deg,#7c5cf2,#3d5ad6); color: #ffffff; font-size: 14px; font-weight: 600">{{ chatQ }}</span>
+            <span style="max-width: 90%; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 16px 16px 16px 4px; background: #ffffff; font-size: 14px; line-height: 1.45; box-shadow: 0 0 0 1px rgba(29,27,36,0.06)">{{ chatA }}<span style="align-self: flex-start; padding: 2px 8px; border-radius: 999px; background: rgba(61,90,214,0.1); color: #3d5ad6; font-size: 12px; font-weight: 800">{{ chatPage }}</span></span>
+            <span style="margin-top: 6px; padding: 10px 12px; border-radius: 14px; background: #ffffff; color: #77738a; font-size: 14px; box-shadow: 0 0 0 1px rgba(29,27,36,0.1)">{{ chatPlaceholder }}</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ questQuiz }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">{{ quizSource }}</span>
+            <span style="font-size: 16px; font-weight: 800; line-height: 1.35">{{ quizQ }}</span>
+            <sc-for list="{{ quizOpts }}" as="o" hint-placeholder-count="3"><span style="padding: 10px 12px; border-radius: 12px; background: #ffffff; font-size: 14px; font-weight: 700; box-shadow: 0 0 0 1px rgba(29,27,36,0.1)">{{ o.text }}</span></sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </aside>
+
+  <!-- tutor session caption -->
+  <sc-if value="{{ tutorLive }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 50%; bottom: 34px; width: 640px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 14px 16px 14px 20px; border-radius: 20px; background: #ffffff; box-shadow: 0 20px 40px -24px rgba(61,90,214,0.6), 0 0 0 1px rgba(29,27,36,0.05)">
+      <span style="flex: 1; font-size: 17px; font-weight: 700; line-height: 1.4">{{ capPre }} <b style="color: #3d5ad6">{{ capTopic }}</b>{{ capPost }}</span>
+      <button type="button" onClick="{{ endTutor }}" style="flex: none; padding: 9px 14px; border: 0; border-radius: 12px; background: rgba(29,27,36,0.06); font-size: 13px; font-weight: 800; cursor: pointer">Back to tools</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 50%; top: 128px; transform: translateX(-50%); padding: 9px 14px; border-radius: 12px; background: #1d1b24; color: #ffffff; font-size: 13px; font-weight: 700; animation: toastIn 200ms ease-out both">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.CL = this.classData();
+    this.state = {
+      view: 'home', quest: 'none', tutorLive: false, leftOpen: true,
+      rec: 'idle', paused: false, secs: 0, uploading: false,
+      card: 0, flipped: false, preset: 25, left: 1500, running: false,
+      toast: '', layout: 'grid', slide: 0,
+      cls: 'cs111', menu: false,
+      extra: {},       // class id -> docs added this visit, oldest first ('up' = the upload, 'rec' = the recording)
+      built: {},       // 'class:doc' -> a lesson exists for a doc added this visit
+      src: null,       // doc the session is built from; null = the newest upload, else the first unfinished doc
+      startAt: null,   // section picked in the session plan; null = the first unfinished one
+      building: null,  // 'class:doc' while its lesson is being written
+      buildStep: 0,
+    };
+  }
+
+  // Per-class content. In the app the class (name, cap colour) comes from the
+  // tutor library, and everything under docs comes from that class's uploads:
+  // topics with their first page, and the lesson Gemini writes from them.
+  // Topic: [title, first page, minutes, spoken form when not just lower-cased].
+  classData() {
+    return {
+      cs111: {
+        name: 'CS111 · Operating Systems', short: 'CS111', cap: 'url(#hb-cap)', dot: '#ffffff', more: 0,
+        docs: [
+          { id: 'l4', title: 'CS111 · Lecture 4', meta: 'Built-in lesson', pages: 18, done: 1, color: '#7c5cf2',
+            topics: [['Why schedule at all?', 1, 4], ['First-come, first-served', 2, 6, 'first-come, first-served scheduling'], ['Ready queue', 4, 4], ['Convoy effect', 6, 5]],
+            notes: ['4.2 First-come, first-served', ['The CPU runs jobs in the exact order they arrive.', 'One FIFO ready queue, no preemption.']],
+            board: ['Average wait under FCFS', ['P1 24 ms, then P2 3 ms, then P3 3 ms', '(0 + 24 + 27) / 3 = 17 ms']] },
+          { id: 'fcfs', title: 'cs111-fcfs.pdf', pages: 2, done: 0, color: '#12a4b4',
+            topics: [['FCFS', 1, 4], ['Waiting time', 1, 4], ['Convoy effect', 2, 5]] },
+          { id: 'l2', title: 'CS111 Lecture 2.pdf', pages: 16, done: 3, color: '#4285f4',
+            topics: [['Processes', 2, 5], ['Threads', 7, 6], ['Context switch', 12, 5]] },
+        ],
+        up: { id: 'up', added: true, title: 'cs111-deadlock.pdf', pages: 12, done: 0, color: '#3d5ad6',
+          topics: [['Deadlock', 1, 5], ['Four conditions', 3, 6], ['Resource graphs', 6, 6], ["Banker's algorithm", 9, 7, "the banker's algorithm"]],
+          notes: ['8.1 Deadlock', ['Each process holds a resource and waits for another.', 'Nobody can move, so nobody ever finishes.']],
+          board: ['A deadlock in two lines', ['P1 holds A and wants B', 'P2 holds B and wants A']],
+          quiz: ['Which is NOT one of the four deadlock conditions?', ['Preemption', 'Mutual exclusion', 'Circular wait']] },
+        rec: { id: 'rec', added: true, rec: true, title: 'CS111 Lecture 5', pages: 4, done: 0, color: '#e0a100',
+          topics: [['Round robin', 1, 6], ['Time quantum', 2, 5], ['Context switch', 3, 5]],
+          notes: ['Round robin', ['Each job gets one time quantum, then goes to the back.', 'Nobody waits forever behind a long job.']],
+          board: ['Quantum = 4 ms', ['P1 runs 4 ms, then P2, then P3', 'P1 comes back for its next 4 ms']],
+          quiz: ['What happens when a round-robin time quantum is very large?', ['It behaves like FCFS', 'Context switches dominate', 'Short jobs always finish first']] },
+        boss: ['The Convoy', 'Convoy effect', 3, '24'],
+        chat: ['Why does one long job slow everyone down?', "That's the convoy effect: in FCFS, short jobs queue behind the long one, so the average waiting time jumps.", 'p. 2'],
+        quiz: ['CS111 · LECTURE 4', 'Three jobs arrive in the order 24 ms, 3 ms, 3 ms. What is the average waiting time under FCFS?', ['17 ms', '3 ms', '27 ms']],
+        flashFrom: 'From Lecture 4 + cs111-fcfs.pdf',
+        flash: [
+          ['FCFS', 'Jobs run in the order they arrive; each runs to completion before the next starts.', 'Lecture 4'],
+          ['Convoy effect', 'Short jobs wait behind one long job, so the average waiting time grows.', 'p. 2'],
+          ['Waiting time', 'How long a job sits in the ready queue before it gets the CPU.', 'p. 1'],
+          ['Ready queue', 'The jobs that could run right now and are waiting for the CPU.', 'Lecture 4'],
+        ],
+        terms: [
+          ['First-come, first-served (FCFS)', 'Lecture 4', 'Jobs run in arrival order, each to completion.'],
+          ['Convoy effect', 'p. 2', 'Short jobs stuck behind a long one inflate the average waiting time.'],
+          ['Waiting time', 'p. 1', 'Time spent in the ready queue before getting the CPU.'],
+          ['Ready queue', 'Lecture 4', 'Jobs that can run and are waiting for the CPU.'],
+          ['Turnaround time', 'p. 1', 'Finish time minus arrival time.'],
+        ],
+      },
+      bio82: {
+        name: 'BIO 82 · Genetics', short: 'BIO 82', cap: '#4c9a6a', dot: '#4c9a6a', more: 3,
+        docs: [
+          { id: 'g1', title: 'Genetics Lecture 1.pdf', pages: 24, done: 2, color: '#4c9a6a',
+            topics: [['Alleles', 3, 4], ["Mendel's laws", 6, 5, "Mendel's laws"], ['Punnett squares', 11, 6, 'Punnett squares']],
+            notes: ['1.3 Punnett squares', ['Each parent passes one allele per gene to a gamete.', 'Aa × Aa gives 1 AA : 2 Aa : 1 aa.']],
+            board: ['Aa × Aa', ['A and a across, A and a down', '3 of 4 show the dominant trait']] },
+          { id: 'g2', title: 'Genetics Lecture 2.pdf', pages: 27, done: 0, color: '#12a4b4',
+            topics: [['Linkage', 5, 6], ['Recombination', 9, 6], ['Map units', 14, 5]] },
+          { id: 'ped', title: 'Pedigree worksheet.pdf', pages: 2, done: 0, color: '#7c5cf2',
+            topics: [['Reading a pedigree', 1, 5]] },
+        ],
+        up: { id: 'up', added: true, title: 'bio82-hardy-weinberg.pdf', pages: 8, done: 0, color: '#3d5ad6',
+          topics: [['Allele frequencies', 1, 5], ['Hardy-Weinberg equation', 3, 6, 'the Hardy-Weinberg equation'], ['Testing equilibrium', 6, 6]],
+          notes: ['2.1 Allele frequencies', ['p is the frequency of A, q the frequency of a.', 'p + q = 1, and p² + 2pq + q² = 1 at equilibrium.']],
+          board: ['If q² = 0.09', ['q = 0.3, so p = 0.7', '2pq = 0.42 are carriers']],
+          quiz: ['If q² = 0.16, what fraction of the population is heterozygous (2pq)?', ['0.48', '0.24', '0.16']] },
+        rec: { id: 'rec', added: true, rec: true, title: 'BIO 82 Lecture 3', pages: 4, done: 0, color: '#e0a100',
+          topics: [['Sex linkage', 1, 6], ['X-inactivation', 2, 5], ['Carriers', 3, 5]],
+          notes: ['Sex linkage', ['Genes on the X chromosome travel with the X.', 'A son gets his only X from his mother.']],
+          board: ['Carrier mom × unaffected dad', ['Sons: 1 in 2 affected', 'Daughters: 1 in 2 carriers']],
+          quiz: ['A carrier mother and an unaffected father have a son. What is the chance he has the X-linked trait?', ['1/2', '1/4', '0']] },
+        boss: ['The Punnett Pest', 'Punnett squares', 5, 'Aa'],
+        chat: ['Why do linked genes break the 9:3:3:1 ratio?', 'Genes close together on one chromosome travel together unless crossing over splits them, so the parent combinations show up more often than independent assortment predicts.', 'Lecture 2 · p. 9'],
+        quiz: ['BIO 82 · GENETICS LECTURE 1', 'Two Aa parents have a child. What is the chance the child is aa?', ['1/4', '1/2', '3/4']],
+        flashFrom: 'From Genetics Lecture 1 + 2',
+        flash: [
+          ['Law of segregation', 'Each parent passes one of its two alleles for a gene to each gamete.', 'Lecture 1 · p. 6'],
+          ['Punnett square', 'A grid of every gamete pairing; it gives the offspring genotype ratios.', 'Lecture 1 · p. 11'],
+          ['Recombination frequency', 'Recombinant offspring over all offspring; 1% is about 1 map unit.', 'Lecture 2 · p. 9'],
+          ['Carrier', 'Has one copy of a recessive allele but does not show the trait.', 'Pedigree worksheet'],
+        ],
+        terms: [
+          ['Allele', 'Lecture 1 · p. 3', 'One version of a gene.'],
+          ['Genotype vs phenotype', 'Lecture 1 · p. 4', 'The alleles you carry vs the trait you show.'],
+          ['Independent assortment', 'Lecture 1 · p. 14', 'Genes on different chromosomes sort into gametes independently.'],
+          ['Linkage', 'Lecture 2 · p. 5', 'Genes close together on one chromosome are inherited together.'],
+          ['Map unit', 'Lecture 2 · p. 14', '1% recombination between two genes.'],
+        ],
+      },
+      chem31a: {
+        name: 'CHEM 31A · Chemical Principles', short: 'CHEM 31A', cap: '#d9824a', dot: '#d9824a', more: 0,
+        docs: [
+          { id: 'atom', title: 'Atomic structure.pdf', pages: 19, done: 3, color: '#d9824a',
+            topics: [['Electron shells', 3, 5], ['Orbitals', 7, 6], ['Valence electrons', 11, 5]] },
+          { id: 'trends', title: 'Periodic trends.pdf', pages: 14, done: 0, color: '#12a4b4',
+            topics: [['Atomic radius', 4, 5], ['Electronegativity', 6, 5], ['Ionization energy', 8, 5]],
+            notes: ['2.1 Atomic radius', ['Shrinks across a period, grows down a group.', 'More protons pull the same shell in tighter.']],
+            board: ['Who is biggest?', ['K > Na > Cl', 'Down a group adds a shell']] },
+          { id: 'bond', title: 'Bonding notes.pdf', pages: 17, done: 0, color: '#7c5cf2',
+            topics: [['Ionic bonds', 3, 5], ['Covalent bonds', 7, 6], ['Lewis structures', 10, 6, 'Lewis structures']] },
+        ],
+        up: { id: 'up', added: true, title: 'chem31a-acids-bases.pdf', pages: 10, done: 0, color: '#3d5ad6',
+          topics: [['The pH scale', 1, 5, 'the pH scale'], ['Strong vs weak acids', 4, 6], ['Buffers', 7, 6]],
+          notes: ['5.1 The pH scale', ['pH = −log[H⁺]', 'Each step of 1 is ten times the H⁺.']],
+          board: ['pH 3 vs pH 5', ['[H⁺] = 10⁻³ M vs 10⁻⁵ M', 'pH 3 has 100× the H⁺']],
+          quiz: ['A solution has pH 2. Compared with pH 4, it has…', ['100× more H⁺', '2× more H⁺', '100× less H⁺']] },
+        rec: { id: 'rec', added: true, rec: true, title: 'CHEM 31A Lecture 7', pages: 4, done: 0, color: '#e0a100',
+          topics: [['VSEPR', 1, 6], ['Bond angles', 2, 5], ['Polarity', 3, 5]],
+          notes: ['VSEPR', ['Electron pairs push apart as far as they can.', 'Four pairs around carbon make a tetrahedron.']],
+          board: ['Methane, CH₄', ['Tetrahedral', 'H–C–H angle 109.5°']],
+          quiz: ['What is the H–C–H bond angle in methane (CH₄)?', ['109.5°', '120°', '90°']] },
+        boss: ['The Electron Thief', 'Periodic trends', 3, 'e⁻'],
+        chat: ['Why does atomic radius shrink across a period?', 'Each step right adds a proton, but the new electron goes into the same shell, so the stronger pull draws the whole cloud in.', 'Periodic trends · p. 4'],
+        quiz: ['CHEM 31A · PERIODIC TRENDS', 'Which atom has the largest atomic radius?', ['K', 'Na', 'Cl']],
+        flashFrom: 'From Periodic trends + Bonding notes',
+        flash: [
+          ['Electronegativity', 'How hard an atom pulls on shared electrons; it rises left to right across a period.', 'Periodic trends · p. 6'],
+          ['Atomic radius', 'Shrinks across a period and grows down a group.', 'Periodic trends · p. 4'],
+          ['Ionic bond', 'A metal hands electrons to a nonmetal and the ions attract.', 'Bonding notes · p. 3'],
+          ['Valence electrons', 'Outer-shell electrons; they decide how an atom bonds.', 'Atomic structure · p. 11'],
+        ],
+        terms: [
+          ['Electron configuration', 'Atomic structure · p. 8', 'Which orbitals the electrons fill, in order.'],
+          ['Ionization energy', 'Periodic trends · p. 8', 'Energy to pull off the outermost electron.'],
+          ['Electronegativity', 'Periodic trends · p. 6', 'Pull on shared electrons; fluorine is the highest.'],
+          ['Covalent bond', 'Bonding notes · p. 7', 'Two atoms share a pair of electrons.'],
+          ['Lewis structure', 'Bonding notes · p. 10', 'A dot drawing of the valence electrons and bonds.'],
+        ],
+      },
+      math51: {
+        name: 'MATH 51 · Linear Algebra', short: 'MATH 51', cap: '#c4566e', dot: '#c4566e', more: 2,
+        docs: [
+          { id: 'vec', title: 'Vectors and spans.pdf', pages: 12, done: 2, color: '#c4566e',
+            topics: [['Vectors', 1, 5], ['Span', 3, 5]] },
+          { id: 'ind', title: 'Linear independence.pdf', pages: 10, done: 0, color: '#12a4b4',
+            topics: [['Linear independence', 2, 6], ['Basis', 6, 6], ['Dimension', 8, 5]],
+            notes: ['3.1 Linear independence', ['Only the all-zero combination gives the zero vector.', 'Test: make them columns and row-reduce.']],
+            board: ['Independent?', ['(1, 2) and (2, 4): no, one is 2× the other', '3 pivots in R³: yes']] },
+          { id: 'det', title: 'Determinants.pdf', pages: 11, done: 0, color: '#7c5cf2',
+            topics: [['Determinant', 5, 6], ['Cofactors', 7, 6], ['Invertibility', 9, 5]] },
+        ],
+        up: { id: 'up', added: true, title: 'math51-eigen-notes.pdf', pages: 9, done: 0, color: '#3d5ad6',
+          topics: [['Eigenvalues', 1, 6], ['Characteristic polynomial', 3, 6], ['Eigenvectors', 6, 6]],
+          notes: ['6.1 Eigenvalues', ['Av = λv: A only stretches v.', 'Solve det(A − λI) = 0 for λ.']],
+          board: ['A = [2 0; 0 3]', ['det(A − λI) = (2 − λ)(3 − λ)', 'λ = 2 and λ = 3']],
+          quiz: ['What are the eigenvalues of [4 0; 0 1]?', ['4 and 1', '5 and 0', '4 only']] },
+        rec: { id: 'rec', added: true, rec: true, title: 'MATH 51 Lecture 9', pages: 4, done: 0, color: '#e0a100',
+          topics: [['Diagonalization', 1, 7], ['Eigenbasis', 2, 5], ['Similar matrices', 3, 5]],
+          notes: ['Diagonalization', ['A = PDP⁻¹ with eigenvectors in the columns of P.', 'D holds the eigenvalues on its diagonal.']],
+          board: ['3 distinct eigenvalues', ['3 independent eigenvectors', 'So A is diagonalizable']],
+          quiz: ['A 3×3 matrix has 3 distinct eigenvalues. It must be…', ['Diagonalizable', 'Singular', 'Symmetric']] },
+        boss: ['The Copycat', 'Linear independence', 6, '2×'],
+        chat: ['How do I check if three vectors in R³ are independent?', 'Make them the columns of a matrix. If it row-reduces to 3 pivots (the same as a nonzero determinant), they are independent.', 'Linear independence · p. 7'],
+        quiz: ['MATH 51 · LINEAR INDEPENDENCE', 'Are (1, 2) and (2, 4) linearly independent?', ['No: one is 2× the other', 'Yes', 'Only in R³']],
+        flashFrom: 'From Vectors and spans + Linear independence',
+        flash: [
+          ['Span', 'Every linear combination of a set of vectors.', 'Vectors and spans · p. 3'],
+          ['Linearly independent', 'Only the all-zero combination gives the zero vector.', 'Linear independence · p. 2'],
+          ['Determinant', 'How a matrix scales area or volume; 0 means it is not invertible.', 'Determinants · p. 5'],
+          ['Basis', 'An independent set that spans the space.', 'Linear independence · p. 6'],
+        ],
+        terms: [
+          ['Span', 'Vectors and spans · p. 3', 'All linear combinations of the vectors.'],
+          ['Basis', 'Linear independence · p. 6', 'An independent set that spans the space.'],
+          ['Dimension', 'Linear independence · p. 8', 'How many vectors any basis has.'],
+          ['Rank', 'Matrices · p. 14', 'The number of pivots: the dimension of the column space.'],
+          ['Eigenvalue', 'Eigen problem set · p. 1', 'The λ in Av = λv.'],
+        ],
+      },
+    };
+  }
+
+  docsOf(cls) {
+    const C = this.CL[cls];
+    return C.docs.concat((this.state.extra[cls] || []).map((id) => C[id]));
+  }
+
+  isBuilt(cls, d) { return !d.added || !!this.state.built[cls + ':' + d.id]; }
+
+  // The newest upload wins; otherwise the first doc with a topic left to learn.
+  srcOf(cls) {
+    const docs = this.docsOf(cls);
+    const picked = this.state.src && docs.find((d) => d.id === this.state.src);
+    if (picked) return picked;
+    const extra = this.state.extra[cls] || [];
+    if (extra.length) return this.CL[cls][extra[extra.length - 1]];
+    return docs.find((d) => d.done < d.topics.length) || docs[0];
+  }
+
+  tick(key, step) {
+    clearInterval(this.iv);
+    this.iv = setInterval(() => {
+      if (key === 'secs') this.setState({ secs: this.state.secs + step });
+      else {
+        const next = Math.max(0, this.state.left - step);
+        this.setState({ left: next, running: next > 0 });
+        if (next === 0) { clearInterval(this.iv); this.say('Time is up: Gemini Guy wakes up and cheers.'); }
+      }
+    }, 1000);
+  }
+
+  say(msg) {
+    clearTimeout(this.tt);
+    this.setState({ toast: msg });
+    this.tt = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+
+  go(view) {
+    clearInterval(this.iv);
+    this.setState({ view, flipped: false, running: false, rec: view === 'record' && this.state.rec === 'denied' ? 'idle' : this.state.rec });
+  }
+
+  addDoc(id) {
+    const cls = this.state.cls;
+    const list = this.state.extra[cls] || [];
+    if (list.indexOf(id) >= 0) return false;
+    this.setState({ extra: { ...this.state.extra, [cls]: list.concat(id) }, src: null, startAt: null });
+    return true;
+  }
+
+  // Writes the lesson for a doc the first time it is picked (mock: four stages, 0.8 s each).
+  build(cls, d) {
+    if (!d || this.isBuilt(cls, d)) return;
+    const key = cls + ':' + d.id;
+    if (this.state.building === key) return;
+    clearInterval(this.bv);
+    this.setState({ building: key, buildStep: 0 });
+    this.bv = setInterval(() => {
+      const step = this.state.buildStep + 1;
+      if (step < 4) { this.setState({ buildStep: step }); return; }
+      clearInterval(this.bv);
+      this.setState({ building: null, buildStep: 0, built: { ...this.state.built, [key]: true } });
+      if (this.state.cls === cls) this.say('Lesson ready: ' + d.topics.length + (d.topics.length === 1 ? ' topic' : ' topics') + ' from ' + d.title + '.');
+    }, 800);
+  }
+
+  openSession() {
+    clearInterval(this.iv);
+    this.setState({ view: 'session', quest: 'none', tutorLive: false, leftOpen: true, running: false });
+    this.build(this.state.cls, this.srcOf(this.state.cls));
+  }
+
+  pickSrc(d) {
+    this.setState({ src: d.id, startAt: null });
+    this.build(this.state.cls, d);
+  }
+
+  pickClass(id) {
+    if (id === this.state.cls) { this.setState({ menu: false }); return; }
+    clearInterval(this.iv);
+    clearInterval(this.bv);
+    this.setState({
+      cls: id, menu: false, view: 'home', quest: 'none', tutorLive: false, leftOpen: true,
+      card: 0, flipped: false, src: null, startAt: null, building: null, buildStep: 0,
+      rec: 'idle', secs: 0, paused: false, running: false, uploading: false, slide: 0,
+    });
+    this.say('Switched to ' + this.CL[id].short + ': material, quizzes and lessons follow the class.');
+  }
+
+  renderVals() {
+    const st = this.state;
+    const C = this.CL[st.cls];
+    const docs = this.docsOf(st.cls);
+    const extra = st.extra[st.cls] || [];
+    const newest = extra.length ? C[extra[extra.length - 1]] : null;
+    const mmss = (n) => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+    const topicsN = (n) => n + (n === 1 ? ' topic' : ' topics');
+    const spoken = (t) => (/^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t);
+    const dotStyle = (c, px) => 'flex: none; width: ' + px + 'px; height: ' + px + 'px; border-radius: 50%; background: ' + c + '; box-shadow: inset 0 0 0 1.5px rgba(29,27,36,0.2)';
+    const chipColors = [['rgba(124,92,242,0.12)', '#5b3fd6'], ['rgba(18,164,180,0.12)', '#0d7f8c'], ['rgba(255,107,91,0.14)', '#c4402f']];
+    const chip = (text, i) => ({ text, style: 'padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; background: ' + chipColors[i % 3][0] + '; color: ' + chipColors[i % 3][1] });
+
+    // the session: one doc, its topics, then a quick check
+    const src = this.srcOf(st.cls);
+    const srcKey = st.cls + ':' + src.id;
+    const srcBuilt = this.isBuilt(st.cls, src);
+    const buildingThis = st.building === srcKey;
+    const rows = src.topics.map(([t, page, m, s], i) => ({ t, m, page: 'p. ' + page, s: s || spoken(t), done: i < src.done }))
+      .concat([{ t: 'Quick check', m: 3, page: '', s: 'a quick check', done: false }]);
+    const firstOpen = rows.findIndex((r) => !r.done);
+    const defStart = firstOpen < 0 ? 0 : firstOpen;
+    const start = st.startAt != null && st.startAt < rows.length ? st.startAt : defStart;
+    const sec = rows[start];
+    const rich = start === defStart && !!src.notes && sec.t !== 'Quick check';
+    const mins = rows.reduce((n, r) => n + r.m, 0);
+
+    const ICON = {
+      upload: 'M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5',
+      quiz: 'M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9',
+      chat: 'M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zM8 12h.01M12 12h.01M16 12h.01',
+      tutor: 'M9 4a4 4 0 1 1 0 8a4 4 0 1 1 0-8zM2 21c0-4 3.1-7 7-7s7 3 7 7M17 5.5a4 4 0 0 1 0 5M19.5 3.5a7 7 0 0 1 0 9',
+      mic: 'M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
+      apps: 'M5.5 4h13A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-11A2.5 2.5 0 0 1 5.5 4zM3 9h18M6.5 6.5h.01M9 6.5h.01',
+    };
+    const tutorShort = srcBuilt ? 'Next: ' + rows[defStart].t + ', from ' + src.title + '.' : 'New: a lesson from ' + src.title + '.';
+    const tutorDesc = srcBuilt
+      ? 'He teaches ' + src.title + ' topic by topic, starting with ' + rows[defStart].t + ', and quizzes you at the end.'
+      : 'He reads ' + src.title + ', finds its topics and writes a walkthrough you can start right away.';
+    // services-card palette: Tailwind x-100 -> x-200 pastels, left to right
+    const cards = [
+      { id: 'upload', label: 'Upload Materials', grad: ['#dbeafe', '#bfdbfe'], d: ICON.upload, short: 'PDFs he reads and sorts into topics.', desc: 'Add lecture PDFs. He reads every page, finds the topics and adds a book to his room.', open: () => this.go('upload') },
+      { id: 'quiz', label: 'Create Quiz', grad: ['#ccfbf1', '#99f6e4'], d: ICON.quiz, short: 'Questions from your material.', desc: 'Quick checks written from your material, each answer backed by the page it came from.', open: () => this.setState({ quest: 'quiz', tutorLive: false }) },
+      { id: 'chat', label: 'Chat with Gemini Guy', grad: ['#f3e8ff', '#e9d5ff'], d: ICON.chat, short: 'Answers that cite the page.', desc: 'Ask anything about your material. Answers cite the page, and he says so when it is not in there.', open: () => this.setState({ quest: 'chat', tutorLive: false }) },
+      { id: 'tutor', label: 'Start Tutor Session', grad: ['#dcfce7', '#bbf7d0'], d: ICON.tutor, short: tutorShort, desc: tutorDesc, open: () => this.openSession() },
+      { id: 'record', label: 'Record a Lecture', grad: ['#fef3c7', '#fde68a'], d: ICON.mic, short: 'Class audio to quizzable notes.', desc: 'Record class in the browser. Gemini writes the transcript and it joins your material.', open: () => this.go('record') },
+      { id: 'apps', label: 'Mini Apps', grad: ['#fee2e2', '#fecaca'], d: ICON.apps, short: 'Flashcards, timer, key terms.', desc: 'Flashcards from your material, a focus timer he naps through, and a key-terms sheet.', open: () => this.go('apps') },
+    ];
+    const cardBg = (g) => 'linear-gradient(to top, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%), linear-gradient(90deg, ' + g[0] + ', ' + g[1] + ')';
+    const activeCard = st.quest !== 'none' ? st.quest : st.tutorLive || st.view === 'session' ? 'tutor' : null;
+    const docMeta = (d) => d.meta || (d.rec ? 'Recording · ' : d.pages + ' pages · ') + topicsN(d.topics.length);
+
+    const rec = st.rec;
+    const live = rec === 'recording';
+    const bars = Array.from({ length: 22 }, (_, i) => ({
+      style: 'width: 4px; height: 100%; border-radius: 3px; transform-origin: 50% 50%; background: ' + (live ? '#ea4335' : '#d9d6e4') +
+        (live && !st.paused ? '; animation: level ' + (0.5 + ((i * 7) % 5) * 0.12) + 's ease-in-out ' + ((i * 37) % 9) * 0.07 + 's infinite' : '; transform: scaleY(0.25)'),
+    }));
+    const recMain = () => {
+      if (rec === 'idle' || rec === 'saved' || rec === 'denied') {
+        this.setState({ rec: 'recording', secs: 0, paused: false });
+        this.tick('secs', 1);
+      } else if (rec === 'recording') {
+        clearInterval(this.iv);
+        this.setState({ rec: 'transcribing' });
+        const cls = st.cls;
+        setTimeout(() => { if (this.state.cls !== cls) return; this.setState({ rec: 'saved' }); this.addDoc('rec'); }, 2200);
+      }
+    };
+    const recHint = {
+      idle: 'Press record. He listens and turns the lecture into notes you can quiz on.',
+      recording: st.paused ? 'Paused. Press play to keep going.' : 'Listening… press stop when the lecture ends.',
+      transcribing: 'Working on it, you can keep studying.',
+      saved: 'Done. It is in your material now.',
+      denied: 'Recording could not start.',
+    }[rec];
+
+    const apps = [
+      { id: 'flash', title: 'Flashcards', sub: '4 cards from your material · flip, then Again or Got it', grad: ['#ccfbf1', '#99f6e4'], d: 'M4 7h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zM7 4h13a2 2 0 0 1 2 2v9' },
+      { id: 'timer', title: 'Focus timer', sub: '15 / 25 / 45 min · he naps while you work', grad: ['#dcfce7', '#bbf7d0'], d: 'M12 5a8 8 0 1 1 0 16a8 8 0 1 1 0-16zM12 9v4l2.5 2.5M9 2h6' },
+      { id: 'terms', title: 'Key terms', sub: 'Every topic with a definition and a page link', grad: ['#f3e8ff', '#e9d5ff'], d: 'M5 4h14v16H5zM9 8h6M9 12h6M9 16h3' },
+    ];
+    const card = C.flash[st.card % C.flash.length];
+    const total = st.preset * 60;
+
+    const titles = { home: 'Learning', upload: 'Upload materials', record: 'Record a lecture', apps: 'Mini apps', flash: 'Flashcards', timer: 'Focus timer', terms: 'Key terms', session: 'Tutor session' };
+    const parent = { upload: 'home', record: 'home', apps: 'home', flash: 'apps', timer: 'apps', terms: 'apps', session: 'home' };
+    const panel = (side, open) => 'position: absolute; ' + side + ': 16px; top: 88px; bottom: 20px; width: 340px; z-index: 3; transition: transform 420ms cubic-bezier(0.2,0.8,0.2,1); transform: translateX(' +
+      (open ? '0' : side === 'left' ? 'calc(-100% - 16px)' : 'calc(100% + 16px)') + ')';
+    const napping = st.view === 'timer' && st.running;
+
+    // the notes + board windows during the session
+    const skeleton = (i) => 'display: block; height: 12px; border-radius: 6px; background: #eceaf2; width: ' + (i ? 64 : 90) + '%';
+    const winLines = (lines) => (rich ? lines : ['', '']).map((text, i) => ({
+      text,
+      style: rich ? 'padding: 4px 8px; border-radius: 8px; font-size: 14px; line-height: 1.4; ' + (i === 0 ? 'background: #fff3b0; font-weight: 700' : 'color: #4a4756') : skeleton(i),
+    }));
+    const win = (side, label, tab, color, head, lines) => ({
+      label, tab, head, lines: winLines(lines),
+      tabStyle: 'max-width: 230px; padding: 7px 12px; border-radius: 10px 10px 0 0; background: #ffffff; font-size: 12px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: inset 0 3px 0 ' + color,
+      style: 'position: absolute; ' + side + ': 110px; top: 190px; z-index: 2; width: 330px; border-radius: 16px; overflow: hidden; background: #ffffff; box-shadow: 0 24px 44px -24px rgba(61,90,214,0.55), 0 0 0 1px rgba(29,27,36,0.06); animation: hubIn 360ms cubic-bezier(0.2,0.8,0.2,1) both',
+    });
+
+    const quizDoc = newest;
+    const capPre = start === defStart ? "Hi! Today it's" : "Let's jump to";
+
+    return {
+      className: C.name,
+      classDotStyle: dotStyle(C.dot, 22),
+      capFill: C.cap,
+      menuOpen: st.menu,
+      menuExpanded: st.menu ? 'true' : 'false',
+      menuLabel: 'Class: ' + C.name + '. Switch class',
+      toggleMenu: () => this.setState({ menu: !st.menu }),
+      newClass: () => { this.setState({ menu: false }); this.say('Opens Create a tutor: name, subject and the first PDFs.'); },
+      classList: Object.keys(this.CL).map((id) => {
+        const k = this.CL[id];
+        const on = id === st.cls;
+        const n = k.docs.length + k.more + (st.extra[id] || []).length;
+        return {
+          name: k.name, on: on ? 'true' : 'false',
+          meta: n + ' files · ' + topicsN(k.docs.reduce((s, d) => s + d.topics.length, 0)),
+          dot: dotStyle(k.dot, 30),
+          checkStyle: 'flex: none; visibility: ' + (on ? 'visible' : 'hidden'),
+          style: 'display: flex; align-items: center; gap: 12px; padding: 10px; border: 0; border-radius: 14px; cursor: pointer; background: ' + (on ? '#f3f1fa' : 'transparent'),
+          pick: () => this.pickClass(id),
+        };
+      }),
+
+      stepLabel: st.tutorLive ? src.title + ' · ' + (start + 1) + ' of ' + rows.length : 'Study tools',
+      leftStyle: panel('left', st.leftOpen && !st.tutorLive),
+      rightStyle: panel('right', st.quest !== 'none' && !st.tutorLive),
+      leftHandleLabel: st.leftOpen && !st.tutorLive ? 'Collapse Learning' : 'Open Learning',
+      toggleLeft: () => this.setState(st.tutorLive ? { tutorLive: false, leftOpen: true } : { leftOpen: !st.leftOpen }),
+      closeRight: () => this.setState({ quest: 'none' }),
+      isHome: st.view === 'home', notHome: st.view !== 'home',
+      isUpload: st.view === 'upload', isRecord: st.view === 'record', isApps: st.view === 'apps',
+      isFlash: st.view === 'flash', isTimer: st.view === 'timer', isTerms: st.view === 'terms', isSession: st.view === 'session',
+      leftTitle: titles[st.view],
+      back: () => this.go(parent[st.view] || 'home'),
+      backLabel: 'Back to ' + titles[parent[st.view] || 'home'],
+
+      bossName: C.boss[0], bossTopic: C.boss[1], bossTag: C.boss[3],
+      bossCount: C.boss[2] + ' bosses in your material',
+      openBoss: () => this.say('Starts the fight on the stage: ' + C.boss[0] + ' (see the "Beat the Boss" board).'),
+
+      gridLayout: st.layout === 'grid',
+      carouselLayout: st.layout === 'carousel',
+      layouts: [['grid', 'Grid'], ['carousel', 'Carousel']].map(([id, label]) => ({
+        label, on: st.layout === id ? 'true' : 'false',
+        pick: () => this.setState({ layout: id, slide: 0 }),
+        style: 'padding: 5px 12px; border: 0; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 800; background: ' + (st.layout === id ? '#1d1b24' : 'transparent') + '; color: ' + (st.layout === id ? '#ffffff' : '#4a4756'),
+      })),
+      cards: cards.map((c, i) => {
+        const on = activeCard === c.id;
+        const base = 'width: 100%; display: flex; flex-direction: column; align-items: flex-start; border: 0; cursor: pointer; text-align: left; background: ' + cardBg(c.grad) +
+          '; box-shadow: ' + (on ? 'inset 0 0 0 2px #1d1b24' : 'inset 0 0 0 1px rgba(29,27,36,0.04)');
+        return {
+          ...c,
+          num: '( ' + String(i + 1).padStart(3, '0') + ' )',
+          pressed: on ? 'true' : 'false',
+          upStyle: 'animation-delay: ' + (i * 0.1).toFixed(1) + 's',
+          gridStyle: base + '; min-height: 178px; padding: 14px 12px; border-radius: 20px',
+          bigStyle: base + '; height: 300px; padding: 22px 20px; border-radius: 24px',
+          slideStyle: 'flex: 0 0 256px; margin-right: 12px; animation-delay: ' + (i * 0.1).toFixed(1) + 's',
+          slideLabel: (i + 1) + ' of ' + cards.length + ': ' + c.label,
+        };
+      }),
+      trackStyle: 'display: flex; transition: transform 460ms cubic-bezier(0.2,0.8,0.2,1); transform: translateX(' + (-st.slide * 268) + 'px)',
+      nextSlide: () => this.setState({ slide: (st.slide + 1) % cards.length }),
+      dots: cards.map((c, i) => ({
+        label: 'Go to ' + c.label, current: st.slide === i ? 'true' : 'false',
+        go: () => this.setState({ slide: i }),
+        style: 'height: 7px; padding: 0; border: 0; border-radius: 4px; cursor: pointer; transition: width 200ms; width: ' + (st.slide === i ? 18 : 7) + 'px; background: ' + (st.slide === i ? '#1d1b24' : 'rgba(29,27,36,0.2)'),
+      })),
+      docs: docs.map((d, i) => ({
+        badge: d.rec ? 'REC' : 'PDF',
+        title: d.title,
+        meta: docMeta(d),
+        rowStyle: 'display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,0.86); box-shadow: 0 0 0 1px rgba(29,27,36,0.06); animation-delay: ' + (0.6 + i * 0.1).toFixed(1) + 's',
+        badgeStyle: 'flex: none; padding: 4px 6px; border-radius: 7px; background: ' + d.color + '; color: #ffffff; font-size: 10px; font-weight: 800',
+        chips: d.topics.slice(0, 3).map((t, j) => chip(t[0], j)),
+      })),
+      moreOn: C.more > 0,
+      moreText: '+ ' + C.more + ' more files',
+      uploading: st.uploading,
+      fakeUpload: () => {
+        const cls = st.cls;
+        this.setState({ uploading: true });
+        setTimeout(() => {
+          if (this.state.cls !== cls) return;
+          this.setState({ uploading: false });
+          if (this.addDoc('up')) this.say('Added ' + C.up.title + ': ' + topicsN(C.up.topics.length) + '. The tutor session teaches it next.');
+          else this.say('Already added (the mock has one sample PDF per class).');
+        }, 1600);
+      },
+      goRecord: () => this.go('record'),
+      goUpload: () => this.go('upload'),
+
+      recTitle: C.rec.title,
+      recChips: C.rec.topics.map((t, j) => chip(t[0], j)),
+      recLive: live && !st.paused,
+      recClock: mmss(st.secs),
+      bars,
+      recShowPause: live,
+      pauseLabel: st.paused ? 'Resume recording' : 'Pause recording',
+      pauseIcon: st.paused ? 'M8 5v14l11-7z' : 'M7 5h4v14H7zM13 5h4v14h-4z',
+      togglePause: () => { if (st.paused) { this.tick('secs', 1); this.setState({ paused: false }); } else { clearInterval(this.iv); this.setState({ paused: true }); } },
+      recMain,
+      recMainLabel: live ? 'Stop and save' : 'Start recording',
+      recMainIcon: live ? 'M7 7h10v10H7z' : 'M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
+      recMainStyle: 'width: 76px; height: 76px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: ' +
+        (rec === 'transcribing' ? '#c9c5d6' : '#ea4335') + (live && !st.paused ? '; animation: recPulse 1.6s ease-out infinite' : '') + '; box-shadow: 0 12px 24px -12px rgba(234,67,53,0.8)',
+      recHint,
+      recBusy: rec === 'transcribing',
+      recSaved: rec === 'saved',
+      recDenied: rec === 'denied',
+      quizOnIt: () => this.setState({ quest: 'quiz' }),
+      recAgain: () => this.setState({ rec: 'idle', secs: 0 }),
+      simulateDenied: () => { clearInterval(this.iv); this.setState({ rec: 'denied', secs: 0, paused: false }); },
+
+      apps: apps.map((a, i) => ({
+        ...a,
+        num: '( ' + String(i + 1).padStart(2, '0') + ' )',
+        open: () => this.go(a.id),
+        upStyle: 'animation-delay: ' + (i * 0.1).toFixed(1) + 's',
+        style: 'width: 100%; display: flex; align-items: center; gap: 16px; padding: 16px; border: 0; border-radius: 20px; cursor: pointer; background: ' + cardBg(a.grad),
+      })),
+      flashProgress: 'Card ' + ((st.card % C.flash.length) + 1) + ' of ' + C.flash.length,
+      flashSource: C.flashFrom,
+      cardFront: card[0], cardBack: card[1], cardPage: card[2],
+      flip: () => this.setState({ flipped: !st.flipped }),
+      flipStyle: 'position: absolute; inset: 0; display: block; transform: rotateY(' + (st.flipped ? 180 : 0) + 'deg)',
+      nextCard: () => this.setState({ card: st.card + 1, flipped: false }),
+      popOut: () => this.say('Opens as a tab in the notes window.'),
+
+      timerClock: mmss(st.left),
+      timerState: st.running ? 'Focusing · he is napping' : st.left === 0 ? 'Done!' : 'Ready',
+      ringOffset: String(540.35 * (1 - st.left / total)),
+      presets: [15, 25, 45].map((m) => ({
+        label: m + ' min', on: st.preset === m ? 'true' : 'false',
+        pick: () => { clearInterval(this.iv); this.setState({ preset: m, left: m * 60, running: false }); },
+        style: 'padding: 7px 12px; border: 0; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 800; background: ' + (st.preset === m ? '#1d1b24' : '#ffffff') + '; color: ' + (st.preset === m ? '#ffffff' : '#1d1b24') + '; box-shadow: 0 0 0 1px rgba(29,27,36,0.1)',
+      })),
+      timerBtn: st.running ? 'Pause' : st.left < total && st.left > 0 ? 'Resume' : 'Start focus',
+      timerToggle: () => { if (st.running) { clearInterval(this.iv); this.setState({ running: false }); } else if (st.left > 0) { this.setState({ running: true }); this.tick('left', 1); } },
+      timerReset: () => { clearInterval(this.iv); this.setState({ left: st.preset * 60, running: false }); },
+
+      terms: C.terms.map(([term, page, def]) => ({ term, page, def })),
+
+      questTabs: [['quest', 'Quest'], ['chat', 'Chat'], ['quiz', 'Quiz']].map(([id, label]) => ({
+        label, on: st.quest === id ? 'true' : 'false',
+        pick: () => this.setState({ quest: id === 'quest' ? 'chat' : id }),
+        style: 'flex: 1; padding: 7px 0; border: 0; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 800; background: ' + (st.quest === id ? '#ffffff' : 'transparent') + '; box-shadow: ' + (st.quest === id ? '0 2px 6px rgba(29,27,36,0.1)' : 'none'),
+      })),
+      questChat: st.quest === 'chat',
+      questQuiz: st.quest === 'quiz',
+      chatQ: C.chat[0], chatA: C.chat[1], chatPage: C.chat[2],
+      chatPlaceholder: 'Ask about ' + C.short + '…',
+      quizSource: 'QUICK CHECK · ' + (quizDoc ? quizDoc.title.toUpperCase() + (quizDoc.rec ? ' (RECORDING)' : '') : C.quiz[0]),
+      quizQ: quizDoc ? quizDoc.quiz[0] : C.quiz[1],
+      quizOpts: (quizDoc ? quizDoc.quiz[1] : C.quiz[2]).map((text) => ({ text })),
+
+      // tutor session plan
+      srcDocs: docs.map((d) => {
+        const on = d.id === src.id;
+        const built = this.isBuilt(st.cls, d);
+        const left = d.topics.length - d.done;
+        return {
+          badge: d.rec ? 'REC' : 'PDF', title: d.title, isNew: !!d.added, on: on ? 'true' : 'false',
+          meta: !built ? (st.building === st.cls + ':' + d.id ? 'Writing the lesson…' : 'No lesson yet · he writes it when you pick it')
+            : topicsN(d.topics.length) + ' · ' + (left === 0 ? 'all learned, quick check left' : left === d.topics.length ? 'not started' : left + ' left'),
+          badgeStyle: 'flex: none; padding: 4px 6px; border-radius: 7px; background: ' + d.color + '; color: #ffffff; font-size: 10px; font-weight: 800',
+          style: 'display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 14px; cursor: pointer; background: ' + (on ? '#ffffff' : 'rgba(255,255,255,0.6)') + '; box-shadow: ' + (on ? 'inset 0 0 0 2px #34a853, 0 10px 20px -14px rgba(31,138,67,0.7)' : '0 0 0 1px rgba(29,27,36,0.06)'),
+          pick: () => this.pickSrc(d),
+        };
+      }),
+      building: buildingThis,
+      buildTitle: 'Writing a lesson from ' + src.title,
+      buildStages: [
+        'Reading ' + (src.rec ? 'the transcript' : 'all ' + src.pages + ' pages'),
+        'Finding the ' + src.topics.length + ' topics',
+        'Writing the walkthrough',
+        'Writing the quick check',
+      ].map((text, i) => {
+        const done = i < st.buildStep, now = i === st.buildStep;
+        return {
+          text, mark: done ? '✓' : now ? '•' : '',
+          dot: 'flex: none; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; font-weight: 800; color: #ffffff; background: ' + (done ? '#34a853' : now ? '#7c5cf2' : '#d9d6e4'),
+          textStyle: done ? 'color: #4a4756' : now ? 'color: #1d1b24' : 'color: #9a96aa',
+        };
+      }),
+      buildFrom: 'Every line he says will point back to a page of ' + src.title + '.',
+      needsBuild: !srcBuilt && !buildingThis,
+      buildNowLabel: 'Write the lesson for ' + src.title,
+      buildNow: () => this.build(st.cls, src),
+      sessionReady: srcBuilt && !buildingThis,
+      sectionsHead: topicsN(src.topics.length).toUpperCase() + ' · ' + mins + ' MIN · PICK WHERE TO START',
+      sections: rows.map((r, i) => {
+        const on = i === start;
+        return {
+          title: r.t, page: r.page, mins: r.m + ' min', on: on ? 'true' : 'false',
+          badge: r.done ? '✓' : String(i + 1),
+          badgeStyle: 'flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; font-weight: 800; ' + (r.done ? 'background: #34a853; color: #ffffff' : on ? 'background: #1d1b24; color: #ffffff' : 'background: #eceaf2; color: #4a4756'),
+          pageStyle: r.page ? 'flex: none; padding: 2px 7px; border-radius: 999px; background: rgba(61,90,214,0.1); color: #3d5ad6; font-size: 11px; font-weight: 800' : 'display: none',
+          style: 'display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 13px; cursor: pointer; background: ' + (on ? '#ffffff' : 'rgba(255,255,255,0.55)') + '; box-shadow: ' + (on ? 'inset 0 0 0 2px #1d1b24' : '0 0 0 1px rgba(29,27,36,0.06)') + (r.done && !on ? '; opacity: 0.7' : ''),
+          pick: () => this.setState({ startAt: i }),
+        };
+      }),
+      startLabel: 'Start: ' + sec.t + (sec.page ? ' · ' + sec.page : ''),
+      startSession: () => this.setState({ tutorLive: true, quest: 'none', leftOpen: false }),
+      sessionNote: 'He opens ' + src.title + ' in the notes window, highlights each line as he reads it and ends with a quick check.',
+
+      tutorLive: st.tutorLive,
+      endTutor: () => this.setState({ tutorLive: false, leftOpen: true }),
+      capPre, capTopic: sec.s, capPost: ', from ' + src.title + '. Follow me to the notes.',
+      stageWins: [
+        win('left', 'Notes window', src.title, '#7c5cf2', rich ? src.notes[0] : sec.t + (sec.page ? ' · ' + sec.page : ''), rich ? src.notes[1] : []),
+        win('right', 'Board window', String(start + 1).padStart(2, '0') + ' · ' + sec.t, '#ff6b5b', rich ? src.board[0] : sec.t, rich ? src.board[1] : []),
+      ],
+
+      guyStyle: 'position: absolute; left: 50%; bottom: 150px; width: 260px; transform: translateX(-50%); transform-origin: 50% 100%' +
+        (st.tutorLive ? '; animation: guyWave 0.9s ease-in-out 2' : napping ? '; animation: guyNap 2.4s ease-in-out infinite' : ''),
+      eyeRy: napping ? '2.5' : '15',
+      glint: napping ? '0' : '4.2',
+      browL: napping ? 'M80 132 Q 92 130 104 132' : 'M80 126 Q 92 118 104 124',
+      browR: napping ? 'M140 132 Q 152 130 164 132' : 'M140 124 Q 152 118 164 128',
+      guyBadgeOn: napping || st.rec === 'recording' || st.rec === 'transcribing' || buildingThis,
+      guyBadge: napping ? 'zzz… focus mode' : buildingThis ? 'Reading ' + src.title + '…' : st.rec === 'transcribing' ? 'Thinking about your lecture…' : 'Listening…',
+      toastOn: !!st.toast,
+      toast: st.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
