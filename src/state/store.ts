@@ -2,10 +2,10 @@ import { create } from 'zustand'
 import type { Expression, Pose } from '../animation/config'
 import {
   quiz,
-  replyDelayMs,
   script,
   type TranscriptLine,
 } from '../data/mockLesson'
+import { askTutor, beginListening, endListening } from '../lesson/askFlow'
 
 export type Mode = 'lecture' | 'quiz'
 export type Mic = 'idle' | 'listening' | 'speaking'
@@ -105,7 +105,8 @@ export const useTutorStore = create<TutorState>((set, get) => ({
       lines: [...clearLive(s.lines), { who: 'student', time: now(), text }],
     }))
     clearTimeout(replyTimer)
-    replyTimer = setTimeout(() => get().tutorSays(reply), replyDelayMs)
+    // Gemini answers through the server proxy; `reply` is the scripted fallback.
+    askTutor(text, reply)
   },
 
   setMode: (mode) => {
@@ -131,11 +132,13 @@ export const useTutorStore = create<TutorState>((set, get) => ({
   startListening: () => {
     clearTimeout(replyTimer)
     set({ mic: 'listening' })
+    beginListening() // transcribes with SpeechRecognition when the browser has it
   },
 
   finishListening: () => {
     if (get().mic !== 'listening') return
-    get().ask(script.voiceQuestion, script.voiceReply)
+    // Asks what was heard, or the scripted voice question when nothing was transcribed.
+    void endListening(script.voiceQuestion, script.voiceReply)
   },
 
   setStageW: (stageW) => {

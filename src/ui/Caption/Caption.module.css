@@ -1,0 +1,130 @@
+/* Big caption bubble. Colours come from PALETTE (layout3d.ts) as --teal, --coral, ... */
+.wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: min(760px, calc(100% - 32px));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.bubble {
+  position: relative;
+  background: #fff;
+  border-radius: 24px;
+  padding: 16px 24px 18px;
+  box-shadow:
+    0 22px 48px -22px rgba(29, 27, 36, 0.45),
+    0 0 0 1px rgba(29, 27, 36, 0.06);
+  overflow: hidden;
+  animation: capPop 280ms cubic-bezier(0.2, 1.35, 0.4, 1) both;
+}
+
+/* Multicolour strip along the top edge. */
+.bubble::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--teal), var(--violet), var(--pink), var(--coral), var(--sun));
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 6px;
+}
+
+.name {
+  font-family: 'Figtree', var(--font-ui);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(120deg, var(--indigo), var(--violet));
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 160ms;
+}
+.dots[data-speaking='true'] {
+  opacity: 1;
+}
+.dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: capDot 0.9s ease-in-out infinite;
+}
+.dots i:nth-child(2) {
+  background: var(--coral);
+  animation-delay: 0.12s;
+}
+.dots i:nth-child(3) {
+  background: var(--violet);
+  animation-delay: 0.24s;
+}
+
+.text {
+  margin: 0;
+  font-family: 'Figtree', var(--font-ui);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.38;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* Key term: extra-bold, darkened accent text over a marker swipe of the accent. */
+.key {
+  font-weight: 800;
+  color: color-mix(in srgb, var(--accent) 68%, #1d1b24);
+  background: linear-gradient(transparent 58%, color-mix(in srgb, var(--accent) 30%, transparent) 58%);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+@keyframes capPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes capDot {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 640px) {
+  .text {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble,
+  .dots i {
+    animation: none;
+  }
+}
