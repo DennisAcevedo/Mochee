@@ -1,4 +1,4 @@
-import { sanitizeReply, type AskReply, type AskRequest } from './askTypes'
+import { sanitizeReply, type AskReply, type AskRequest } from '../../shared/askTypes'
 
 // Browser side of the ask box: POSTs to the dev server's Gemini proxy
 // (server/geminiProxy.ts). Never sees the key. Returns null on any failure so

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import type { DocumentInfo, TopicInfo } from '../../lesson/docsTypes'
+import type { DocumentInfo, TopicInfo } from '../../../shared/docsTypes'
 import { listDocuments, uploadPdf, type DocsErrorCode } from './docsClient'
 
 // The student's uploaded documents as the drawers see them, plus the backend's

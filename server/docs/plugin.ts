@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
-import { DOCS_ROUTES } from '../../src/lesson/docsTypes.ts'
+import { DOCS_ROUTES } from '../../shared/docsTypes.ts'
 import { hasGeminiKey, hasVoiceKey, KEY_FILES, readGeminiKey } from '../keys.ts'
 import { refuseCrossSite } from '../requestGuard.ts'
 import { DOCS_CONFIG } from './config.ts'
@@ -10,7 +10,7 @@ import { createDocsService, type DocsService, type Reply, type ServiceOptions } 
 import { decodeFilename } from './text.ts'
 
 // The documents backend on the dev and preview servers (routes in
-// src/lesson/docsTypes.ts DOCS_ROUTES). Bodies are size-capped while they
+// shared/docsTypes.ts DOCS_ROUTES). Bodies are size-capped while they
 // stream, errors are short codes, and the data dir and key files are never
 // served: the dev server serves the repo root, so this plugin refuses them first.
 

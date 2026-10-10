@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
-import type { QuizResult, QuizSet, TopicInfo } from '../../src/lesson/docsTypes.ts'
+import type { QuizResult, QuizSet, TopicInfo } from '../../shared/docsTypes.ts'
 import { DOCS_CONFIG, STOPWORDS } from './config.ts'
 import { passageBlock } from './gemini.ts'
 import type { DocsStore, QuestionRow } from './store.ts'

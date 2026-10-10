@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DOCS_LIMITS, type GroundedAnswer } from '../../lesson/docsTypes'
+import { DOCS_LIMITS, type GroundedAnswer } from '../../../shared/docsTypes'
 import { askDocument, type DocsErrorCode } from './docsClient'
 import { performAnswer } from './tutorCues'
 

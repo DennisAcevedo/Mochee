@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react'
-import type { QuizQuestion, QuizResult, QuizSet } from '../../lesson/docsTypes'
+import type { QuizQuestion, QuizResult, QuizSet } from '../../../shared/docsTypes'
 import { PALETTE } from '../../scene/layout3d'
 import { useDirector } from '../../state/director'
 import { useDrawers } from '../../state/drawers'

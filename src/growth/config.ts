@@ -23,7 +23,7 @@ export const GROWTH = {
   celebrate: { clip: 'celebrate', fx: 'sparkles', captionMs: 3200 },
 } as const
 
-// The scheduler race: the real lesson's three jobs (mockLesson / stageContent:
+// The scheduler race: the real lesson's three jobs (mockLesson / shared/lessonNotes:
 // P1 = 24 ms, P2 = P3 = 3 ms, all arriving at 0) run under FCFS and SJF.
 export const RACE = {
   jobs: [

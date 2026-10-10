@@ -1,8 +1,8 @@
-import { DOCS_LIMITS } from '../../src/lesson/docsTypes.ts'
-import type { AskGesture } from '../../src/lesson/askTypes.ts'
+import { DOCS_LIMITS } from '../../shared/docsTypes.ts'
+import { ASK_GESTURES } from '../../shared/askTypes.ts'
 
 // Every number and threshold the documents backend uses. Contract limits come
-// from src/lesson/docsTypes.ts (DOCS_LIMITS); everything here is server-only.
+// from shared/docsTypes.ts (DOCS_LIMITS); everything here is server-only.
 
 export const DOCS_CONFIG = {
   dataDir: '.data', // repo root, outside the web root's served paths (blocked in plugin.ts) and gitignored
@@ -58,12 +58,8 @@ export const DOCS_CONFIG = {
   clozeAnswerMinChars: 3,
 } as const
 
-// Animation cues the tutor can play with an answer. Mirrors ASK_GESTURES in
-// src/lesson/askTypes.ts (that module pulls in browser-side lesson data, so the
-// server keeps its own copy, type-checked against the union both ways).
-export const DOC_CUES = ['talk', 'point_left', 'point_right', 'hop', 'celebrate', 'shrug', 'think'] as const satisfies readonly AskGesture[]
-type MissingCue = Exclude<AskGesture, (typeof DOC_CUES)[number]>
-export const CUES_COMPLETE: MissingCue extends never ? true : never = true
+// Animation cues the tutor can play with an answer: the same list as /api/ask.
+export const DOC_CUES = ASK_GESTURES
 
 // Words that never count as evidence a question is about the document.
 export const STOPWORDS = new Set(

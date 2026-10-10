@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type DragEvent } from 'react'
-import { notesTabs } from '../../data/stageContent'
-import { DOCS_LIMITS, type DocumentInfo } from '../../lesson/docsTypes'
+import { notesTabs } from '../../../shared/lessonNotes'
+import { DOCS_LIMITS, type DocumentInfo } from '../../../shared/docsTypes'
 import { PALETTE } from '../../scene/layout3d'
 import { useDrawers } from '../../state/drawers'
 import { errorText } from './docsClient'

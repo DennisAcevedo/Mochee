@@ -1,4 +1,4 @@
-import type { AskGesture } from './askTypes'
+import type { AskGesture } from './askTypes.ts'
 
 // Contract between the document-grounded backend (server/docs/**) and the UI.
 // PDFs are uploaded, split into page-numbered chunks, indexed with SQLite FTS5,

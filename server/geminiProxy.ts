@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
-import { ASK_FOCUS, ASK_GESTURES, ASK_LIMITS, ASK_LINES, sanitizeReply, type AskTurn } from '../src/lesson/askTypes'
+import { ASK_FOCUS, ASK_GESTURES, ASK_LIMITS, ASK_LINES, sanitizeReply, type AskTurn } from '../shared/askTypes.ts'
 import { refuseCrossSite } from './requestGuard'
 
 // Server-side Gemini proxy for the ask box: POST /api/ask on the dev and

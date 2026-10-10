@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { DocumentInfo, PageText } from '../../src/lesson/docsTypes.ts'
+import type { DocumentInfo, PageText } from '../../shared/docsTypes.ts'
 import { DOCS_CONFIG } from './config.ts'
 import { callGemini } from './gemini.ts'
 import { extractPages, PdfError } from './pdf.ts'

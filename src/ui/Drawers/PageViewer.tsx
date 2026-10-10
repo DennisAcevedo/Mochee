@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { notesTabs } from '../../data/stageContent'
-import type { DocumentInfo, PageText } from '../../lesson/docsTypes'
+import { notesTabs } from '../../../shared/lessonNotes'
+import type { DocumentInfo, PageText } from '../../../shared/docsTypes'
 import { useDirector } from '../../state/director'
 import { useDrawers } from '../../state/drawers'
 import { errorText, fetchPage, type DocsErrorCode } from './docsClient'

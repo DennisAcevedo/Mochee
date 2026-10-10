@@ -9,7 +9,7 @@ import {
   type QuizResult,
   type QuizSet,
   type QuizSubmit,
-} from '../../lesson/docsTypes'
+} from '../../../shared/docsTypes'
 
 // Browser client for the documents backend (server/docs/**). Every call
 // resolves to { ok, data } or { ok: false, error } with a short code, never

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { TopicInfo } from '../../src/lesson/docsTypes.ts'
+import type { TopicInfo } from '../../shared/docsTypes.ts'
 import { DOCS_CONFIG, STOPWORDS } from './config.ts'
 import type { GeminiFn } from './tutor.ts'
 import { foldForMatch, words } from './text.ts'

@@ -1,5 +1,5 @@
-import { isLoopGesture } from '../../lesson/askTypes'
-import type { GroundedAnswer } from '../../lesson/docsTypes'
+import { isLoopGesture } from '../../lesson/askGestures'
+import type { GroundedAnswer } from '../../../shared/docsTypes'
 import { useWalkthrough } from '../../lesson/runner'
 import { readingMs, speak } from '../../lesson/speech'
 import { useDirector } from '../../state/director'

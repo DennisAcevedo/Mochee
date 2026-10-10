@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { Citation, TopicInfo } from '../../src/lesson/docsTypes.ts'
+import type { Citation, TopicInfo } from '../../shared/docsTypes.ts'
 import type { Chunk } from './text.ts'
 
 // Data access for documents, chunks, topics, quiz questions and attempts

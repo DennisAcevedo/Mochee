@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Citation, GroundedAnswer, TopicInfo } from '../../src/lesson/docsTypes.ts'
+import type { Citation, GroundedAnswer, TopicInfo } from '../../shared/docsTypes.ts'
 import { DOC_CUES, DOCS_CONFIG } from './config.ts'
 import { callGemini, passageBlock, type GeminiCall, type GeminiResult } from './gemini.ts'
 import type { DocsStore } from './store.ts'

@@ -1,16 +1,15 @@
-import { notesTabs } from '../data/stageContent'
-import type { Focus, LoopClip, OneShotClip } from '../state/director'
+import { notesTabs } from './lessonNotes.ts'
 
-// The /api/ask contract, shared by the browser client (askGemini.ts) and the
-// Vite server plugin (server/geminiProxy.ts). Keep it free of browser and node
-// APIs so both sides can import it.
+// The /api/ask contract, shared by the browser client (src/lesson/askGemini.ts)
+// and the Vite server plugin (server/geminiProxy.ts). Keep it free of browser
+// and node APIs, and of imports from src/ or server/, so both sides can use it.
 
 // Clips Gemini may pick to go with an answer. Loops play for the length of the
 // answer; one-shots fire once while he talks.
 export const ASK_GESTURES = ['talk', 'point_left', 'point_right', 'hop', 'celebrate', 'shrug', 'think'] as const
 export type AskGesture = (typeof ASK_GESTURES)[number]
 
-export const ASK_FOCUS = ['notes', 'board', 'none'] as const satisfies readonly Focus[]
+export const ASK_FOCUS = ['notes', 'board', 'none'] as const
 
 // Every highlightable line in the notes window, with the tab it lives on.
 export const ASK_LINES = notesTabs.flatMap((tab, tabIndex) =>
@@ -43,10 +42,6 @@ export interface AskReply {
   highlight: string | null
   model?: string
 }
-
-export const isLoopGesture = (g: AskGesture): g is AskGesture & LoopClip =>
-  g === 'talk' || g === 'point_left' || g === 'point_right' || g === 'think'
-export const isOneShotGesture = (g: AskGesture): g is AskGesture & OneShotClip => !isLoopGesture(g)
 
 // Coerces anything (model output, a stale server) into a safe AskReply, or null.
 export function sanitizeReply(raw: unknown): AskReply | null {

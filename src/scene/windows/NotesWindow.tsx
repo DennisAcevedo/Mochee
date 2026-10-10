@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useCallback, useRef, useState } from 'react'
 import type { Mesh, MeshBasicMaterial } from 'three'
-import { notesTabs, type NoteLine, type NoteTab } from '../../data/stageContent'
+import { notesTabs, type NoteLine, type NoteTab } from '../../../shared/lessonNotes'
 import { useDirector } from '../../state/director'
 import { PALETTE } from '../layout3d'
 import { BrowserWindow3D, type ContentBox, type WindowTab } from './BrowserWindow3D'

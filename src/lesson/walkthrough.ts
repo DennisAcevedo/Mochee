@@ -32,7 +32,7 @@ export interface WalkStep {
   wait?: 'quiz' // stay on this step until the quick check is answered
 }
 
-// Notes tabs (stageContent.notesTabs order).
+// Notes tabs (index into notesTabs, shared/lessonNotes.ts).
 const LECTURE_4 = 0
 const CHEAT_SHEET = 2
 const ALL_BOARD = BOARD_PARTS.length

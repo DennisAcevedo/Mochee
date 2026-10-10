@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { script } from '../../data/mockLesson'
 import { useAskStatus } from '../../lesson/askFlow'
-import { DOCS_LIMITS, type GroundedAnswer } from '../../lesson/docsTypes'
+import { DOCS_LIMITS, type GroundedAnswer } from '../../../shared/docsTypes'
 import { parseMarks } from '../../lesson/markup'
 import { useDrawers } from '../../state/drawers'
 import { useTutorStore } from '../../state/store'
