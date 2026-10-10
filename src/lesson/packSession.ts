@@ -86,7 +86,7 @@ export function packNotes(pack: LessonPack, section: number): CitedNoteTab {
 // Every section as a notes tab, in order: the drop-in for notesTabs while a pack is active.
 export const packNotesTabs = (pack: LessonPack): CitedNoteTab[] => pack.sections.map((_, s) => packNotes(pack, s))
 
-// ---- Board window
+// ---- Board tab (in the one browser window)
 
 // A section's board. boardReveal = n shows the first n parts: part 0 is the
 // heading, part k (1..lines.length) is lines[k - 1]; `parts` reveals all of it.
@@ -182,12 +182,12 @@ export function packToWalkthrough(pack: LessonPack, startSection: number): WalkS
       title: clip(board.heading),
       say: rest.length ? rest.join(' ') : `To the board: **${board.heading}**.`,
       color: color(),
-      spot: 'right',
+      spot: 'left',
       focus: 'board',
       notesTab: s,
       mode: 'lecture',
       boardReveal: board.parts,
-      loop: 'point_right',
+      loop: 'point_left',
       fx: ['sparkles', 'board'],
     })
   }
@@ -221,10 +221,10 @@ function quizStep(pack: LessonPack, color: StepColor): WalkStep {
     title: 'Quick check',
     say: `**Quick check!** Let's see what stuck from **${pack.title}**. Tap an answer.`,
     color,
-    spot: 'right',
+    spot: 'left',
     focus: 'board',
     mode: 'quiz',
-    loop: 'point_right',
+    loop: 'point_left',
     gesture: 'hop',
     wait: 'quiz',
   }

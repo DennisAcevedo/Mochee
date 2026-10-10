@@ -1,5 +1,5 @@
 /* The windows' DOM controls (WindowControls.tsx), laid over the 3D canvas:
-   the traffic lights as real buttons glued onto each window's tab strip, and
+   the traffic lights as real buttons glued onto the window's tab strip, and
    the restore chip a minimized window folds into. The frame loop
    (minimizeRig.ts) owns their transform, opacity, visibility and position;
    these rules only style them. Lights are authored at

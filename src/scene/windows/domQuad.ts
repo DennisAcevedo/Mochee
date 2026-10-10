@@ -1,6 +1,6 @@
 import { Vector3, type Camera, type Object3D } from 'three'
 
-// DOM elements glued onto 3D quads (the scratch note's textarea, the windows'
+// DOM elements glued onto 3D quads (the scratch note's textarea, the window's
 // traffic lights): the element is laid out at its own px size and a CSS
 // matrix3d maps it onto the quad's four projected corners.
 

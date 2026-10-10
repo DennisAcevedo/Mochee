@@ -1,4 +1,4 @@
-// The 3D mini browser windows of the lesson room.
+// The lesson room's 3D mini browser window (BoardWindow is a no-op kept for old mounts).
 export { BoardWindow } from './BoardWindow'
 export { BrowserWindow3D, type ContentBox, type WindowId } from './BrowserWindow3D'
 export { NotesWindow } from './NotesWindow'

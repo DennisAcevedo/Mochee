@@ -43,13 +43,6 @@ export function slotIndex(center: number, span: StripSpan, width: number, count:
   return Math.max(0, Math.min(count - 1, i))
 }
 
-// Insertion index when dropping into a strip that has `count` tabs of `width`
-// at pointer x: 0..count (between tabs).
-export function dropIndex(x: number, span: StripSpan, width: number, count: number): number {
-  const i = Math.round((x - span.left) / (width + T.gap))
-  return Math.max(0, Math.min(count, i))
-}
-
 // Rough Figtree-bold advance per character, in ems: titles ellipsize to fit.
 const CHAR_EM = 0.56
 

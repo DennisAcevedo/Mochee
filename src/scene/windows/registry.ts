@@ -1,11 +1,10 @@
 import { Box3, Vector3, type Camera, type Mesh, type Object3D } from 'three'
 import { useWindows } from '../../state/windows'
-import type { TabKind, WinId } from './tabModel'
+import { WIN, type TabKind, type WinId } from './tabModel'
 
-// Live, non-reactive bookkeeping shared by the two windows (written every
-// frame, never re-renders): the meshes each window's strip and chrome hit on,
-// each strip's current layout, where a cross-window tab drag would land, and
-// each window's world placement. The e2e helper rects() projects them.
+// Live, non-reactive bookkeeping of the window (written every frame, never
+// re-renders): the meshes its strip and chrome hit on, the strip's current
+// layout and the window's world placement. The e2e helper rects() projects them.
 
 export interface TabHit {
   hit: Mesh // the tab's background hit plane
@@ -15,12 +14,9 @@ export interface TabHit {
   title: string
 }
 
+// Where the strip's empty area is (window-local), for the e2e's stripEmpty rect.
 export interface StripLayout {
-  left: number // first tab's left edge (window-local x)
-  right: number // end of the tabs' share of the strip
   end: number // the strip's right edge (the empty area runs from plusRight to here)
-  width: number // current target width of a tab
-  count: number // live tabs
   plusRight: number // right edge of the + button (window-local x)
   top: number // strip band, window-local y
   bottom: number
@@ -47,16 +43,13 @@ const hits = (): WinHits => ({
   omni: null,
   frame: null,
   tabs: new Map(),
-  strip0: { left: 0, right: 0, end: 0, width: 0, count: 0, plusRight: 0, top: 0, bottom: 0 },
+  strip0: { end: 0, plusRight: 0, top: 0, bottom: 0 },
 })
 
-export const windowHits: Record<WinId, WinHits> = { notes: hits(), board: hits() }
+export const windowHits: WinHits = hits()
 
-// A tab being dragged from one window over the other window's strip.
-export const dropHint = { win: null as WinId | null, index: 0 }
-
-// Each window's resting placement this frame (world), for anyone who needs
-// to keep clear of a window or aim at it (the roaming tutor, effects).
+// The window's placement this frame (world), for anyone who needs to keep
+// clear of it or aim at it (the roaming tutor, effects). Keyed by its id.
 export interface WindowFrame {
   center: Vector3
   halfW: number // half width x scale
@@ -64,8 +57,7 @@ export interface WindowFrame {
   yaw: number
 }
 export const windowFrames: Record<WinId, WindowFrame> = {
-  notes: { center: new Vector3(), halfW: 1.3, halfH: 1.2, yaw: 0 },
-  board: { center: new Vector3(), halfW: 1.3, halfH: 1.2, yaw: 0 },
+  [WIN]: { center: new Vector3(), halfW: 1.5, halfH: 1.25, yaw: 0 }, // WINDOW in layout3d.ts until the first frame
 }
 
 // ---- Screen rects for the e2e (dev hook window.__gg.windows.rects())
@@ -128,37 +120,33 @@ function localRect(pivot: Object3D, x0: number, x1: number, y0: number, y1: numb
   return rectOfPoints(pts, camera, canvas)
 }
 
-// Per window, in strip order: each tab (id, kind, title, active, rect, its x
-// button), the + button, maximize, the resize grip, the omnibox, the empty
-// strip area and the whole window, in viewport CSS px.
+// In strip order: each tab (id, kind, title, active, rect, its x button), then
+// the + button, maximize, the resize grip, the omnibox, the empty strip area
+// and the whole window, in viewport CSS px.
 export function windowRects(camera: Camera, canvas: HTMLElement) {
   camera.updateMatrixWorld()
-  const state = useWindows.getState()
-  const out: Record<string, unknown> = {}
-  for (const win of ['notes', 'board'] as WinId[]) {
-    const h = windowHits[win]
-    const s = h.strip0
-    const tabs = state.tabs[win].tabs.map((tab) => {
-      const t = h.tabs.get(tab.id)
-      return {
-        id: tab.id,
-        kind: tab.kind,
-        title: t?.title ?? '',
-        active: state.tabs[win].active === tab.id,
-        rect: t ? rectOf(t.hit, camera, canvas) : null,
-        close: t ? rectOf(t.close, camera, canvas) : null,
-        closeVisible: t?.closeVisible ?? false,
-      }
-    })
-    out[win] = {
-      tabs,
-      plus: rectOf(h.plus, camera, canvas),
-      maximize: rectOf(h.max, camera, canvas),
-      grip: rectOf(h.grip, camera, canvas),
-      omnibox: rectOf(h.omni, camera, canvas),
-      window: rectOf(h.frame, camera, canvas),
-      stripEmpty: h.pivot && s.end - s.plusRight > 0.12 ? localRect(h.pivot, s.plusRight + 0.04, s.end - 0.04, s.bottom + 0.03, s.top - 0.03, camera, canvas) : null,
+  const wt = useWindows.getState().tabs[WIN]
+  const h = windowHits
+  const s = h.strip0
+  const tabs = wt.tabs.map((tab) => {
+    const t = h.tabs.get(tab.id)
+    return {
+      id: tab.id,
+      kind: tab.kind,
+      title: t?.title ?? '',
+      active: wt.active === tab.id,
+      rect: t ? rectOf(t.hit, camera, canvas) : null,
+      close: t ? rectOf(t.close, camera, canvas) : null,
+      closeVisible: t?.closeVisible ?? false,
     }
+  })
+  return {
+    tabs,
+    plus: rectOf(h.plus, camera, canvas),
+    maximize: rectOf(h.max, camera, canvas),
+    grip: rectOf(h.grip, camera, canvas),
+    omnibox: rectOf(h.omni, camera, canvas),
+    window: rectOf(h.frame, camera, canvas),
+    stripEmpty: h.pivot && s.end - s.plusRight > 0.12 ? localRect(h.pivot, s.plusRight + 0.04, s.end - 0.04, s.bottom + 0.03, s.top - 0.03, camera, canvas) : null,
   }
-  return out
 }

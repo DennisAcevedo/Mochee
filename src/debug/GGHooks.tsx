@@ -44,7 +44,7 @@ interface GG {
   played: { clip: string; t: number }[] // one-shots the tutor really started (performance.now() ms)
   loops: { clip: string; t: number }[] // base loops he switched to
   drops: { clip: string; reason: string; t: number }[] // one-shots the state machine dropped
-  // The two Chrome windows: their store, and each tab's / button's / grip's screen rect for real mouse drags.
+  // The Chrome window: its store, and each tab's / button's / grip's screen rect for real mouse drags.
   windows: { store: typeof useWindows; rects: () => ReturnType<typeof windowRects> }
 }
 

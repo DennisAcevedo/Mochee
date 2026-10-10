@@ -1,25 +1,23 @@
 import { MathUtils, PerspectiveCamera, Vector3 } from 'three'
-import { LESSON_CAMERA, WINDOWS } from '../layout3d.ts'
-import type { WinId } from './tabModel'
+import { LESSON_CAMERA, WINDOW } from '../layout3d.ts'
 import { WINDOW_UI } from './windowConfig.ts'
 
-// Where a window rests: WINDOWS (layout3d.ts, the stage's defaults) plus the
-// student's drag offset and size. A window turns toward the stage centre the
-// way the defaults do, so dragging one to the middle squares it up. Moves are
+// Where the window rests: WINDOW (layout3d.ts, the stage's default) plus the
+// student's drag offset and size. It turns toward the stage centre the way
+// the default does, so dragging it to the middle squares it up. Moves are
 // clamped so the whole window stays inside the 16:9 frame of the resting
 // lesson camera (not the live one, which pans toward a focused window),
 // between the play HUD and the caption (WINDOW_UI.window.clampBox).
 
 const U = WINDOW_UI.window
 
-export const defaultSize = (id: WinId): [number, number] => [WINDOWS[id].width, WINDOWS[id].height]
+export const defaultSize = (): [number, number] => [WINDOW.width, WINDOW.height]
 
-// Yaw at world x: the defaults' turn, scaled by how far out the window sits.
-export function yawAt(id: WinId, x: number): number {
-  const place = WINDOWS[id]
-  if (!U.yawFollowsX || !place.position[0]) return place.yaw
-  const lim = Math.abs(place.yaw)
-  return MathUtils.clamp((place.yaw / place.position[0]) * x, -lim, lim)
+// Yaw at world x: the default's turn, scaled by how far out the window sits.
+export function yawAt(x: number): number {
+  if (!U.yawFollowsX || !WINDOW.position[0]) return WINDOW.yaw
+  const lim = Math.abs(WINDOW.yaw)
+  return MathUtils.clamp((WINDOW.yaw / WINDOW.position[0]) * x, -lim, lim)
 }
 
 const cam = new PerspectiveCamera(LESSON_CAMERA.fov, LESSON_CAMERA.aspect, 0.1, 100)
@@ -33,11 +31,11 @@ const corner = new Vector3()
 const bounds = { x0: 0, x1: 0, y0: 0, y1: 0, near: 0 } // near: the closest corner's depth
 
 // NDC box of a window resting at offset (ox, oy) with size w x h.
-function ndcBounds(id: WinId, ox: number, oy: number, w: number, h: number) {
-  const [px, py, pz] = WINDOWS[id].position
+function ndcBounds(ox: number, oy: number, w: number, h: number) {
+  const [px, py, pz] = WINDOW.position
   const x = px + ox
   const y = py + oy
-  const yaw = yawAt(id, x)
+  const yaw = yawAt(x)
   const c = Math.cos(yaw)
   const s = Math.sin(yaw)
   bounds.x0 = bounds.y0 = Infinity
@@ -66,37 +64,37 @@ function fit(a: number, b: number, lo: number, hi: number) {
 const BOX = U.clampBox // NDC x0, y0, x1, y1
 
 // Whether the window at (x, y) fits the box along one axis.
-function fits(id: WinId, axisX: boolean, x: number, y: number, w: number, h: number): boolean {
-  const b = ndcBounds(id, x, y, w, h)
+function fits(axisX: boolean, x: number, y: number, w: number, h: number): boolean {
+  const b = ndcBounds(x, y, w, h)
   return Math.abs(axisX ? fit(b.x0, b.x1, BOX[0], BOX[2]) : fit(b.y0, b.y1, BOX[1], BOX[3])) < 1e-4
 }
 
 // From an offset that fits along one axis, the farthest one toward `to` along
 // that axis that still fits (bisection: the projection is not linear in the offset).
-function toEdge(id: WinId, axisX: boolean, from: number, to: number, other: number, w: number, h: number): number {
-  if (from === to || !fitsAt(id, axisX, from, other, w, h)) return from
-  if (fitsAt(id, axisX, to, other, w, h)) return to
+function toEdge(axisX: boolean, from: number, to: number, other: number, w: number, h: number): number {
+  if (from === to || !fitsAt(axisX, from, other, w, h)) return from
+  if (fitsAt(axisX, to, other, w, h)) return to
   let lo = from
   let hi = to
   for (let i = 0; i < 16; i++) {
     const mid = (lo + hi) / 2
-    if (fitsAt(id, axisX, mid, other, w, h)) lo = mid
+    if (fitsAt(axisX, mid, other, w, h)) lo = mid
     else hi = mid
   }
   return lo
 }
 
 // `fits` with the searched axis's value first.
-const fitsAt = (id: WinId, axisX: boolean, v: number, other: number, w: number, h: number) => (axisX ? fits(id, true, v, other, w, h) : fits(id, false, other, v, w, h))
+const fitsAt = (axisX: boolean, v: number, other: number, w: number, h: number) => (axisX ? fits(true, v, other, w, h) : fits(false, other, v, w, h))
 // The nearest offset at which the whole window is on screen. Writes `out`.
-export function clampOffset(id: WinId, ox: number, oy: number, w: number, h: number, out: [number, number]): [number, number] {
+export function clampOffset(ox: number, oy: number, w: number, h: number, out: [number, number]): [number, number] {
   let x = ox
   let y = oy
   // Linear steps (world units per NDC unit at the window's depth) bring an
   // outside window in; the camera's perspective and tilt make them land a bit
   // past the edge, so then walk back out toward the request to the exact edge.
   for (let pass = 0; pass < 6; pass++) {
-    const b = ndcBounds(id, x, y, w, h)
+    const b = ndcBounds(x, y, w, h)
     const dx = fit(b.x0, b.x1, BOX[0], BOX[2])
     const dy = fit(b.y0, b.y1, BOX[1], BOX[3])
     if (Math.abs(dx) < 1e-4 && Math.abs(dy) < 1e-4) break
@@ -104,8 +102,8 @@ export function clampOffset(id: WinId, ox: number, oy: number, w: number, h: num
     x += dx * per * LESSON_CAMERA.aspect
     y += dy * per
   }
-  x = toEdge(id, true, x, ox, y, w, h)
-  y = toEdge(id, false, y, oy, x, w, h)
+  x = toEdge(true, x, ox, y, w, h)
+  y = toEdge(false, y, oy, x, w, h)
   out[0] = MathUtils.clamp(x, -U.offsetLimit[0], U.offsetLimit[0])
   out[1] = MathUtils.clamp(y, -U.offsetLimit[1], U.offsetLimit[1])
   return out

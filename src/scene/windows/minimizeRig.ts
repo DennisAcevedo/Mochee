@@ -1,24 +1,26 @@
 import { MathUtils, Vector3, type Camera, type Group, type Object3D } from 'three'
 import { projectRect, quadTransform } from './domQuad'
-import { chipPlace, chipReveal, minimizeEase, type Box } from './minimize'
-import type { WinId } from './tabModel'
+import { chipPlace, chipReveal, closeScale, minimizeEase, type Box } from './minimize'
 import { LIGHTS_BOX, LIGHTS_PX, type ControlParts } from './WindowControls'
 import { WINDOW_UI } from './windowConfig'
 import { WINDOW_STYLE } from './windowStyle'
 
-// One window's minimize, run from its frame loop (BrowserWindow3D):
-// - the fold: progress m runs 0 -> 1 in WINDOW_UI.minimize.ms (back in
-//   restoreMs) and moves the `mini` group (between the window's outer group
-//   and its pivot) along the camera ray onto the restore chip, squashing the
-//   window to the chip's size, then parks it hidden;
-// - the chip: placed above the bottom bar on the window's side (chipPlace),
-//   it pops in over the last part of the fold and out over the first part of
-//   a restore;
+// The window's minimize and close, run from its frame loop (BrowserWindow3D):
+// - the fold (yellow): progress m runs 0 -> 1 in WINDOW_UI.minimize.ms (back
+//   in restoreMs) and moves the `mini` group (between the window's outer
+//   group and its pivot) along the camera ray onto the restore chip,
+//   squashing the window to the chip's size, then parks it hidden;
+// - the close (red): progress c runs 0 -> 1 in WINDOW_UI.close.ms (back in
+//   openMs) and shrinks `mini` into the window's own centre, then parks it
+//   hidden; no chip;
+// - the chip: placed above the bottom bar's left end (chipPlace), it pops in
+//   over the last part of the fold and out over the first part of a restore;
 // - the DOM traffic lights: glued onto the 3D dots each frame, hidden while
-//   the window is folded, veiled or off stage.
+//   the window is folded, closing, closed or off stage.
 // Nothing here allocates per frame.
 
 const M = WINDOW_UI.minimize
+const C = WINDOW_UI.close
 const S = WINDOW_STYLE.tabStrip
 const LIGHT_Z = WINDOW_STYLE.z + WINDOW_STYLE.layer * 9 // just in front of the 3D dots
 
@@ -53,7 +55,7 @@ function reducedMotion(): boolean {
 
 export class MinimizeRig {
   m: number // fold progress: 0 the window, 1 the chip
-  private readonly win: WinId
+  c: number // close progress: 0 the window, 1 gone
   private readonly parts: ControlParts
   // The chip's centre and size, and the canvas's box, in viewport px.
   private at = { cx: 0, cy: 0, w: 0, h: 0, ok: false, left: 0, top: 0, width: 1, height: 1 }
@@ -67,26 +69,51 @@ export class MinimizeRig {
   private readonly prev = new Float64Array(8)
   private parked = false
 
-  constructor(win: WinId, parts: ControlParts, minimized: boolean) {
-    this.win = win
+  constructor(parts: ControlParts, minimized: boolean, closed: boolean) {
     this.parts = parts
     this.m = minimized ? 1 : 0
+    this.c = closed ? 1 : 0
   }
 
-  // Advances the fold and places `mini`. Call once a frame, after the outer
-  // group is placed and before anything reads the window's world position.
-  // cw, ch: the window's size; scale: its pivot's scale.
-  step(dt: number, now: number, minimized: boolean, outer: Group, mini: Group, cw: number, ch: number, scale: number, camera: Camera, canvas: HTMLCanvasElement) {
+  // Advances the fold and the close and places `mini`. Call once a frame,
+  // after the outer group is placed and before anything reads the window's
+  // world position. cw, ch: the window's size; scale: its pivot's scale.
+  step(dt: number, now: number, minimized: boolean, closed: boolean, outer: Group, mini: Group, cw: number, ch: number, scale: number, camera: Camera, canvas: HTMLCanvasElement) {
+    const t = Math.min(dt, 0.25) * 1000 // time-based: a slow frame finishes it sooner, never later
+    // Closing a minimized window: the chip just goes (the window is already hidden).
+    if (closed && this.m > 0) {
+      this.m = 0
+      this.c = 1
+    }
     const target = minimized ? 1 : 0
     if (this.m !== target) {
       if (this.m === 0) this.measuredAt = -Infinity // a fold starts: find the chip now
       const ms = reducedMotion() ? 1 : minimized ? M.ms : M.restoreMs
-      const d = (Math.min(dt, 0.25) * 1000) / ms // time-based: a slow frame finishes it sooner, never later
-      this.m = minimized ? Math.min(1, this.m + d) : Math.max(0, this.m - d)
+      this.m = minimized ? Math.min(1, this.m + t / ms) : Math.max(0, this.m - t / ms)
+    }
+    const shut = closed ? 1 : 0
+    if (this.c !== shut) {
+      const ms = reducedMotion() ? 1 : closed ? C.ms : C.openMs
+      this.c = closed ? Math.min(1, this.c + t / ms) : Math.max(0, this.c - t / ms)
     }
     if ((this.m > 0 || minimized) && now - this.measuredAt >= M.chip.remeasureMs) this.measure(now, canvas)
-    this.place(outer, mini, cw, ch, scale, camera)
+    if (this.c > 0) this.placeClose(mini)
+    else this.place(outer, mini, cw, ch, scale, camera)
     this.showChip(onStage(outer))
+  }
+
+  // Closing (or opening again): shrink into the window's own centre, then park hidden.
+  private placeClose(mini: Group) {
+    mini.position.set(0, 0, 0)
+    if (this.c >= 1) {
+      mini.visible = false
+      mini.scale.setScalar(1e-4) // collapsed so its meshes catch no raycasts (R3F ignores `visible`)
+      this.parked = true
+      return
+    }
+    mini.visible = true
+    this.parked = true // place() resets the scale once the window is fully open
+    mini.scale.setScalar(closeScale(this.c))
   }
 
   // Where the chip goes (CSS px), written onto it; its centre and size read back.
@@ -99,7 +126,6 @@ export class MinimizeRig {
     }
     const ask = document.querySelector('[data-gg-part="ask"]')
     const p = chipPlace(
-      this.win,
       host.getBoundingClientRect(),
       boxOf(document.querySelector('[data-gg-part="stage"]')),
       boxOf(ask?.parentElement) ?? boxOf(ask), // the bottom bar: walkthrough + ask
@@ -107,8 +133,8 @@ export class MinimizeRig {
       chip.offsetHeight,
     )
     const st = chip.style
-    st.left = p.side === 'left' ? `${p.x}px` : ''
-    st.right = p.side === 'right' ? `${p.x}px` : ''
+    st.left = `${p.x}px`
+    st.right = ''
     st.bottom = `${p.bottom}px`
     st.maxWidth = `${p.maxW}px`
     const r = chip.getBoundingClientRect() // scaled about its centre: the centre holds
@@ -190,9 +216,8 @@ export class MinimizeRig {
   }
 
   // Glues the DOM lights onto the 3D dots of `pivot` (placed this frame).
-  // Hidden while the window folds or is folded, and when `show` is false
-  // (veiled behind the maximized window, off stage).
-  glue(pivot: Group, cw: number, ch: number, show: boolean, camera: Camera, canvas: HTMLCanvasElement) {
+  // Hidden while the window folds, closes or is gone, and off stage.
+  glue(pivot: Group, cw: number, ch: number, camera: Camera, canvas: HTMLCanvasElement) {
     const el = this.parts.lights
     if (!el) return
     if (el !== this.lightsEl) {
@@ -200,7 +225,7 @@ export class MinimizeRig {
       this.lightsOn = false
       this.lightsT = ''
     }
-    let on = show && this.m === 0 && onStage(pivot)
+    let on = this.m === 0 && this.c === 0 && onStage(pivot)
     if (on) {
       pivot.updateWorldMatrix(true, false)
       const left = -cw / 2
@@ -223,7 +248,12 @@ export class MinimizeRig {
     }
     if (this.parts.focus === 'lights') {
       this.parts.focus = null
-      el.querySelector<HTMLButtonElement>('[data-light="minimize"]')?.focus({ preventScroll: true })
+      // Only if focus is still where the keyboard press left it (the chip, the
+      // stage after a close, or nowhere): a reopen by the lesson never steals it.
+      const a = document.activeElement
+      if (!a || a === document.body || a === this.parts.chip || a === this.parts.host?.parentElement || el.contains(a)) {
+        el.querySelector<HTMLButtonElement>('[data-light="minimize"]')?.focus({ preventScroll: true })
+      }
     }
   }
 }

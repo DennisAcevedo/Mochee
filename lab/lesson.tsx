@@ -18,7 +18,8 @@ import { Caption } from '../src/ui/Caption/Caption'
 import { WalkthroughBar } from '../src/ui/Walkthrough/WalkthroughBar'
 
 // Dev-only lab for the lesson builder: a flat 2D stand-in for the 3D room
-// (notes window, board window, a tutor token that walks between spots), the
+// (the one browser window on the left with the notes, Board and Quick check
+// tabs, a tutor token that walks between spots), the
 // real WalkthroughBar + Caption, the real ask box wiring, and live JSON of
 // every store involved. http://localhost:5176/lab/lesson.html
 
@@ -71,92 +72,93 @@ const css: Record<string, CSSProperties> = {
   pre: { margin: 0, fontFamily: 'JetBrains Mono, monospace', fontSize: 11.5, lineHeight: 1.45, whiteSpace: 'pre-wrap' },
 }
 
-function NotesMock() {
-  const { notesTab, highlight, focus } = useDirector(useShallow((s) => ({ notesTab: s.notesTab, highlight: s.highlight, focus: s.focus })))
+// The one browser window, left of the tutor: the notes tabs, then Board and
+// Quick check, all in one strip (as in the 3D room). It shows the board when
+// the lesson focuses the board or the student picks Board / Quick check.
+function WindowMock() {
+  const { notesTab, highlight, focus, boardReveal } = useDirector(useShallow((s) => ({ notesTab: s.notesTab, highlight: s.highlight, focus: s.focus, boardReveal: s.boardReveal })))
+  const { mode, answer, pick, setMode } = useTutorStore(useShallow((s) => ({ mode: s.mode, answer: s.answer, pick: s.pick, setMode: s.setMode })))
+  const [view, setView] = useState<'notes' | 'board'>('notes')
+  useEffect(() => {
+    if (focus === 'notes' || focus === 'board') setView(focus)
+  }, [focus])
+  useEffect(() => setView('board'), [mode])
   const tab = notesTabs[notesTab] ?? notesTabs[0]
-  const on = focus === 'notes'
+  const ring = focus === 'notes' ? PALETTE.teal : focus === 'board' ? PALETTE.coral : null
+  const tabStyle = (active: boolean): CSSProperties => ({
+    border: 'none',
+    borderRadius: '9px 9px 0 0',
+    padding: '5px 8px',
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: 'pointer',
+    background: active ? '#fff' : 'transparent',
+    color: active ? PALETTE.ink : '#777',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    minWidth: 0,
+    flex: '0 1 auto',
+  })
   return (
     <div
-      data-testid="notes"
-      style={{ ...css.win, left: 16, transform: on ? 'scale(1.04)' : 'none', boxShadow: on ? `0 0 0 3px ${PALETTE.teal}, 0 18px 40px -22px rgba(0,0,0,.45)` : css.win.boxShadow }}
+      data-testid="window"
+      style={{ ...css.win, left: 16, width: '36%', transform: ring ? 'scale(1.04)' : 'none', transformOrigin: 'left top', boxShadow: ring ? `0 0 0 3px ${ring}, 0 18px 40px -22px rgba(0,0,0,.45)` : css.win.boxShadow }}
     >
       <div style={css.tabs}>
         {notesTabs.map((t, i) => (
           <button
             key={t.title}
             type="button"
-            onClick={() => useDirector.getState().setNotesTab(i)}
-            style={{
-              border: 'none',
-              borderRadius: '9px 9px 0 0',
-              padding: '5px 8px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: i === notesTab ? '#fff' : 'transparent',
-              color: i === notesTab ? PALETTE.ink : '#777',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '33%',
+            onClick={() => {
+              useDirector.getState().setNotesTab(i)
+              setView('notes')
             }}
+            style={tabStyle(view === 'notes' && i === notesTab)}
           >
             {t.title}
           </button>
         ))}
-      </div>
-      <div style={css.body}>
-        {tab.lines.map((l) => {
-          const lit = l.id === highlight
-          const color = l.color ? PALETTE[l.color] : PALETTE.sun
-          return (
-            <div
-              key={l.id}
-              data-line={l.id}
-              data-lit={lit}
-              style={{
-                padding: '3px 6px',
-                margin: '2px 0',
-                borderRadius: 8,
-                fontWeight: l.kind === 'title' ? 800 : l.kind === 'key' ? 700 : 600,
-                fontSize: l.kind === 'title' ? 15 : 13,
-                background: lit ? `color-mix(in srgb, ${color} 30%, white)` : 'transparent',
-                outline: lit ? `2px solid ${color}` : 'none',
-                transition: 'background 200ms',
-              }}
-            >
-              {l.cells ? l.cells.join('  ·  ') : l.text}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function BoardMock() {
-  const { boardReveal, focus } = useDirector(useShallow((s) => ({ boardReveal: s.boardReveal, focus: s.focus })))
-  const { mode, answer, pick, setMode } = useTutorStore(useShallow((s) => ({ mode: s.mode, answer: s.answer, pick: s.pick, setMode: s.setMode })))
-  const on = focus === 'board'
-  return (
-    <div
-      data-testid="board"
-      style={{ ...css.win, right: 16, transform: on ? 'scale(1.04)' : 'none', boxShadow: on ? `0 0 0 3px ${PALETTE.coral}, 0 18px 40px -22px rgba(0,0,0,.45)` : css.win.boxShadow }}
-    >
-      <div style={css.tabs}>
         {(['lecture', 'quiz'] as const).map((m) => (
           <button
             key={m}
             type="button"
-            onClick={() => setMode(m)}
-            style={{ border: 'none', borderRadius: '9px 9px 0 0', padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: mode === m ? '#fff' : 'transparent' }}
+            onClick={() => {
+              setMode(m)
+              setView('board')
+            }}
+            style={tabStyle(view === 'board' && mode === m)}
           >
-            {m === 'lecture' ? 'Lecture' : 'Quick check'}
+            {m === 'lecture' ? 'Board' : 'Quick check'}
           </button>
         ))}
       </div>
       <div style={css.body}>
-        {mode === 'lecture' ? (
+        {view === 'notes' ? (
+          tab.lines.map((l) => {
+            const lit = l.id === highlight
+            const color = l.color ? PALETTE[l.color] : PALETTE.sun
+            return (
+              <div
+                key={l.id}
+                data-line={l.id}
+                data-lit={lit}
+                style={{
+                  padding: '3px 6px',
+                  margin: '2px 0',
+                  borderRadius: 8,
+                  fontWeight: l.kind === 'title' ? 800 : l.kind === 'key' ? 700 : 600,
+                  fontSize: l.kind === 'title' ? 15 : 13,
+                  background: lit ? `color-mix(in srgb, ${color} 30%, white)` : 'transparent',
+                  outline: lit ? `2px solid ${color}` : 'none',
+                  transition: 'background 200ms',
+                }}
+              >
+                {l.cells ? l.cells.join('  ·  ') : l.text}
+              </div>
+            )
+          })
+        ) : mode === 'lecture' ? (
           (Object.keys(BOARD_LABEL) as BoardPart[]).map((p) => (
             <div key={p} data-part={p} style={{ opacity: boardShows(p, boardReveal) ? 1 : 0.08, transition: 'opacity 260ms', fontWeight: p === 'result' ? 800 : 600, fontSize: p === 'result' ? 20 : 13, color: p === 'result' ? PALETTE.coral : PALETTE.ink }}>
               {BOARD_LABEL[p]}
@@ -196,7 +198,6 @@ function BoardMock() {
     </div>
   )
 }
-
 function TutorToken() {
   const { spot, loop, gesture, fx } = useDirector(useShallow((s) => ({ spot: s.spot, loop: s.loop, gesture: s.gesture, fx: s.fx })))
   const [shownGesture, setShownGesture] = useState<string | null>(null)
@@ -311,8 +312,7 @@ function Lab() {
         <span style={{ fontWeight: 700, color: '#777' }}>walkthrough runner + Gemini ask box + captions</span>
       </div>
       <div style={css.stage}>
-        <NotesMock />
-        <BoardMock />
+        <WindowMock />
         <TutorToken />
         <Caption />
       </div>

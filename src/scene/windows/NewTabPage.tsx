@@ -134,7 +134,7 @@ export function NewTabPage({ win, tabId, box }: { win: WinId; tabId: string; box
 
   const pick = (content: TabContent) => {
     useWindows.getState().turnInto(win, tabId, content)
-    activateByStudent(win, { ...content, id: tabId } as Tab)
+    activateByStudent({ ...content, id: tabId } as Tab)
   }
 
   const pad = NT.pad

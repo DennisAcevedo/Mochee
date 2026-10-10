@@ -5,8 +5,8 @@ import mono500 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-n
 import mono700 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff?url'
 import { PALETTE } from '../layout3d'
 
-// Look of the 3D mini browser windows, in world units (the window is
-// WINDOWS.width x WINDOWS.height from layout3d.ts). One object to restyle
+// Look of the 3D mini browser window, in world units (the window is
+// WINDOW.width x WINDOW.height from layout3d.ts). One object to restyle
 // the chrome, the notes page and the board. troika reads .woff, not .woff2.
 
 export const FONTS = {
@@ -64,7 +64,7 @@ export const WINDOW_STYLE = {
   tabStrip: {
     height: 0.27,
     color: '#eceaf2',
-    // Traffic lights: close (minimizes too), minimize, maximize. Drawn in 3D;
+    // Traffic lights: close, minimize, maximize. Drawn in 3D;
     // DOM buttons laid over them (WindowControls.tsx) take the clicks and show
     // the hover glyphs. size is the dot radius, dy their lift above the strip's
     // middle, hitH the buttons' height.
@@ -75,13 +75,14 @@ export const WINDOW_STYLE = {
     activeColor: '#ffffff',
     hoverColor: '#f6f5fa',
     accentBar: 0.022, // coloured top edge of the active tab
-    title: { size: 0.068, color: PALETTE.ink, dim: '#4a4754', padL: 0.13 },
+    // compactSize: the title on narrow tabs (5-6 open), where an inactive tab
+    // has no x and its title runs on to padR from the right end.
+    title: { size: 0.068, compactSize: 0.058, color: PALETTE.ink, dim: '#4a4754', padL: 0.13, padR: 0.05 },
     dot: 0.022, // favicon dot radius
     close: { size: 0.042, stroke: 0.011, color: '#6e6b78', hit: 0.11, hoverBg: '#e4e2ec', inset: 0.07 },
     plus: { bg: '#ffffff', color: '#3d5ad6', glyph: 0.062, stroke: 0.013, shadow: 0.1 },
     hover: { lift: 0.012, damp: 14 },
     shadowColor: '#2a2350',
-    marker: { color: '#4285f4', w: 0.018, h: 0.3, drop: 0.05 }, // where a tab dragged from the other window will land; tall (and dropped a little) so it shows below the dragged tab
   },
 
   toolbar: {
@@ -97,9 +98,7 @@ export const WINDOW_STYLE = {
   grip: { size: 0.13, radius: 0.035, inset: 0.04, bg: '#f3f2f7', color: '#8a8794', stroke: 0.011 },
 
   maximizedRing: '#4285f4', // ring around the maximized window
-  // Each window's own colour: its restore chip's accent when minimized.
-  windowColor: { notes: PALETTE.teal, board: '#4285f4' },
-  veil: '#e9ecfa', // dims the window behind a maximized one
+  chipAccent: PALETTE.teal, // the restore chip's stripe while the window is minimized
 
   // Favicon dot per tab kind (notes tabs by index).
   kinds: {

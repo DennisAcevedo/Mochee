@@ -187,7 +187,7 @@ describe('roamStep', () => {
     assert.equal(out.state.nextAt, null)
   })
 
-  it('steps aside away from a maximized window, waits, and comes back on restore', () => {
+  it('steps aside to the right of the maximized window (its home is left), waits, and comes back on restore', () => {
     const rng = rngOf(4)
     let s = free(0, { lastInput: 0 })
     let out = roamStep(1, { ...s, maximized: 'notes' }, rng)
@@ -199,17 +199,14 @@ describe('roamStep', () => {
       assert.equal(out.action.kind, 'none', `t=${t}`)
       s = out.state
     }
-    out = roamStep(60, { ...s, maximized: 'board' }, rng)
-    assert.deepEqual(out.action, { kind: 'aside', side: -1 })
-    s = out.state
     out = roamStep(61, { ...s, maximized: null }, rng)
     assert.deepEqual(out.action, { kind: 'back' })
     assert.equal(out.state.aside, null)
   })
 
   it('steps aside even while busy (the maximized window covers the lane)', () => {
-    const out = roamStep(1, free(0, { busy: true, maximized: 'board' }), rngOf(1))
-    assert.deepEqual(out.action, { kind: 'aside', side: -1 })
+    const out = roamStep(1, free(0, { busy: true, maximized: 'notes' }), rngOf(1))
+    assert.deepEqual(out.action, { kind: 'aside', side: 1 })
   })
 
   it('drops the aside when roaming switches off', () => {

@@ -6,7 +6,7 @@ import { windowHits } from './registry'
 import { roundedRect } from './shapes'
 import { ellipsize, type TabLook } from './tabLayout'
 import { tabInfo } from './tabInfo'
-import type { Tab, WinId } from './tabModel'
+import type { Tab } from './tabModel'
 import { WINDOW_UI } from './windowConfig'
 import { FONTS, WINDOW_STYLE } from './windowStyle'
 
@@ -63,7 +63,6 @@ export interface Anim {
 }
 
 interface Props {
-  win: WinId
   tab: Tab
   active: boolean
   ghost: boolean // closed, shrinking out
@@ -72,7 +71,7 @@ interface Props {
   register: (id: string, p: Parts | null) => void
 }
 
-export function TabView({ win, tab, active, ghost, tw, look, register }: Props) {
+export function TabView({ tab, active, ghost, tw, look, register }: Props) {
   const info = tabInfo(tab)
   const parts = useMemo<Parts>(
     () => ({
@@ -110,14 +109,17 @@ export function TabView({ win, tab, active, ghost, tw, look, register }: Props) 
   // The e2e reads each live tab's hit plane and x button through the registry.
   useLayoutEffect(() => {
     if (ghost || !parts.hit || !parts.closeHit) return
-    const hits = windowHits[win].tabs
+    const hits = windowHits.tabs
     hits.set(tab.id, { hit: parts.hit, close: parts.closeHit, closeVisible: active, kind: tab.kind, title: info.title })
     return () => {
       if (hits.get(tab.id)?.hit === parts.hit) hits.delete(tab.id)
     }
-  }, [win, tab.id, tab.kind, info.title, ghost, active, parts])
+  }, [tab.id, tab.kind, info.title, ghost, active, parts])
 
-  const title = ghost ? '' : ellipsize(info.title, tw - S.title.padL - CLOSE_ROOM, S.title.size)
+  // Narrow tabs: a smaller title, and an inactive one (no x) takes the x's room too.
+  const compact = look === 'compact'
+  const fontSize = compact ? S.title.compactSize : S.title.size
+  const title = ghost ? '' : ellipsize(info.title, tw - S.title.padL - (compact && !active ? S.title.padR : CLOSE_ROOM), fontSize)
   return (
     <group ref={(g) => void (parts.root = g)}>
       <mesh ref={(m) => void (parts.shadow = m)} geometry={UNIT} material={parts.shadowMat} position={[0, -0.018, -L]} visible={false} />
@@ -134,7 +136,7 @@ export function TabView({ win, tab, active, ghost, tw, look, register }: Props) 
       {look !== 'tiny' && title && (
         <Text
           ref={(m: TroikaText | null) => void (parts.title = m)}
-          fontSize={S.title.size}
+          fontSize={fontSize}
           color={active ? S.title.color : S.title.dim}
           font={active ? FONTS.bold : FONTS.semi}
           anchorX="left"

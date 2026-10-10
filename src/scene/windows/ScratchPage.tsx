@@ -6,6 +6,7 @@ import { useWindows } from '../../state/windows'
 import { Flat, Label } from './primitives'
 import type { WinId } from './tabModel'
 import { quadTransform } from './domQuad'
+import { loadNote, noteEpoch, saveNote } from './scratchNote'
 import { WINDOW_UI } from './windowConfig'
 import type { ContentBox } from './WindowContent'
 import { FONTS, WINDOW_STYLE } from './windowStyle'
@@ -17,29 +18,12 @@ import { FONTS, WINDOW_STYLE } from './windowStyle'
 // to the sheet while the window moves, turns, resizes or maximizes. (drei's
 // <Html transform> assumes the camera fills the canvas; CameraRig renders
 // through a view offset, so the projection is done here.) Its text is saved
-// per window in localStorage.
+// in localStorage (scratchNote.ts); the red light discards it.
 
 const SC = WINDOW_STYLE.scratch
 const C = WINDOW_STYLE.content
 const L = WINDOW_STYLE.layer
 
-const storageKey = (win: WinId) => WINDOW_UI.scratchKey + win
-
-function loadNote(win: WinId): string {
-  try {
-    return window.localStorage.getItem(storageKey(win)) ?? ''
-  } catch {
-    return ''
-  }
-}
-
-function saveNote(win: WinId, text: string) {
-  try {
-    window.localStorage.setItem(storageKey(win), text)
-  } catch {
-    // Private mode or a full quota: the note lasts until the tab closes.
-  }
-}
 
 // Keys and pointer events typed into the note never reach the app's shortcuts or the 3D scene.
 const SWALLOW = ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'pointerover', 'pointerout', 'wheel', 'keydown', 'keyup', 'keypress', 'click', 'dblclick', 'contextmenu']
@@ -70,6 +54,7 @@ export function ScratchPage({ win, box }: { win: WinId; box: ContentBox }) {
     ta.setAttribute('aria-label', 'Scratch note')
     ta.spellcheck = false
     ta.value = loadNote(win)
+    const epoch = noteEpoch() // a red-light close after this discards the note: no more saves
     Object.assign(ta.style, {
       position: 'absolute',
       left: '0px',
@@ -93,7 +78,7 @@ export function ScratchPage({ win, box }: { win: WinId; box: ContentBox }) {
     let timer: ReturnType<typeof setTimeout> | undefined
     const onInput = () => {
       clearTimeout(timer)
-      timer = setTimeout(() => saveNote(win, ta.value), WINDOW_UI.saveDebounceMs)
+      timer = setTimeout(() => saveNote(win, ta.value, epoch), WINDOW_UI.saveDebounceMs)
     }
     ta.addEventListener('input', onInput)
     host.appendChild(ta)
@@ -101,7 +86,7 @@ export function ScratchPage({ win, box }: { win: WinId; box: ContentBox }) {
     last.current = { transform: '', shown: false }
     return () => {
       clearTimeout(timer)
-      saveNote(win, ta.value)
+      saveNote(win, ta.value, epoch)
       ta.remove()
       el.current = null
     }
@@ -120,9 +105,8 @@ export function ScratchPage({ win, box }: { win: WinId; box: ContentBox }) {
     const g = sheet.current
     if (!ta || !g) return
     const s = useWindows.getState()
-    // Behind a maximized window the DOM text would float over it, and a
-    // minimized window folds away under its chip: hide it.
-    let show = !(s.maximized && s.maximized !== win) && !s.minimized[win]
+    // A minimized window folds away under its chip and a closed one is gone: hide it.
+    let show = !s.minimized && !s.closed
     const { q, prev } = quad
     const canvas = gl.domElement
     const cw = canvas.clientWidth

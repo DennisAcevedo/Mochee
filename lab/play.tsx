@@ -14,7 +14,7 @@ import { FxLayer } from '../src/scene/fx/FxLayer'
 import { PartyLights } from '../src/scene/fx/PartyLights'
 import { PlayProps } from '../src/scene/fx/PlayProps'
 import { PokeTarget } from '../src/scene/fx/PokeTarget'
-import { FLOOR_Y, LESSON_CAMERA, PALETTE, ROOM, SPOTS, TUTOR_SCALE, WINDOWS } from '../src/scene/layout3d'
+import { FLOOR_Y, LESSON_CAMERA, PALETTE, ROOM, SPOTS, TUTOR_SCALE, WINDOW } from '../src/scene/layout3d'
 import { Lights } from '../src/scene/Lights'
 import { useDirector, type FxKind, type FxTarget, type OneShotClip } from '../src/state/director'
 import { levelForXp, useProgress, xpForLevel } from '../src/state/progress'
@@ -187,12 +187,10 @@ function Room() {
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color="#fbfbfa" />
       </mesh>
-      {(['notes', 'board'] as const).map((k) => (
-        <mesh key={k} position={WINDOWS[k].position} rotation={[0, WINDOWS[k].yaw, 0]} castShadow>
-          <boxGeometry args={[WINDOWS[k].width, WINDOWS[k].height, 0.05]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-      ))}
+      <mesh position={WINDOW.position} rotation={[0, WINDOW.yaw, 0]} castShadow>
+        <boxGeometry args={[WINDOW.width, WINDOW.height, 0.05]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
     </group>
   )
 }

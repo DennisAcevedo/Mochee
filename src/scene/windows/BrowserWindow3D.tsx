@@ -1,10 +1,10 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Color, Matrix4, Plane, Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three'
 import { useDirector } from '../../state/director'
 import { useWindows } from '../../state/windows'
 import { anchors } from '../anchors'
-import { WINDOWS } from '../layout3d'
+import { WINDOW, WINDOWS } from '../layout3d'
 import { glowTexture } from '../room/bakedTextures'
 import { useBoardReplay } from './LectureBoard'
 import { activateByStudent, useLessonTabs } from './lessonSync'
@@ -15,7 +15,7 @@ import { roundedRect, roundedRectRing, roundedSlab } from './shapes'
 import { MinimizeRig } from './minimizeRig'
 import { clampSize, ellipsize } from './tabLayout'
 import { tabInfo } from './tabInfo'
-import type { WinId } from './tabModel'
+import { WIN, type WinId, type WinTabs } from './tabModel'
 import { TabStrip } from './TabStrip'
 import { INVISIBLE, UNIT } from './TabView'
 import { WINDOW_UI } from './windowConfig'
@@ -24,18 +24,21 @@ import { controlParts, useWindowControls } from './WindowControls'
 import { clampOffset, maximizedPlace, yawAt } from './windowPlace'
 import { FONTS, WINDOW_STYLE as W } from './windowStyle'
 
-// A mini Chrome window as a 3D object, driven by the windows store
-// (src/state/windows.ts): rounded frame, tab strip (TabStrip.tsx), toolbar
-// (back / forward through the tabs, reload, omnibox, maximize) and the active
-// tab's page. Drag the empty strip or the omnibox to move it (it stays on
-// screen and turns toward the stage centre the way the defaults do), drag the
-// corner grip to resize it, double-click the strip or press maximize (or the
-// green light) to bring it big and centred in front of the stage while the
-// other window dims and slides back. The red and yellow lights fold it into a
-// restore chip (minimizeRig.ts; the lights and the chip are DOM buttons,
-// WindowControls.tsx). Focus (director.focus) still turns, scales and lights it.
-// Every frame it writes its world centre into anchors[id] and its placement
-// into windowFrames[id].
+// The room's one mini Chrome window as a 3D object, driven by the windows
+// store (src/state/windows.ts): rounded frame, tab strip (TabStrip.tsx),
+// toolbar (back / forward through the tabs, reload, omnibox, maximize) and the
+// active tab's page. Every tab lives here: the lesson notes, the board, the
+// quick check, scratch, new tab and PDF pages. Drag the empty strip or the
+// omnibox to move it (it stays on screen and turns toward the stage centre the
+// way the default does), drag the corner grip to resize it, double-click the
+// strip or press maximize (or the green light) to bring it big and centred in
+// front of the stage. The yellow light folds it into a restore chip, the red
+// one shrinks it away with no chip (minimizeRig.ts; the lights and the chip
+// are DOM buttons, WindowControls.tsx). When the tutor focuses it
+// (director.focus is anything but 'none') it turns, scales and lights up.
+// Every frame it writes its world centre into anchors.notes and anchors.board
+// (the old two windows' names, both read by the tutor and the effects) and its
+// placement into windowFrames.notes.
 
 export type { ContentBox } from './WindowContent'
 export type WindowId = WinId
@@ -49,24 +52,42 @@ const M = WINDOW_UI.maximize
 const Z_AXIS = new Vector3(0, 0, 1)
 const RING_FOCUS = new Color(W.focus.ring.color)
 const RING_MAX = new Color(W.maximizedRing)
-const VEIL_Z = W.z + 0.2 // in front of the tallest page content (the quiz keys)
+const GRIP_Z = W.z + 0.18 // in front of the tallest page content (the quiz keys)
 
 const hitPoint = new Vector3()
 const clamped: [number, number] = [0, 0]
 const sized: [number, number] = [0, 0]
 
-export function BrowserWindow3D({ id }: { id: WinId }) {
+export function BrowserWindow3D() {
   useLessonTabs()
-  const place = WINDOWS[id]
-  const size = useWindows((s) => s.layout[id].size)
-  const maximized = useWindows((s) => s.maximized)
-  const isMax = maximized === id
+  const place = WINDOW
+  const size = useWindows((s) => s.layout.size)
+  const isMax = useWindows((s) => s.maximized !== null)
   // Maximized, the window takes the maximized size (content reflows); restore brings its own back.
   const mp = maximizedPlace()
   const width = isMax ? mp.w : size ? size[0] : place.width
   const height = isMax ? mp.h : size ? size[1] : place.height
-  const veiled = maximized !== null && !isMax
-  const wt = useWindows((s) => s.tabs[id])
+  const live = useWindows((s) => s.tabs[WIN])
+  // The red light: the store swaps in the fresh lesson tabs at once (what the
+  // lesson and the Reader read next), but the window keeps drawing the tabs it
+  // had until its close animation ends, so its strip and page don't jump on
+  // the way out. Reopening (or the animation finishing) lets them go.
+  const [held, setHeld] = useState<WinTabs | null>(null)
+  const holding = useRef(false)
+  useEffect(
+    () =>
+      useWindows.subscribe((s, p) => {
+        if (s.closed && !p.closed) {
+          holding.current = true
+          setHeld(p.tabs[WIN])
+        } else if (!s.closed && p.closed && holding.current) {
+          holding.current = false
+          setHeld(null)
+        }
+      }),
+    [],
+  )
+  const wt = held ?? live
   const tab = wt.tabs.find((t) => t.id === wt.active) ?? wt.tabs[0]
   const index = wt.tabs.indexOf(tab)
   const info = tabInfo(tab)
@@ -79,35 +100,33 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
   const pivot = useRef<Group | null>(null)
   const ringMat = useRef<MeshBasicMaterial>(null)
   const glowMat = useRef<MeshBasicMaterial>(null)
-  const veilMat = useRef<MeshBasicMaterial>(null)
-  const veil = useRef<Mesh>(null)
   const glow = useMemo(() => glowTexture(), [])
   useEffect(() => () => glow.dispose(), [glow])
 
   // The DOM lights and restore chip, and the fold that drives them.
   const parts = useMemo(controlParts, [])
-  useWindowControls(id, parts, canvas)
-  const rig = useMemo(() => new MinimizeRig(id, parts, useWindows.getState().minimized[id]), [id, parts])
+  useWindowControls(parts, canvas)
+  const rig = useMemo(() => {
+    const st = useWindows.getState()
+    return new MinimizeRig(parts, st.minimized, st.closed)
+  }, [parts])
 
-  // Registry: the e2e (window.__gg.windows.rects) and the other window's tab drags read these.
-  const setPivot = useCallback(
-    (g: Group | null) => {
-      pivot.current = g
-      windowHits[id].pivot = g
-    },
-    [id],
-  )
-  const setFrame = useCallback((m: Mesh | null) => void (windowHits[id].frame = m), [id])
-  const setMax = useCallback((g: Group | null) => void (windowHits[id].max = g), [id])
-  const setGrip = useCallback((g: Group | null) => void (windowHits[id].grip = g), [id])
-  const setOmni = useCallback((m: Mesh | null) => void (windowHits[id].omni = m), [id])
+  // Registry: the e2e (window.__gg.windows.rects) reads these.
+  const setPivot = useCallback((g: Group | null) => {
+    pivot.current = g
+    windowHits.pivot = g
+  }, [])
+  const setFrame = useCallback((m: Mesh | null) => void (windowHits.frame = m), [])
+  const setMax = useCallback((g: Group | null) => void (windowHits.max = g), [])
+  const setGrip = useCallback((g: Group | null) => void (windowHits.grip = g), [])
+  const setOmni = useCallback((m: Mesh | null) => void (windowHits.omni = m), [])
 
   // Resting placement at mount (afterwards the frame loop owns it).
   const initial = useMemo(() => {
-    const o = useWindows.getState().layout[id].offset
+    const o = useWindows.getState().layout.offset
     const x = place.position[0] + o[0]
-    return { position: [x, place.position[1] + o[1], place.position[2]] as [number, number, number], rotation: [0, yawAt(id, x), 0] as [number, number, number] }
-  }, [id, place])
+    return { position: [x, place.position[1] + o[1], place.position[2]] as [number, number, number], rotation: [0, yawAt(x), 0] as [number, number, number] }
+  }, [place])
 
   // ---- Moving (empty strip or omnibox) and resizing (corner grip)
   const moveTrack = useMemo(() => new PointerTrack(), [])
@@ -138,13 +157,13 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
       const now = performance.now()
       if (now - last.t < WINDOW_UI.doubleClickMs && Math.hypot(ne.clientX - last.x, ne.clientY - last.y) < WINDOW_UI.doubleClickPx) {
         last.t = -1e9
-        useWindows.getState().toggleMaximize(id)
+        useWindows.getState().toggleMaximize(WIN)
         return
       }
       lastStrip.current = { t: now, x: ne.clientX, y: ne.clientY }
     }
-    if (useWindows.getState().maximized === id) return // a maximized window stays put
-    const o = useWindows.getState().layout[id].offset
+    if (useWindows.getState().maximized !== null) return // a maximized window stays put
+    const o = useWindows.getState().layout.offset
     movePlane.setFromNormalAndCoplanarPoint(Z_AXIS, e.point)
     move.current = { px: e.point.x, py: e.point.y, ox: o[0], oy: o[1], x: o[0], y: o[1], live: false }
     moveTrack.press(ne, canvas)
@@ -154,8 +173,8 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
     e.stopPropagation()
     const g = pivot.current
     const ne = e.nativeEvent
-    if (!g || ne.button !== 0 || useWindows.getState().maximized === id) return
-    const st = useWindows.getState().layout[id]
+    if (!g || ne.button !== 0 || useWindows.getState().maximized !== null) return
+    const st = useWindows.getState().layout
     const [w0, h0] = st.size ?? [place.width, place.height]
     facePlane(g, sizePlane)
     sizeInv.copy(g.matrixWorld).invert()
@@ -183,9 +202,8 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
     if (!g || !pv || !mn) return
     const k = Math.min(dt, 0.05)
     const st = useWindows.getState()
-    const lay = st.layout[id]
-    const max = st.maximized === id
-    const back = st.maximized !== null && !max
+    const lay = st.layout
+    const max = st.maximized !== null
     const cw = max ? mp.w : lay.size ? lay.size[0] : place.width
     const ch = max ? mp.h : lay.size ? lay.size[1] : place.height
 
@@ -193,14 +211,14 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
     const mv = move.current
     if (moveTrack.active) {
       if (moveTrack.dragging && pointerOnPlane(moveTrack.x, moveTrack.y, state.camera, state.gl.domElement, movePlane, hitPoint)) {
-        clampOffset(id, mv.ox + hitPoint.x - mv.px, mv.oy + hitPoint.y - mv.py, cw, ch, clamped)
+        clampOffset(mv.ox + hitPoint.x - mv.px, mv.oy + hitPoint.y - mv.py, cw, ch, clamped)
         mv.x = clamped[0]
         mv.y = clamped[1]
         if (!mv.live) setCursor('grabbing')
         mv.live = true
       }
       if (moveTrack.up) {
-        if (mv.live) st.setOffset(id, [mv.x, mv.y])
+        if (mv.live) st.setOffset(WIN, [mv.x, mv.y])
         mv.live = false
         moveTrack.end()
         setCursor(null)
@@ -214,16 +232,16 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
         const p = hitPoint.applyMatrix4(sizeInv)
         clampSize(p.x + r.dx + r.w0 / 2, r.h0 / 2 - (p.y + r.dy), sized)
         if (sized[0] !== cw || sized[1] !== ch) {
-          st.setSize(id, [sized[0], sized[1]])
-          st.setOffset(id, [r.ox + ((sized[0] - r.w0) / 2) * r.sx, r.oy - ((sized[1] - r.h0) / 2) * r.sy])
+          st.setSize(WIN, [sized[0], sized[1]])
+          st.setOffset(WIN, [r.ox + ((sized[0] - r.w0) / 2) * r.sx, r.oy - ((sized[1] - r.h0) / 2) * r.sy])
         }
       }
       if (sizeTrack.up) {
         sizeTrack.end()
         setCursor(null)
-        const o = useWindows.getState().layout[id].offset
-        clampOffset(id, o[0], o[1], cw, ch, clamped)
-        st.setOffset(id, [clamped[0], clamped[1]])
+        const o = useWindows.getState().layout.offset
+        clampOffset(o[0], o[1], cw, ch, clamped)
+        st.setOffset(WIN, [clamped[0], clamped[1]])
       }
     }
 
@@ -233,19 +251,16 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
     let tx = place.position[0] + ox
     let ty = place.position[1] + oy
     let tz = place.position[2]
-    let yaw = yawAt(id, tx)
+    let yaw = yawAt(tx)
     let scale = 1
     let lift = 0
-    const focused = !max && !back && useDirector.getState().focus === id
+    const focused = !max && useDirector.getState().focus !== 'none'
     if (max) {
       tx = mp.x
       ty = mp.y
       tz = mp.z
       yaw = 0
       scale = mp.scale
-    } else if (back) {
-      tx = Math.sign(tx || place.position[0]) * Math.max(Math.abs(tx) + M.pushOut, M.peekX)
-      tz -= M.pushBack
     } else if (focused) {
       yaw *= WINDOWS.focusYaw / Math.abs(place.yaw || 1)
       scale = WINDOWS.focusScale
@@ -257,7 +272,7 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
       g.position.y = damp(g.position.y, ty, M.rate, k)
       g.position.z = damp(g.position.z, tz, M.rate, k)
     }
-    const rate = max || back ? M.rate : W.focus.damp
+    const rate = max ? M.rate : W.focus.damp
     pv.rotation.y = damp(pv.rotation.y, yaw, rate, k)
     pv.scale.setScalar(damp(pv.scale.x, scale, rate, k))
     pv.position.z = damp(pv.position.z, lift, rate, k)
@@ -267,17 +282,18 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
       ringMat.current.opacity = damp(ringMat.current.opacity, max || focused ? 1 : 0, rate, k)
     }
     if (glowMat.current) glowMat.current.opacity = damp(glowMat.current.opacity, focused ? W.focus.glow.opacity : 0, W.focus.damp, k)
-    if (veilMat.current && veil.current) {
-      veilMat.current.opacity = damp(veilMat.current.opacity, back ? M.dim : 0, M.rate, k)
-      veil.current.visible = veilMat.current.opacity > 0.01
+
+    rig.step(dt, state.clock.elapsedTime * 1000, st.minimized, st.closed, g, mn, cw, ch, pv.scale.x, state.camera, state.gl.domElement)
+    rig.glue(pv, cw, ch, state.camera, state.gl.domElement)
+    if (holding.current && rig.c >= 1) {
+      holding.current = false // gone from view: drop the old tabs (and their pages)
+      setHeld(null)
     }
 
-    rig.step(dt, state.clock.elapsedTime * 1000, st.minimized[id], g, mn, cw, ch, pv.scale.x, state.camera, state.gl.domElement)
-    rig.glue(pv, cw, ch, !back, state.camera, state.gl.domElement)
-
-    pv.getWorldPosition(anchors[id])
-    const f = windowFrames[id]
-    f.center.copy(anchors[id])
+    pv.getWorldPosition(anchors.notes)
+    anchors.board.copy(anchors.notes) // the board, the quiz and the notes all live in this window now
+    const f = windowFrames[WIN]
+    f.center.copy(anchors.notes)
     f.halfW = (cw / 2) * pv.scale.x
     f.halfH = (ch / 2) * pv.scale.y
     f.yaw = pv.rotation.y
@@ -303,12 +319,12 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
 
   const go = (i: number) => {
     const next = wt.tabs[i]
-    if (next) activateByStudent(id, next)
+    if (next) activateByStudent(next)
   }
   const reload = tab.kind === 'notes' || tab.kind === 'pdf' ? () => setReloads((n) => n + 1) : tab.kind === 'board' ? replay : undefined
 
   return (
-    <group ref={outer} name={`${id}-window`} position={initial.position}>
+    <group ref={outer} name={`${WIN}-window`} position={initial.position}>
       <group ref={mini}>
         <group ref={setPivot} rotation={initial.rotation}>
           {/* Focus glow behind the window and a ring around it (teal focused, blue maximized). */}
@@ -326,16 +342,16 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
 
           {/* Tab strip. */}
           <Flat w={width} h={S.height} r={[W.radius, W.radius, 0, 0]} color={S.color} position={[0, stripY, z]} />
-          {/* Traffic lights: close and minimize fold the window into its chip, maximize
-              toggles maximized. These are the dots; the DOM buttons over them take the
-              clicks and show the glyphs (WindowControls.tsx). */}
+          {/* Traffic lights: red closes the window, yellow folds it into its chip,
+              green toggles maximized. These are the dots; the DOM buttons over them
+              take the clicks and show the glyphs (WindowControls.tsx). */}
           {S.lights.colors.map((c, i) => (
             <mesh key={c} position={[-width / 2 + S.lights.x + i * S.lights.gap, stripY + S.lights.dy, z + L * 8]}>
               <circleGeometry args={[S.lights.size, 28]} />
               <meshBasicMaterial color={c} toneMapped={false} />
             </mesh>
           ))}
-          <TabStrip win={id} width={width} top={top} z={z} pivot={pivot} onEmptyPress={(e) => startMove(e, true)} />
+          <TabStrip wt={wt} width={width} top={top} z={z} pivot={pivot} onEmptyPress={(e) => startMove(e, true)} />
 
           {/* Toolbar: back, forward, reload, omnibox (also a drag handle), maximize. */}
           <Flat w={width} h={T.height} color={T.color} position={[0, toolY, z]} />
@@ -362,45 +378,40 @@ export function BrowserWindow3D({ id }: { id: WinId }) {
             {ellipsize(url, omniW - 0.2, T.omnibox.size * 1.06)}
           </Label>
           <group ref={setMax} position={[width / 2 - MX.inset, toolY, z + L]}>
-            <Hit size={MX.size} onClick={() => useWindows.getState().toggleMaximize(id)}>
+            <Hit size={MX.size} onClick={() => useWindows.getState().toggleMaximize(WIN)}>
               <Flat w={MX.size} h={MX.size} r={MX.radius} color={MX.bg} />
               <MaximizeGlyph size={MX.glyph} stroke={MX.stroke} color={MX.color} bg={MX.bg} restore={isMax} position={[0, 0, L]} />
             </Hit>
           </group>
 
-          {/* The active tab's page, drawn from its top-left corner. */}
+          {/* The active tab's page, drawn from its top-left corner. A page in
+              its own boundary: one whose font or texture is still loading
+              (the board's Caveat on its first showing) leaves the page blank
+              for that moment instead of hiding the whole window. */}
           <Flat w={width} h={contentH} r={[0, 0, W.radius, W.radius]} color={CONTENT_BG[tab.kind]} position={[0, contentTop - contentH / 2, z]} />
           <group position={[-width / 2, contentTop, z + L * 2]} scale={contentScale}>
-            <WindowContent win={id} tab={tab} box={box} reloads={reloads} />
+            <Suspense fallback={null}>
+              <WindowContent win={WIN} tab={tab} box={box} reloads={reloads} />
+            </Suspense>
+          </group>
+          {/* Loads the board's handwriting font with the window, so the first
+              switch to the Board tab draws at once. Never shown. */}
+          <group visible={false}>
+            <Suspense fallback={null}>
+              <Label size={0.01} font={FONTS.hand}>
+                .
+              </Label>
+            </Suspense>
           </group>
 
           {/* Bottom-right resize grip. */}
-          <group ref={setGrip} position={[width / 2 - G.inset - G.size / 2, -height / 2 + G.inset + G.size / 2, VEIL_Z - 0.02]} visible={!isMax}>
+          <group ref={setGrip} position={[width / 2 - G.inset - G.size / 2, -height / 2 + G.inset + G.size / 2, GRIP_Z]} visible={!isMax}>
             <mesh geometry={roundedRect(G.size, G.size, G.radius)} onPointerDown={isMax ? undefined : startResize} {...hoverCursor('nwse-resize')}>
               <meshBasicMaterial color={G.bg} toneMapped={false} />
             </mesh>
             <GripGlyph size={G.size * 0.62} stroke={G.stroke} color={G.color} position={[0, 0, L]} />
           </group>
 
-          {/* Dims the window while the other one is maximized; a press restores it. */}
-          <mesh
-            ref={veil}
-            geometry={UNIT}
-            scale={[width + 0.02, height + 0.02, 1]}
-            position={[0, 0, VEIL_Z]}
-            renderOrder={5}
-            visible={false}
-            onPointerDown={
-              veiled
-                ? (e: ThreeEvent<PointerEvent>) => {
-                    e.stopPropagation()
-                    useWindows.getState().setMaximized(null)
-                  }
-                : undefined
-            }
-          >
-            <meshBasicMaterial ref={veilMat} color={W.veil} transparent opacity={0} depthWrite={false} toneMapped={false} />
-          </mesh>
           {/* Keeps clicks on the window's body from reaching what is behind it. */}
           <mesh geometry={UNIT} material={INVISIBLE} scale={[width, height, 1]} position={[0, 0, z - L]} onPointerDown={(e: ThreeEvent<PointerEvent>) => e.stopPropagation()} />
         </group>

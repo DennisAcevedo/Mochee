@@ -1,72 +1,77 @@
 import { create } from 'zustand'
 import {
   activateTab,
+  closedTabs,
   closeTab,
   ensureLessonTab,
   initialTabs,
-  moveTab,
   openNewTab,
   reorderTab,
   turnInto,
   validateTabs,
+  WIN,
   type LessonContent,
   type TabContent,
   type TabsState,
   type WinId,
-} from '../scene/windows/tabModel'
-import { maximizeWin, minimizeWin, restoreWin, toggleMaximizeWin, type MinState } from '../scene/windows/minimize'
-import { WINDOW_UI } from '../scene/windows/windowConfig'
+  type WinRef,
+} from '../scene/windows/tabModel.ts'
+import { closeWin, maximizeWin, minimizeWin, restoreWin, toggleMaximizeWin, type MinState } from '../scene/windows/minimize.ts'
+import { WINDOW_UI } from '../scene/windows/windowConfig.ts'
 
-// Tabs and layout of the two mini browser windows: Chrome-style tabs (open,
-// close, reorder, drag between windows) and windows that move, resize and
-// maximize or minimize. Contract (docs/specs/2026-10-10-sparkle-stage.md): the
-// windows builder owns this file and everything behind it; other code may only
-// READ `maximized` and `minimized`. Keep those fields' names and types.
+// Tabs and layout of the room's one mini browser window: Chrome-style tabs
+// (open, close, reorder) in a window that moves, resizes, maximizes (green),
+// minimizes into a restore chip (yellow) and closes (red). Contract
+// (docs/specs/2026-10-10-sparkle-stage.md): the windows builder owns this file
+// and everything behind it; other code may only READ `maximized`,
+// `minimized` and `closed`.
 //
-// The tab logic itself is pure (src/scene/windows/tabModel.ts); this store
-// wraps it, adds window offsets and sizes, and persists tabs + layout in
-// localStorage (WINDOW_UI.storageKey) so a reload restores them.
+// Every action still takes the window's id first, as when there were two
+// windows: there is one now, so any id ('notes', or the old right window's
+// 'board') names it. The tab logic itself is pure
+// (src/scene/windows/tabModel.ts); this store wraps it, adds the window's
+// offset and size, and persists tabs + layout in localStorage
+// (WINDOW_UI.storageKey) so a reload restores them. Imports carry their .ts
+// extension so tests/ui/minimize.test.ts can load the store under plain Node.
 
-export type { WinId } from '../scene/windows/tabModel'
+export type { WinId, WinRef } from '../scene/windows/tabModel.ts'
 
 export interface WinLayout {
-  offset: [number, number] // world x, y from the window's default placement (WINDOWS in layout3d.ts)
+  offset: [number, number] // world x, y from the window's default placement (WINDOW in layout3d.ts)
   size: [number, number] | null // width, height; null = the default size
 }
 
 export interface WindowsState {
-  maximized: WinId | null // the tutor steps aside while a window is maximized
-  minimized: Record<WinId, boolean> // folded into its restore chip; never true for the maximized window
+  maximized: WinId | null // the tutor steps aside while the window is maximized
+  minimized: boolean // folded into its restore chip; never true while maximized or closed
+  closed: boolean // red light: gone with no chip until the lesson or the Reader opens it again
   tabs: TabsState
-  layout: Record<WinId, WinLayout>
+  layout: WinLayout
 
-  openTab: (win: WinId) => void
-  closeTab: (win: WinId, id: string) => void
-  activateTab: (win: WinId, id: string) => void
-  reorderTab: (win: WinId, id: string, index: number) => void
-  moveTab: (from: WinId, id: string, to: WinId, index: number) => void
-  turnInto: (win: WinId, id: string, content: TabContent) => void
+  openTab: (win: WinRef) => void
+  closeTab: (win: WinRef, id: string) => void
+  activateTab: (win: WinRef, id: string) => void
+  reorderTab: (win: WinRef, id: string, index: number) => void
+  turnInto: (win: WinRef, id: string, content: TabContent) => void
   ensureLessonTab: (content: LessonContent) => void
-  setOffset: (win: WinId, offset: [number, number]) => void
-  setSize: (win: WinId, size: [number, number] | null) => void
-  toggleMaximize: (win: WinId) => void
-  setMaximized: (win: WinId | null) => void
-  minimize: (win: WinId) => void // yellow (and red) light: shrink into the restore chip
-  restore: (win: WinId) => void // the chip, or the lesson needing the window: bring it back
+  setOffset: (win: WinRef, offset: [number, number]) => void
+  setSize: (win: WinRef, size: [number, number] | null) => void
+  toggleMaximize: (win: WinRef) => void
+  setMaximized: (win: WinRef | null) => void // also opens a minimized or closed window
+  minimize: (win: WinRef) => void // yellow light: shrink into the restore chip
+  close: (win: WinRef) => void // red light: drop the window's own tabs, rebuild the lesson ones, hide it
+  restore: (win: WinRef) => void // the chip, or the lesson needing the window: bring it back
   resetWindows: () => void
 }
 
-const defaultLayout = (): Record<WinId, WinLayout> => ({
-  notes: { offset: [0, 0], size: null },
-  board: { offset: [0, 0], size: null },
-})
+const defaultLayout = (): WinLayout => ({ offset: [0, 0], size: null })
 
 // ---- Persistence (every access guarded: storage can be missing, full or blocked)
 
 interface Stored {
-  v: 1
+  v: 2
   tabs: TabsState
-  layout: Record<WinId, WinLayout>
+  layout: WinLayout
 }
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
@@ -90,27 +95,37 @@ function load(): Pick<WindowsState, 'tabs' | 'layout'> {
     const text = window.localStorage.getItem(WINDOW_UI.storageKey)
     if (!text) throw new Error('empty')
     const raw = JSON.parse(text) as Partial<Stored>
-    if (raw?.v !== 1) throw new Error('version')
+    if (raw?.v !== 2) throw new Error('version')
     const tabs = validateTabs(raw.tabs)
     if (!tabs) throw new Error('tabs')
-    const l = (raw.layout ?? {}) as Partial<Record<WinId, unknown>>
-    return { tabs, layout: { notes: readLayout(l.notes), board: readLayout(l.board) } }
+    return { tabs, layout: readLayout(raw.layout) }
   } catch {
     return { tabs: initialTabs(), layout: defaultLayout() }
   }
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
-function scheduleSave(s: WindowsState) {
+function scheduleSave() {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     try {
-      const data: Stored = { v: 1, tabs: s.tabs, layout: s.layout }
+      // The state when the timer fires: a listener may have updated it again since the change that scheduled this.
+      const s = useWindows.getState()
+      const data: Stored = { v: 2, tabs: s.tabs, layout: s.layout }
       window.localStorage.setItem(WINDOW_UI.storageKey, JSON.stringify(data))
     } catch {
-      // Private mode or a full quota: the windows still work, they just won't survive a reload.
+      // Private mode or a full quota: the window still works, it just won't survive a reload.
     }
   }, WINDOW_UI.saveDebounceMs)
+}
+
+// A closed window's scratch tab is discarded, its note with it.
+function dropScratch() {
+  try {
+    window.localStorage.removeItem(WINDOW_UI.scratchKey + WIN)
+  } catch {
+    // Storage blocked: nothing was saved either.
+  }
 }
 
 // ---- Store
@@ -122,47 +137,56 @@ export const useWindows = create<WindowsState>((set, get) => {
     const next = op(prev)
     if (next !== prev) set({ tabs: next })
   }
-  const layoutOp = (win: WinId, patch: Partial<WinLayout>) => set((s) => ({ layout: { ...s.layout, [win]: { ...s.layout[win], ...patch } } }))
-  // Applies a pure maximize / minimize transition (minimize.ts); no update when nothing changed.
+  const layoutOp = (patch: Partial<WinLayout>) => set((s) => ({ layout: { ...s.layout, ...patch } }))
+  // Applies a pure maximize / minimize / close transition (minimize.ts); no update when nothing changed.
   const winOp = (op: (s: MinState) => MinState) => {
-    const { maximized, minimized } = get()
-    const prev: MinState = { maximized, minimized }
+    const { maximized, minimized, closed } = get()
+    const prev: MinState = { maximized, minimized, closed }
     const next = op(prev)
-    if (next !== prev) set({ maximized: next.maximized, minimized: next.minimized })
+    if (next !== prev) set({ maximized: next.maximized, minimized: next.minimized, closed: next.closed })
   }
 
   return {
     maximized: null,
-    minimized: { notes: false, board: false },
+    minimized: false,
+    closed: false,
     ...load(),
 
-    openTab: (win) => tabsOp((s) => openNewTab(s, win)),
-    closeTab: (win, id) => tabsOp((s) => closeTab(s, win, id)),
-    activateTab: (win, id) => tabsOp((s) => activateTab(s, win, id)),
-    reorderTab: (win, id, index) => tabsOp((s) => reorderTab(s, win, id, index)),
-    moveTab: (from, id, to, index) => tabsOp((s) => moveTab(s, from, id, to, index)),
-    turnInto: (win, id, content) => tabsOp((s) => turnInto(s, win, id, content)),
+    openTab: () => tabsOp(openNewTab),
+    closeTab: (_win, id) => tabsOp((s) => closeTab(s, id)),
+    activateTab: (_win, id) => tabsOp((s) => activateTab(s, id)),
+    reorderTab: (_win, id, index) => tabsOp((s) => reorderTab(s, id, index)),
+    turnInto: (_win, id, content) => tabsOp((s) => turnInto(s, id, content)),
     ensureLessonTab: (content) => tabsOp((s) => ensureLessonTab(s, content)),
 
-    setOffset: (win, offset) => {
-      const o = get().layout[win].offset
-      if (o[0] !== offset[0] || o[1] !== offset[1]) layoutOp(win, { offset })
+    setOffset: (_win, offset) => {
+      const o = get().layout.offset
+      if (o[0] !== offset[0] || o[1] !== offset[1]) layoutOp({ offset })
     },
-    setSize: (win, size) => {
-      const s = get().layout[win].size
+    setSize: (_win, size) => {
+      const s = get().layout.size
       if (s === size || (s && size && s[0] === size[0] && s[1] === size[1])) return
-      layoutOp(win, { size })
+      layoutOp({ size })
     },
-    toggleMaximize: (win) => winOp((s) => toggleMaximizeWin(s, win)),
-    setMaximized: (maximized) => winOp((s) => maximizeWin(s, maximized)),
-    minimize: (win) => winOp((s) => minimizeWin(s, win)),
-    restore: (win) => winOp((s) => restoreWin(s, win)),
-    resetWindows: () => set({ maximized: null, minimized: { notes: false, board: false }, tabs: initialTabs(), layout: defaultLayout() }),
+    toggleMaximize: () => winOp((s) => toggleMaximizeWin(s, WIN)),
+    setMaximized: (win) => winOp((s) => maximizeWin(s, win === null ? null : WIN)),
+    minimize: () => winOp(minimizeWin),
+    close: () => {
+      const s = get()
+      if (s.closed) return
+      // One update: whoever sees `closed` flip also sees the fresh tabs (and the old ones as the previous state).
+      const next = closeWin({ maximized: s.maximized, minimized: s.minimized, closed: s.closed })
+      set({ maximized: next.maximized, minimized: next.minimized, closed: next.closed, tabs: closedTabs(s.tabs) })
+      dropScratch()
+    },
+    restore: () => winOp(restoreWin),
+    resetWindows: () => set({ maximized: null, minimized: false, closed: false, tabs: initialTabs(), layout: defaultLayout() }),
   }
 })
 
-// Persist tabs and layout (not `maximized` or `minimized`: a reload starts with
-// both windows out and the tutor in the middle).
+// Persist tabs and layout, not `maximized`, `minimized` or `closed`: like a
+// browser started again, a reload brings the window back open, with the
+// tutor in the middle.
 useWindows.subscribe((s, prev) => {
-  if (s.tabs !== prev.tabs || s.layout !== prev.layout) scheduleSave(s)
+  if (s.tabs !== prev.tabs || s.layout !== prev.layout) scheduleSave()
 })

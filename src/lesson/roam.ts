@@ -9,8 +9,8 @@
 //   experiment) and free (not speaking, pointing, thinking or performing a step).
 // - Every 4 to 9 s he paces to the other side of the lane or wanders to a
 //   random spot in it, always a real step away from where he stands.
-// - A maximized window wins over all of it: he steps aside, away from that
-//   window, and waits there until it is restored.
+// - The maximized window wins over all of it: he steps aside to the right,
+//   away from its home on the left, and waits there until it is restored.
 // - About 20 s with no student input: a small emote, never the same twice in a row.
 // The walkthrough winning at once is the director's job: walkTo clears the roam target.
 
@@ -31,7 +31,9 @@ export const ROAM = {
 } as const
 
 export type IdleEmote = (typeof ROAM.idleEmotes)[number]
-export type AsideFrom = 'notes' | 'board'
+// The window he steps aside from: the room has one, under the left window's
+// old id ('notes'), standing left of him.
+export type AsideFrom = 'notes'
 
 export interface RoamState {
   // The world, refreshed by the caller every tick.
@@ -163,11 +165,11 @@ export function roamStep(now: number, s: RoamState, rng: Rng): { action: RoamAct
     return { action: { kind: 'back' }, state: next }
   }
 
-  // A maximized window: step aside to the side away from it, then wait.
+  // The maximized window: step aside, away from its home on the left, then wait.
   if (s.maximized !== s.aside) {
     next.aside = s.maximized
     next.nextAt = null
-    if (s.maximized) return { action: { kind: 'aside', side: s.maximized === 'notes' ? 1 : -1 }, state: next }
+    if (s.maximized) return { action: { kind: 'aside', side: 1 }, state: next }
     return { action: { kind: 'back' }, state: next }
   }
   if (s.aside) return { action: NONE, state: next }

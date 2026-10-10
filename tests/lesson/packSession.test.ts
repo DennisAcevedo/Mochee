@@ -115,7 +115,7 @@ describe('packToWalkthrough', () => {
     }
   })
 
-  it('walks to the notes for a section and to the board for its reveal', () => {
+  it('teaches from the left spot beside the one window: the notes for a section, then the board tab for its reveal', () => {
     const resolved = resolvePackSteps(steps)
     for (const step of resolved.filter((s) => /-n\d+$/.test(s.id))) {
       assert.equal(step.spot, 'left')
@@ -123,7 +123,8 @@ describe('packToWalkthrough', () => {
     }
     for (const step of resolved.filter((s) => s.id.endsWith('-board'))) {
       const s = packStepSection(step.id)!
-      assert.equal(step.spot, 'right')
+      assert.equal(step.spot, 'left')
+      assert.equal(step.loop, 'point_left')
       assert.equal(step.focus, 'board')
       assert.equal(step.boardReveal, packBoard(pack, s).parts)
     }
@@ -170,6 +171,8 @@ describe('packToWalkthrough', () => {
       assert.equal(last.id, QUIZ_STEP_ID)
       assert.equal(last.wait, 'quiz')
       assert.equal(last.mode, 'quiz')
+      assert.equal(last.spot, 'left', 'the Quick check is a tab of the window on his left')
+      assert.equal(last.loop, 'point_left')
       assert.equal(run.filter((s) => s.wait === 'quiz').length, 1)
     }
   })
