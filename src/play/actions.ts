@@ -26,7 +26,7 @@ const after = (ms: number, fn: () => void) => window.setTimeout(fn, ms)
 // Tickle: tap on him (or the hint chip).
 export function poke(): boolean {
   if (!claim('poke')) return false
-  director().play('giggle')
+  director().play('giggle', { vary: true }) // giggle, laugh, shy in turn (CLIP_VARIANTS)
   director().burst('hearts')
   award('poke')
   return true
@@ -61,7 +61,7 @@ export function feedSnack(): boolean {
   if (!claim('snack')) return false
   const { flightMs, clipLeadMs } = PLAY.snack
   usePlay.getState().spawnProp('snack', nextPropColor())
-  after(flightMs - clipLeadMs, () => director().play('yum'))
+  after(flightMs - clipLeadMs, () => director().play('yum', { vary: true }))
   after(flightMs, () => {
     director().burst('hearts')
     award('snack')

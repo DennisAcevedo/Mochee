@@ -1,5 +1,5 @@
 import type { Clip, Gesture, LoopClip, OneShotClip } from '../../state/director'
-import { ANIM, ANIM_STATES, ANIM_STATE_NAMES, type AnimState } from './config.ts'
+import { ANIM, ANIM_STATES, ANIM_STATE_NAMES, CLIP_VARIANTS, type AnimState } from './config.ts'
 
 // The tutor's animation state machine. It sits between the director (which
 // keeps its play / setLoop API) and TutorMotion (which crossfades the mixer):
@@ -15,6 +15,8 @@ import { ANIM, ANIM_STATES, ANIM_STATE_NAMES, type AnimState } from './config.ts
 //   A blocked request is queued once: one slot, a higher-or-equal request
 //   replaces it, it plays when the blocker ends if it is younger than
 //   ANIM.queueTtl, else it is dropped. Equal priority replaces (latest wins).
+//   An urgent request (the student's answer) takes the slot whatever waits
+//   there: a stale step gesture must not play in place of a quiz shrug.
 // - A one-shot ends after its clip length, then he returns to the current base.
 // - While he walks, one-shots wait in the queue and a running one is cut
 //   (TutorMotion does the same with the mixer).
@@ -85,6 +87,7 @@ export class AnimationController {
   private queued: Queued | null = null
   private readonly lastStart = new Map<AnimState, number>()
   private readonly rotation = new Map<AnimState, number>()
+  private readonly variantTurn = new Map<OneShotClip, number>()
   private lastDirectorId: number
   private nextId = 1
   private cut = false
@@ -150,9 +153,17 @@ export class AnimationController {
     }
   }
 
-  // A one-shot clip from the director (or any caller).
-  play(clip: OneShotClip, now: number, moving = false): boolean {
-    return this.requestOneShot(stateOfClip(clip, 'oneshot'), clip, now, moving)
+  // A one-shot clip from the director (or any caller). With `vary`, a clip that
+  // has variants (CLIP_VARIANTS) plays its next one; the turn only advances when
+  // the request starts or waits in the queue, so a dropped one skips no variant.
+  play(clip: OneShotClip, now: number, moving = false, urgent = false, vary = false): boolean {
+    const list = vary ? CLIP_VARIANTS[clip] : undefined
+    const turn = this.variantTurn.get(clip) ?? 0
+    const pick = list?.length ? list[turn % list.length] : clip
+    const started = this.requestOneShot(stateOfClip(pick, 'oneshot'), pick, now, moving, urgent)
+    const waits = this.last?.reason === 'queued' || this.last?.reason === 'walk' // requestOneShot always records this call
+    if (list?.length && (started || waits)) this.variantTurn.set(clip, turn + 1)
+    return started
   }
 
   // An intent by state name: plays the state's clips in turn (deterministic rotation).
@@ -167,7 +178,7 @@ export class AnimationController {
     return this.requestOneShot(state, cfg.clips[i % cfg.clips.length] as OneShotClip, now, moving)
   }
 
-  private requestOneShot(state: AnimState, clip: OneShotClip, now: number, moving: boolean): boolean {
+  private requestOneShot(state: AnimState, clip: OneShotClip, now: number, moving: boolean, urgent = false): boolean {
     const from = this.state
     const since = this.lastStart.get(state)
     if (since !== undefined && now - since < ANIM_STATES[state].cooldown) {
@@ -176,7 +187,7 @@ export class AnimationController {
     }
     const blocker = this.oneShot ? Math.max(this.prio(this.oneShot.state), this.prio(this.baseState)) : this.prio(this.baseState)
     if (moving || this.prio(state) < blocker) {
-      if (!this.queued || this.prio(state) >= this.prio(this.queued.state)) {
+      if (urgent || !this.queued || this.prio(state) >= this.prio(this.queued.state)) {
         this.queued = { state, clip, at: now }
         this.record(from, from, clip, now, moving ? 'walk' : 'queued')
       } else {
@@ -235,7 +246,7 @@ export class AnimationController {
     this.setLoop(input.loop === 'idle' && input.speaking ? 'talk' : input.loop, now)
     if (input.gesture && input.gesture.id !== this.lastDirectorId) {
       this.lastDirectorId = input.gesture.id
-      this.play(input.gesture.clip, now, input.moving)
+      this.play(input.gesture.clip, now, input.moving, !!input.gesture.urgent, !!input.gesture.vary)
     }
     this.tick(now, input.moving)
     return {

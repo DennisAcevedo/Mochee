@@ -42,8 +42,17 @@ export function levelForXp(xp: number): number {
 }
 
 // Level at which each dance unlocks. The quiz celebration and the dance party
-// pick from the unlocked ones.
-export const DANCE_UNLOCKS = { dance_bounce: 1, dance_spin: 2, dance_robot: 3 } as const
+// pick from the unlocked ones. Every dance is open by level 4.
+export const DANCE_UNLOCKS = {
+  dance_bounce: 1,
+  dance_spin: 2,
+  dance_shuffle: 2,
+  dance_robot: 3,
+  dance_wave: 3,
+  dance_floss: 3,
+  dance_disco: 4,
+  dance_twist: 4,
+} as const
 export type Dance = keyof typeof DANCE_UNLOCKS
 
 export function unlockedDances(level: number): Dance[] {
@@ -52,7 +61,7 @@ export function unlockedDances(level: number): Dance[] {
 
 // Everything a level unlocks, in level order. The HUD lists the next one as a
 // goal and the level-up banner announces the new ones.
-export type UnlockId = 'dance_spin' | 'dance_robot' | 'rainbow_cap' | 'party_lights'
+export type UnlockId = Exclude<Dance, 'dance_bounce'> | 'rainbow_cap' | 'party_lights'
 
 export interface Unlock {
   id: UnlockId
@@ -63,7 +72,12 @@ export interface Unlock {
 
 export const LEVEL_UNLOCKS: readonly Unlock[] = [
   { id: 'dance_spin', level: DANCE_UNLOCKS.dance_spin, label: 'Spin dance', blurb: 'He can twirl on the spot' },
+  { id: 'dance_shuffle', level: DANCE_UNLOCKS.dance_shuffle, label: 'Shuffle dance', blurb: 'Side-step shuffle, fists pumping' },
   { id: 'dance_robot', level: DANCE_UNLOCKS.dance_robot, label: 'Robot dance', blurb: 'Beep boop, robot moves' },
+  { id: 'dance_wave', level: DANCE_UNLOCKS.dance_wave, label: 'Wave dance', blurb: 'A ripple rolls from hand to hand' },
+  { id: 'dance_floss', level: DANCE_UNLOCKS.dance_floss, label: 'Floss dance', blurb: 'Arms whip, hips swing the other way' },
+  { id: 'dance_disco', level: DANCE_UNLOCKS.dance_disco, label: 'Disco dance', blurb: 'Point up, point down, disco fever' },
+  { id: 'dance_twist', level: DANCE_UNLOCKS.dance_twist, label: 'Twist dance', blurb: 'Twist down low and back up' },
   { id: 'rainbow_cap', level: 4, label: 'Rainbow cap', blurb: 'Recolour his graduation cap' },
   { id: 'party_lights', level: 5, label: 'Party lights', blurb: 'Dance parties light up the room' },
 ]

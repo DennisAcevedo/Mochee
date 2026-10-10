@@ -39,10 +39,16 @@ const ACTIONS: ActionSpec[] = [
   { action: 'snack', label: 'Snack', icon: '🍩', color: PALETTE.coral, run: feedSnack },
 ]
 
+// The dance picker, in unlock order (DANCE_UNLOCKS).
 const DANCES: Record<Dance, { label: string; icon: string; color: string }> = {
   dance_bounce: { label: 'Bounce', icon: '🕺', color: PALETTE.pink },
   dance_spin: { label: 'Spin', icon: '🌀', color: PALETTE.teal },
+  dance_shuffle: { label: 'Shuffle', icon: '👟', color: PALETTE.coral },
   dance_robot: { label: 'Robot', icon: '🤖', color: PALETTE.indigo },
+  dance_wave: { label: 'Wave', icon: '🌊', color: PALETTE.sun },
+  dance_floss: { label: 'Floss', icon: '💫', color: PALETTE.lime },
+  dance_disco: { label: 'Disco', icon: '💃', color: PALETTE.violet },
+  dance_twist: { label: 'Twist', icon: '🌪️', color: PALETTE.teal },
 }
 
 const NOPE_MS = 380 // the "not yet" wiggle on a cooling button

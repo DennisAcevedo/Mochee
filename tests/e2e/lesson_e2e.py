@@ -116,12 +116,19 @@ def now_ms(page: Page) -> float:
     return page.evaluate("() => performance.now()")
 
 
+VARIANTS_JS = """async (c) => {
+  try { const m = await import('/src/character/blender/config.ts'); return [...((m.CLIP_VARIANTS || {})[c] || [])] } catch { return [] }
+}"""
+
+
 def played_on_tutor(page: Page, clip: str, since_ms: float, timeout_s: float):
     """The director only records what was asked for; the tutor's animation state
-    machine may queue or drop it. True once the tutor really started `clip`."""
+    machine may queue or drop it. True once the tutor really started `clip`, or
+    one of its CLIP_VARIANTS (a reaction asked for with { vary: true })."""
+    clips = [clip, *page.evaluate(VARIANTS_JS, clip)]
     end = time.time() + timeout_s
     while True:
-        hit = page.evaluate("([c, t]) => ((window.__gg && window.__gg.played) || []).find(p => p.clip === c && p.t >= t) || null", [clip, since_ms])
+        hit = page.evaluate("([cs, t]) => ((window.__gg && window.__gg.played) || []).find(p => cs.includes(p.clip) && p.t >= t) || null", [clips, since_ms])
         if hit or time.time() >= end:
             return hit
         time.sleep(0.1)

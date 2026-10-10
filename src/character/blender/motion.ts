@@ -1,6 +1,6 @@
 import { LoopOnce, LoopRepeat, type AnimationAction } from 'three'
 import type { Clip, FxKind, Gesture, LoopClip, OneShotClip } from '../../state/director'
-import { CLIP_FALLBACK, DEFAULT_FACE, MOTION, WALK, type FaceState } from './config'
+import { MOTION, WALK, defaultFace, fallbackOf, type FaceState } from './config'
 import type { ClipMeta, Manifest } from './manifest'
 
 // The tutor's motion controller: which clip plays, crossfades, one-shots and
@@ -86,10 +86,10 @@ export class TutorMotion {
     return clip ? this.manifest[clip] : undefined
   }
 
-  // Follow CLIP_FALLBACK until a clip the GLB actually has.
+  // Follow the fallback chain (CLIP_FALLBACK, then dance_* -> dance_bounce) until a clip the GLB actually has.
   private resolve(clip: Clip): { clip: Clip; action: AnimationAction } | null {
     const seen = new Set<Clip>()
-    for (let c: Clip | undefined = clip; c && !seen.has(c); c = CLIP_FALLBACK[c]) {
+    for (let c: Clip | undefined = clip; c && !seen.has(c); c = fallbackOf(c)) {
       seen.add(c)
       const glb = this.names.get(c)
       const action = glb ? this.getAction(glb) : null
@@ -230,7 +230,7 @@ export class TutorMotion {
   // Face for the dominant clip (the manifest wins over DEFAULT_FACE).
   face(): FaceState {
     if (this.phase === 'walking') return 'neutral'
-    const asked = this.requested ? DEFAULT_FACE[this.requested] : undefined
+    const asked = this.requested ? defaultFace(this.requested) : undefined
     const own = this.meta(this.playing)?.face
     // A stand-in clip plays the requested clip's mood (sleep -> idle keeps closed eyes).
     if (this.playing !== this.requested) return asked ?? own ?? 'neutral'
