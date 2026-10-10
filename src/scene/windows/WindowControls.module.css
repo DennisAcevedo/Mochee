@@ -1,0 +1,235 @@
+/* The windows' DOM controls (WindowControls.tsx), laid over the 3D canvas:
+   the traffic lights as real buttons glued onto each window's tab strip, and
+   the restore chip a minimized window folds into. The frame loop
+   (minimizeRig.ts) owns their transform, opacity, visibility and position;
+   these rules only style them. Lights are authored at
+   WINDOW_UI.minimize.lightsPxPerUnit px per world unit and scaled onto the
+   strip, so their sizes here are a little over screen size. */
+
+.lights {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  visibility: hidden;
+  pointer-events: auto;
+}
+
+.light {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.light:focus {
+  outline: none;
+}
+
+/* The 3D dot shows through until the lights are hovered or focused; then the
+   DOM dot paints over it (same size, same colour) with its glyph. */
+.dot {
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition:
+    background-color 90ms ease,
+    box-shadow 90ms ease,
+    filter 90ms ease;
+}
+
+.glyph {
+  width: 64%;
+  height: 64%;
+  fill: none;
+  stroke: rgba(48, 24, 12, 0.66);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 90ms ease;
+}
+
+/* Like macOS: hovering any light shows all three glyphs. */
+.lights:hover .dot,
+.lights:focus-within .dot {
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.lights:hover .glyph,
+.lights:focus-within .glyph {
+  opacity: 1;
+}
+
+.light:hover .dot {
+  filter: brightness(0.9);
+}
+
+.light:active .dot {
+  filter: brightness(0.78);
+}
+
+.light:focus-visible .dot {
+  box-shadow:
+    0 0 0 calc(var(--d) * 0.14) #ffffff,
+    0 0 0 calc(var(--d) * 0.3) #4285f4;
+}
+
+/* ---- Restore chip */
+
+.chip {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  max-width: 240px;
+  margin: 0;
+  padding: 0 7px 0 0;
+  border: 0;
+  border-radius: 15px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 14px 30px -16px rgba(29, 27, 36, 0.55),
+    0 0 0 1px rgba(29, 27, 36, 0.08);
+  backdrop-filter: blur(10px);
+  color: #24232a;
+  font-family: var(--font-ui, 'Figtree', system-ui, sans-serif);
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  visibility: hidden;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  transition:
+    translate 140ms var(--ease, ease),
+    box-shadow 140ms var(--ease, ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chip:hover {
+  translate: 0 -2px;
+  box-shadow:
+    0 18px 34px -16px rgba(29, 27, 36, 0.6),
+    0 0 0 1px rgba(29, 27, 36, 0.1);
+}
+
+.chip:active {
+  translate: 0 0;
+}
+
+.chip:focus {
+  outline: none;
+}
+
+.chip:focus-visible {
+  box-shadow:
+    0 0 0 3px #ffffff,
+    0 0 0 6px #4285f4;
+}
+
+.stripe {
+  align-self: stretch;
+  flex: none;
+  width: 6px;
+  background: var(--accent);
+}
+
+.text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 10px/1 var(--font-mono, 'JetBrains Mono', monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Three tiny lights: this chip is a window. */
+.minis {
+  display: flex;
+  gap: 3px;
+}
+
+.minis i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.favicon {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--favicon);
+}
+
+.titleText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #ffffff;
+  transition: transform 140ms var(--ease, ease);
+}
+
+.chip:hover .icon {
+  transform: scale(1.08);
+}
+
+.icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .icon,
+  .dot,
+  .glyph {
+    transition: none;
+  }
+}

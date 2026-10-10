@@ -2,10 +2,33 @@ import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, PlaneGeometry,
 
 // Flat geometry helpers shared by the windows and the room: rounded
 // rectangles (with per-corner radii) and rounded-rect outlines. Geometries
-// are cached by their dimensions, so a re-render never rebuilds them.
+// are cached by their dimensions, so a re-render never rebuilds them. Live
+// window resizes walk through many sizes, so the cache is a small LRU: the
+// oldest entries are disposed (a mesh still using one simply re-uploads it).
 
 const CURVE_SEGMENTS = 8
-const cache = new Map<string, BufferGeometry>()
+const CACHE_CAP = 900
+
+class GeometryCache {
+  private map = new Map<string, BufferGeometry>()
+  get(k: string): BufferGeometry | undefined {
+    const g = this.map.get(k)
+    if (g) {
+      this.map.delete(k)
+      this.map.set(k, g)
+    }
+    return g
+  }
+  set(k: string, g: BufferGeometry) {
+    this.map.set(k, g)
+    if (this.map.size <= CACHE_CAP) return
+    const oldest = this.map.keys().next().value
+    if (oldest === undefined) return
+    this.map.get(oldest)?.dispose()
+    this.map.delete(oldest)
+  }
+}
+const cache = new GeometryCache()
 
 // Corner radii, clockwise from top-left.
 export type Radii = number | [number, number, number, number]

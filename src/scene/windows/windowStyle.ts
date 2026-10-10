@@ -60,36 +60,81 @@ export const WINDOW_STYLE = {
     glow: { color: PALETTE.teal, pad: 0.55, opacity: 0.55 },
   },
 
+  // Chrome-style tab strip (colours from design/sparkle-stage/Main.dc.html).
   tabStrip: {
     height: 0.27,
-    color: '#e9e7e2',
-    lights: { size: 0.026, gap: 0.072, x: 0.13, colors: [PALETTE.coral, PALETTE.sun, PALETTE.lime] },
-    tabsX: 0.34, // tab row starts here (from the left edge)
-    tabGap: 0.02,
-    tabMaxW: 0.98,
+    color: '#eceaf2',
+    // Traffic lights: close (minimizes too), minimize, maximize. Drawn in 3D;
+    // DOM buttons laid over them (WindowControls.tsx) take the clicks and show
+    // the hover glyphs. size is the dot radius, dy their lift above the strip's
+    // middle, hitH the buttons' height.
+    lights: { size: 0.036, gap: 0.094, x: 0.125, dy: 0.01, hitH: 0.22, colors: [PALETTE.coral, PALETTE.sun, PALETTE.lime] },
+    tabsX: 0.38, // tab row starts here (from the left edge)
     tabH: 0.21,
     tabRadius: 0.06,
     activeColor: '#ffffff',
-    hoverColor: '#f6f4f0',
+    hoverColor: '#f6f5fa',
     accentBar: 0.022, // coloured top edge of the active tab
-    title: { size: 0.068, color: PALETTE.ink, dim: '#6c6861' },
+    title: { size: 0.068, color: PALETTE.ink, dim: '#4a4754', padL: 0.13 },
     dot: 0.022, // favicon dot radius
-    close: { size: 0.045, color: '#8a857d' },
-    plus: { size: 0.06, color: '#6c6861' },
+    close: { size: 0.042, stroke: 0.011, color: '#6e6b78', hit: 0.11, hoverBg: '#e4e2ec', inset: 0.07 },
+    plus: { bg: '#ffffff', color: '#3d5ad6', glyph: 0.062, stroke: 0.013, shadow: 0.1 },
     hover: { lift: 0.012, damp: 14 },
+    shadowColor: '#2a2350',
+    marker: { color: '#4285f4', w: 0.018, h: 0.3, drop: 0.05 }, // where a tab dragged from the other window will land; tall (and dropped a little) so it shows below the dragged tab
   },
 
   toolbar: {
     height: 0.23,
     color: '#ffffff',
-    divider: '#ece8e1',
-    glyph: { color: PALETTE.ink, dim: '#c9c4bb', size: 0.07, stroke: 0.014, gap: 0.12, x: 0.13 },
-    omnibox: { x: 0.5, h: 0.15, color: '#f1eee8', text: '#5f5b55', size: 0.058, lock: PALETTE.lime },
+    divider: '#eceaf2',
+    glyph: { color: '#6e6b78', dim: '#cfcdd8', size: 0.07, stroke: 0.014, gap: 0.12, x: 0.13 },
+    omnibox: { x: 0.5, h: 0.15, color: '#f3f2f7', text: '#4a4754', size: 0.058, lock: '#34a853', right: 0.3 },
+    maximize: { size: 0.15, radius: 0.04, bg: '#f3f2f7', hover: '#e6e9fb', color: '#3d5ad6', glyph: 0.075, stroke: 0.012, inset: 0.13 },
   },
+
+  // Bottom-right resize grip.
+  grip: { size: 0.13, radius: 0.035, inset: 0.04, bg: '#f3f2f7', color: '#8a8794', stroke: 0.011 },
+
+  maximizedRing: '#4285f4', // ring around the maximized window
+  // Each window's own colour: its restore chip's accent when minimized.
+  windowColor: { notes: PALETTE.teal, board: '#4285f4' },
+  veil: '#e9ecfa', // dims the window behind a maximized one
+
+  // Favicon dot per tab kind (notes tabs by index).
+  kinds: {
+    notes: ['#12a4b4', '#7c5cf2', '#ffc83d'],
+    board: '#4285f4',
+    quiz: '#ea4335',
+    scratch: '#34a853',
+    pdf: '#3d5ad6',
+    newtab: '#b4b2bf',
+  },
+
+  // The New tab page (design/sparkle-stage/NewTab.dc.html).
+  // Top edges are measured down from the content's top-left corner.
+  newTab: {
+    pad: 0.15,
+    heading: { size: 0.095, color: PALETTE.ink, y: 0.13 },
+    kicker: { size: 0.04, color: '#6e6b78', letterSpacing: 0.08 },
+    scratch: { y: 0.23, h: 0.27, bg: '#e3f5e8', border: '#1f8a43', icon: '#1f8a43', title: 0.066, sub: 0.046, subColor: '#4a4754' },
+    lessonY: 0.6,
+    grid: { cols: 2, h: 0.13, gap: 0.035, size: 0.054, dot: 0.02, top: 0.06 },
+    pdfsY: 1.2,
+    pdfRow: { h: 0.2, gap: 0.035, badge: '#3d5ad6', title: 0.052, sub: 0.042, top: 0.06, step: 0.11, open: 0.3 },
+    button: { bg: '#ffffff', border: '#eceaf2', hoverBorder: '#4285f4', radius: 0.05, stroke: 0.012 },
+    empty: { size: 0.046, color: '#6e6b78' },
+    maxTitle: 64, // characters of a PDF title before it ellipsizes
+  },
+
+  scratch: { pad: 0.1, kicker: 0.04, paper: '#fffdf6', border: '#e7e3d6', rule: '#ece6d3', ruleGap: 0.16, pxPerUnit: 240, font: 30, color: PALETTE.ink },
+
+  pdf: { size: 0.058, color: '#2b2a33', kicker: 0.04, lineHeight: 1.42, maxChars: 1600, pager: { size: 0.12, y: 0.12, text: 0.05 } },
 
   content: {
     pad: 0.15,
     notesBg: '#eeedea',
+    newTabBg: '#ffffff',
     paper: '#ffffff',
     paperInset: 0.1, // grey margin around the paper
     paperShadow: 'rgba(0,0,0,0.08)',

@@ -3,7 +3,7 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useRef, useState, type ReactNode } from 'react'
 import { MathUtils, type Group } from 'three'
 import { PALETTE } from '../layout3d'
-import { roundedRect, type Radii } from './shapes'
+import { roundedRect, roundedRectRing, type Radii } from './shapes'
 import { FONTS } from './windowStyle'
 
 // Small building blocks for the 3D windows: flat rounded panels, text
@@ -117,6 +117,42 @@ export function ReloadGlyph({ size, stroke, color, position }: { size: number; s
         <circleGeometry args={[stroke * 1.9, 3]} />
         <meshBasicMaterial color={color} toneMapped={false} />
       </mesh>
+    </group>
+  )
+}
+
+// Maximize: a square outline. Restore: a second square peeking out behind it.
+export function MaximizeGlyph({ size, stroke, color, bg, restore = false, position }: { size: number; stroke: number; color: string; bg: string; restore?: boolean; position?: Vec3 }) {
+  const s = restore ? size * 0.76 : size
+  const r = s * 0.14
+  const shift = restore ? size * 0.12 : 0
+  return (
+    <group position={position}>
+      {restore && (
+        <mesh geometry={roundedRectRing(s - stroke * 2, s - stroke * 2, r, stroke)} position={[shift, shift, -0.002]}>
+          <meshBasicMaterial color={color} toneMapped={false} />
+        </mesh>
+      )}
+      <Flat w={s} h={s} r={r} color={bg} position={[-shift, -shift, -0.001]} />
+      <mesh geometry={roundedRectRing(s - stroke * 2, s - stroke * 2, r, stroke)} position={[-shift, -shift, 0]}>
+        <meshBasicMaterial color={color} toneMapped={false} />
+      </mesh>
+    </group>
+  )
+}
+
+// The resize grip: two short diagonal strokes in the corner.
+export function GripGlyph({ size, stroke, color, position }: { size: number; stroke: number; color: string; position?: Vec3 }) {
+  return (
+    <group position={position}>
+      {[
+        [0.12, 0.6],
+        [0.26, 0.26],
+      ].map(([at, len]) => (
+        <group key={at} position={[at * size, -at * size, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <Flat w={len * size} h={stroke} r={stroke / 2} color={color} />
+        </group>
+      ))}
     </group>
   )
 }
