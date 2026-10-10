@@ -1,0 +1,200 @@
+{
+  "contract": 2,
+  "mount": [
+    0.0,
+    -1.55,
+    0.0
+  ],
+  "notes": [
+    "Room frame = world x/z, y measured from the floor: add the mount to get world positions.",
+    "Materials are KHR_materials_unlit with the colour in COLOR_0: set material.toneMapped = false to keep the palette.",
+    "scoreboard_screen has 0..1 UVs (glTF convention): a CanvasTexture on it needs flipY = false.",
+    "hoop_rim is the rim ring; its node position is the rim centre (matches PHYSICS.hoop.rim)."
+  ],
+  "clear": {
+    "stage": [
+      [
+        -1.9,
+        0.012,
+        -0.5
+      ],
+      [
+        1.9,
+        3.0,
+        2.2
+      ]
+    ],
+    "shot": [
+      [
+        -0.6,
+        1.6,
+        -3.4
+      ],
+      [
+        4.6,
+        4.9,
+        1.9
+      ]
+    ]
+  },
+  "calm": {
+    "window_back": [
+      [
+        -4.649,
+        0.15,
+        -7.0
+      ],
+      [
+        -2.017,
+        4.307,
+        -6.2
+      ]
+    ],
+    "window_left": [
+      [
+        -4.7,
+        0.15,
+        -6.778
+      ],
+      [
+        -3.9,
+        4.282,
+        0.207
+      ]
+    ]
+  },
+  "release": [
+    0.0,
+    2.0,
+    1.43
+  ],
+  "shotApexMax": 4.6,
+  "rooms": {
+    "study": {
+      "file": "/models/rooms/study_room.glb",
+      "bytes": 951172,
+      "drawCalls": 4,
+      "triangles": 38242,
+      "nodes": {
+        "trophy_cup": [
+          2.28,
+          1.91,
+          -6.82
+        ],
+        "trophy_star": [
+          2.81,
+          1.91,
+          -6.82
+        ],
+        "tutor_spot": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "window_glass": [
+          0.0,
+          3.15,
+          -6.99
+        ]
+      }
+    },
+    "play": {
+      "file": "/models/rooms/play_room.glb",
+      "bytes": 985296,
+      "drawCalls": 9,
+      "triangles": 40196,
+      "nodes": {
+        "ball_rack_slots": [
+          2.31,
+          0.6111,
+          -6.62
+        ],
+        "ball_rack_slots_0": [
+          1.782,
+          0.3711,
+          -6.62
+        ],
+        "ball_rack_slots_1": [
+          2.134,
+          0.3711,
+          -6.62
+        ],
+        "ball_rack_slots_2": [
+          2.486,
+          0.3711,
+          -6.62
+        ],
+        "ball_rack_slots_3": [
+          2.838,
+          0.3711,
+          -6.62
+        ],
+        "ball_rack_slots_4": [
+          1.782,
+          0.8511,
+          -6.62
+        ],
+        "ball_rack_slots_5": [
+          2.134,
+          0.8511,
+          -6.62
+        ],
+        "ball_rack_slots_6": [
+          2.486,
+          0.8511,
+          -6.62
+        ],
+        "ball_rack_slots_7": [
+          2.838,
+          0.8511,
+          -6.62
+        ],
+        "hoop_backboard": [
+          4.67,
+          3.92,
+          -2.6
+        ],
+        "hoop_mount": [
+          4.6,
+          3.8975,
+          -2.6
+        ],
+        "hoop_net": [
+          4.08,
+          3.575,
+          -2.6
+        ],
+        "hoop_rim": [
+          4.08,
+          3.6,
+          -2.6
+        ],
+        "loose_ball": [
+          1.75,
+          0.16,
+          -4.3
+        ],
+        "rack_balls": [
+          2.309,
+          0.6107,
+          -6.62
+        ],
+        "scoreboard_digits": [
+          -0.9502,
+          3.7587,
+          -6.854
+        ],
+        "scoreboard_screen": [
+          -0.95,
+          3.7,
+          -6.858
+        ],
+        "tutor_spot": [
+          0.0,
+          0.0,
+          0.6
+        ]
+      }
+    }
+  }
+}

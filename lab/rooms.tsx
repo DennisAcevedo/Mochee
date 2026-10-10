@@ -1,10 +1,13 @@
 // Dev-only lab for the Blender rooms (BLENDER/rooms -> public/models/rooms): one
 // room GLB under the lesson camera exactly as CameraRig frames it, with the real
-// platform, windows and tutor for scale, so a room is judged in the app's own
-// shot before any app code mounts it. Not part of the build.
+// platform, floating window and tutor for scale, so a room is judged in the app's
+// own shot before any app code mounts it. Not part of the build.
 // URL: ?room=study|play (public/models/rooms/<room>_room.glb) or ?file=<url>
-//      &frame=lesson|full &pan=notes|board &guides=1 &tutor=0 &set=0 &windows=0 &tonemap=1 &ui=0 &void=1
+//      &frame=lesson|full &pan=notes &guides=1 &tutor=0 &set=0 &windows=0 &tonemap=1 &ui=0 &void=1
+// pan=notes is the focused shot (camera panned 0.9 left); pan=board is the same
+// shot, since notes, board and quiz all live in the one window now.
 // Drop a .glb on the page to swap it in. window.__rooms reports what loaded.
+// Typecheck: npx tsc -p BLENDER/rooms/tsconfig.lab.json
 import '@fontsource/figtree/800.css'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
@@ -20,6 +23,7 @@ import {
   LineBasicMaterial,
   MeshBasicMaterial,
   SRGBColorSpace,
+  Texture,
   Vector3,
   type Material,
   type Mesh,
@@ -45,7 +49,8 @@ const LAB = {
   // centred between 72 px gutters. The canvas runs on past it, full-bleed.
   frame: { top: 68.125, bottom: 125.125, gutter: 72, maxWidth: 1760 },
   glbMagic: 0x46546c67, // 'glTF': Vite answers a missing file with index.html, not a 404
-  scoreboard: { bg: '#262A44', ink: '#FFCE4A', text: 'SHOTS 7 / 10', width: 512 },
+  // fill: font size as a share of the screen's height; span: the most of its width the text may take.
+  scoreboard: { bg: '#262A44', ink: '#FFCE4A', text: 'SHOTS 7 / 10', width: 512, fill: 0.48, span: 0.86 },
   guide: { arc: '#ff2e88', clear: '#ff2e88', calm: '#14a39a', apexBelowCap: 0.2, samples: 40 },
   glass: 'rgba(255,255,255,0.88)',
 }
@@ -146,6 +151,21 @@ async function readSource(src: Source): Promise<ArrayBuffer> {
   return res.arrayBuffer()
 }
 
+// GPU memory a room holds (three frees none of it on unmount): a material and
+// every texture on it, and a whole loaded scene (meshes, lines, helpers).
+function disposeMaterial(m: Material) {
+  for (const v of Object.values(m)) if (v instanceof Texture) v.dispose()
+  m.dispose()
+}
+
+function disposeScene(root: Object3D) {
+  root.traverse((o) => {
+    const { geometry, material } = o as Partial<Mesh>
+    geometry?.dispose()
+    if (material) for (const m of ([] as Material[]).concat(material)) disposeMaterial(m)
+  })
+}
+
 // The live scoreboard texture the app will draw: glTF UVs, so flipY = false.
 async function paintScoreboard(mesh: Mesh) {
   const S = LAB.scoreboard
@@ -153,20 +173,29 @@ async function paintScoreboard(mesh: Mesh) {
   const canvas = document.createElement('canvas')
   canvas.width = S.width
   canvas.height = Math.max(32, Math.round((S.width * size.y) / Math.max(size.x, size.z, 1e-3)))
-  const font = `800 ${Math.round(canvas.height * 0.48)}px Figtree, system-ui, sans-serif`
-  await document.fonts.load(font)
+  const font = (px: number) => `800 ${px}px Figtree, system-ui, sans-serif`
+  let px = Math.round(canvas.height * S.fill)
+  await document.fonts.load(font(px))
   const ctx = canvas.getContext('2d')!
   ctx.fillStyle = S.bg
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.fillStyle = S.ink
-  ctx.font = font
+  ctx.font = font(px)
+  // A wide screen is short, so the height-based size can overrun it: shrink to fit.
+  const wide = ctx.measureText(S.text).width
+  if (wide > canvas.width * S.span) {
+    px = Math.floor((px * canvas.width * S.span) / wide)
+    ctx.font = font(px)
+  }
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(S.text, canvas.width / 2, canvas.height / 2)
   const tex = new CanvasTexture(canvas)
   tex.flipY = false
   tex.colorSpace = SRGBColorSpace
+  const old = mesh.material
   mesh.material = new MeshBasicMaterial({ map: tex, toneMapped: false })
+  for (const m of ([] as Material[]).concat(old)) disposeMaterial(m)
 }
 
 // Loads one room GLB and checks it against the contract its own extras carry.
@@ -205,7 +234,12 @@ async function loadRoom(src: Source): Promise<{ gltf: GLTF; layout: Layout | nul
     }
   })
   const screen = scene.getObjectByName('scoreboard_screen') as Mesh | undefined
-  if (screen?.isMesh) await paintScoreboard(screen)
+  if (screen?.isMesh) {
+    await paintScoreboard(screen)
+    // The baked digits are the still-frame stand-in: hidden while the live screen draws, as in the app.
+    const digits = scene.getObjectByName('scoreboard_digits')
+    if (digits) digits.visible = false
+  }
 
   const required = layout?.nodes.required ?? []
   const report: Report = {
@@ -226,7 +260,7 @@ async function loadRoom(src: Source): Promise<{ gltf: GLTF; layout: Layout | nul
 }
 
 // The shot's flight (release -> rim, apex just under the app's cap) and the
-// keep-out boxes: pink = clear (stage, shot lane), teal = calm (walls behind the windows).
+// keep-out boxes: pink = clear (stage, shot lane), teal = calm (walls behind the window).
 function Guides({ layout }: { layout: Layout }) {
   const group = useMemo(() => {
     const G = LAB.guide
@@ -251,6 +285,7 @@ function Guides({ layout }: { layout: Layout }) {
     }
     return g
   }, [layout])
+  useEffect(() => () => disposeScene(group), [group])
   return <primitive object={group} position={[0, FLOOR_Y, 0]} />
 }
 
@@ -326,7 +361,10 @@ function App() {
     setReport(window.__rooms)
     loadRoom(src).then(
       ({ gltf, layout, report }) => {
-        if (!live) return
+        if (!live) {
+          disposeScene(gltf.scene) // superseded while it loaded: never shown
+          return
+        }
         setLoaded({ scene: gltf.scene, layout })
         setReport(report)
         window.__rooms = report
@@ -347,6 +385,13 @@ function App() {
       live = false
     }
   }, [src])
+
+  // Switching rooms (or a failed load) frees the room that was on screen.
+  useEffect(() => {
+    if (!loaded) return
+    const { scene } = loaded
+    return () => disposeScene(scene)
+  }, [loaded])
 
   // Drop a freshly exported .glb anywhere on the page to look at it.
   useEffect(() => {

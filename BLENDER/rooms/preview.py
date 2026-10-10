@@ -1,7 +1,8 @@
 """Preview render of a built room from the app's own lesson camera (dev only,
 run after export so nothing here lands in the GLB): the tutor GLB on his
-spot for scale, ghosts of the two floating windows, and optionally the
-ball's flight to the hoop.
+spot for scale, a ghost of the floating window (in its focused pose, with
+its focus outline, when the camera is panned: --pan -0.9), and optionally
+the ball's flight to the hoop.
 """
 
 import math
@@ -11,7 +12,6 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
-from common import _place
 from contract import *  # noqa: F403 (the contract's numbers, palettes and axis helpers)
 from pipeline import _unlit
 
@@ -96,31 +96,36 @@ def _add_tutor():
     return holder
 
 
-def _add_ghosts():
-    for (key, w), edge in zip(APP['windows'].items(), PREVIEW['ghost_edge']):
-        c, yaw, (ww, wh) = w['center'], w['yaw'], w['size']
-        bm = bmesh.new()
-        bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.5)
-        bmesh.ops.scale(bm, vec=(ww, wh, 1), verts=bm.verts)
-        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.pi / 2, 3, 'X'))
-        _place(bm, c, yaw)
-        me = bpy.data.meshes.new('ghost_' + key)
-        bm.to_mesh(me)
-        bm.free()
-        me.materials.append(_preview_mat('ghost_' + key, '#FFFFFF', PREVIEW['ghost']))
-        bpy.context.scene.collection.objects.link(bpy.data.objects.new('ghost_' + key, me))
-        # Header bar in the window's accent, so the ghost reads as a window.
-        bm = bmesh.new()
-        bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.5)
-        bmesh.ops.scale(bm, vec=(ww, 0.18, 1), verts=bm.verts)
-        bmesh.ops.translate(bm, vec=(0, wh / 2 - 0.09, 0.005), verts=bm.verts)
-        bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0), matrix=Matrix.Rotation(math.pi / 2, 3, 'X'))
-        _place(bm, c, yaw)
-        me = bpy.data.meshes.new('ghost_bar_' + key)
-        bm.to_mesh(me)
-        bm.free()
-        me.materials.append(_preview_mat('ghost_bar_' + key, edge, 0.8))
-        bpy.context.scene.collection.objects.link(bpy.data.objects.new('ghost_bar_' + key, me))
+def _quads(name, quads, material):
+    """One preview mesh of flat quads, each four room points."""
+    bm = bmesh.new()
+    for q in quads:
+        bm.faces.new([bm.verts.new(T(*p)) for p in q])
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(material)
+    bpy.context.scene.collection.objects.link(bpy.data.objects.new(name, me))
+
+
+def _add_ghosts(focused=False):
+    """The floating window (contract APP['window']) ghosted in: at rest, or
+    focused (turned, scaled, lifted) with its teal focus outline, to match a
+    render from the focused camera (--pan -0.9)."""
+    w = APP['window']
+    bl, br, tr, tl = window_corners(focused, ring=False)
+    n = (br - bl).cross(tl - bl).normalized()  # toward the camera
+    _quads('ghost_window', [(bl, br, tr, tl)], _preview_mat('ghost_window', '#FFFFFF', PREVIEW['ghost']))
+    # Header bar in the accent along the top, a hair in front, so the ghost reads as a window.
+    k = 1 - 0.18 / w['size'][1]
+    lo_l, lo_r = bl.lerp(tl, k) + n * 0.005, br.lerp(tr, k) + n * 0.005
+    edge = _preview_mat('ghost_bar', PREVIEW['ghost_edge'], 0.8)
+    _quads('ghost_bar', [(lo_l, lo_r, tr + n * 0.005, tl + n * 0.005)], edge)
+    if focused:
+        # The outline: a stroke from ring_gap out to ring round the window.
+        outer = window_corners(True, ring=True)
+        inner = [c.lerp(o, w['ring_gap'] / w['ring']) for c, o in zip((bl, br, tr, tl), outer)]
+        _quads('ghost_ring', [(inner[i], inner[(i + 1) % 4], outer[(i + 1) % 4], outer[i]) for i in range(4)], edge)
 
 
 def shot_arc(n=40, apex=None):
@@ -178,7 +183,7 @@ def render_preview(path, *, tutor=True, ghosts=True, guides=False, pan=0.0, perc
     if tutor and os.path.exists(TUTOR_GLB):
         _add_tutor()
     if ghosts:
-        _add_ghosts()
+        _add_ghosts(focused=bool(pan))
     if guides:
         _add_guides()
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)

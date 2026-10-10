@@ -3,7 +3,7 @@ plank floors and floor paint, plus build() for the rest (AO bake, shading,
 merge, GLB export: pipeline.py; preview render: preview.py). The contract numbers and
 palettes live in contract.py and are re-exported here (C.APP, C.STUDY, C.T).
 
-A room script imports it and builds, e.g. BLENDER/rooms/build_study.py:
+A room script imports it and builds, e.g. BLENDER/rooms/build_study_room.py:
 
     import os, sys
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,7 +18,8 @@ A room script imports it and builds, e.g. BLENDER/rooms/build_study.py:
 and runs headless from the repo root:
 
   "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe" --background --factory-startup
-      --python BLENDER/rooms/build_study.py [-- --preview tmp/rooms/study.png] [--no-bake] [--guides]
+      --python BLENDER/rooms/build_study_room.py [-- --preview tmp/rooms/study.png] [--no-bake]
+      [--guides] [--out tmp/rooms/study_room.draft.glb]
 
 Room frame. Every coordinate a helper takes is in three.js axes (x right,
 y up, z toward the camera) and the app's world units, shifted so the floor is
@@ -135,12 +136,58 @@ def node(name, at, *, parent=None, extras=None):
     ob = bpy.data.objects.new(name, None)
     bpy.context.scene.collection.objects.link(ob)
     ob.parent = parent or _STATE['root']
-    ob.location = T(*at) - (ob.parent.matrix_world.translation if ob.parent else Vector())
+    # A parent made a moment ago has a stale matrix_world until the view layer updates.
+    bpy.context.view_layer.update()
+    ob.location = ob.parent.matrix_world.inverted() @ T(*at)
     ob.empty_display_size = 0.1
     ob['gg_node'] = True
     for k, v in (extras or {}).items():
         ob['x_' + k] = v  # exported as glTF extras (prefix stripped)
     return ob
+
+
+def slots(name, points, *, extras=None):
+    """A named empty at the points' centre with one child empty per point, named
+    <name>_0, <name>_1, ... in order (the ball rack's slots): the app walks the
+    children, so it needs no count or spacing of its own."""
+    pts = [Vector(p) for p in points]
+    group = node(name, tuple(sum(pts, Vector()) / len(pts)), extras={'count': len(pts), **(extras or {})})
+    for i, p in enumerate(pts):
+        node('%s_%d' % (name, i), tuple(p), parent=group)
+    return group
+
+
+def set_origin(ob, at):
+    """A named mesh's pivot (room point) instead of its bounds centre, which the
+    merge uses by default: e.g. the net's top ring, or a rim built off-centre."""
+    ob['gg_origin'] = tuple(at)
+
+
+def loose(ob, at):
+    """Makes a mesh a loose prop: a named node the app may hide or move (the
+    basketball on the court). It stays out of room_static, pivots at `at`, and
+    bakes after everything else with nothing hidden for it, so hiding it leaves
+    no shadow on the floor."""
+    ob['gg_node'] = True
+    ob['gg_loose'] = True
+    set_origin(ob, at)
+    return ob
+
+
+def stable_faces(bm):
+    """Sorts faces by their sorted vertex indices. create_uvsphere returns its
+    faces in a different order on every run, so without this the GLB's bytes
+    (and its sha256) change from build to build with nothing else changed."""
+    bm.verts.index_update()
+    n = len(bm.verts) + 1
+
+    def key(f):  # bmesh wants a number: a face's (up to 4) sorted vertex indices in base n
+        s = sorted(v.index for v in f.verts)[:4]
+        s += [n - 1] * (4 - len(s))
+        return ((s[0] * n + s[1]) * n + s[2]) * n + s[3]
+
+    bm.faces.sort(key=key)
+    bm.faces.index_update()
 
 
 # ---------------------------------------------------------------------------
@@ -191,6 +238,7 @@ def sphere(name, center, radius, material, *, scale=(1, 1, 1), segments=24, ring
     """A UV sphere; scale (x, height, depth) squashes it (soft blocks, pebbles)."""
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=segments, v_segments=rings, radius=radius)
+    stable_faces(bm)
     bmesh.ops.scale(bm, vec=T_size(*scale), verts=bm.verts)
     _place(bm, center)
     return _object(name, bm, [material], smooth=True, **kw)
@@ -254,16 +302,17 @@ def quad(name, center, size, material, *, facing='+z', cuts=(1, 1), uv=False, **
     return _object(name, bm, [material], **kw)
 
 
-def text(name, s, center, size, material, *, depth=0.0, facing='+z', font=None, align='CENTER', **kw):
+def text(name, s, center, size, material, *, depth=0.0, facing='+z', font_path=None, align='CENTER', **kw):
     """Text as a mesh (labels, scoreboard digits), centred on center, facing a room axis.
-    size is the cap height-ish font size in world units; depth extrudes it."""
+    size is the cap height-ish font size in world units; depth extrudes it.
+    font_path: a TTF (default: font(), the bundled Figtree ExtraBold)."""
     cu = bpy.data.curves.new(name + '_text', 'FONT')
     cu.body = s
     cu.size = size
     cu.align_x = align
     cu.align_y = 'CENTER'
     cu.extrude = depth / 2
-    path = next((p for p in (font or ()) if os.path.exists(p)), None)
+    path = font_path or font()
     if path:
         cu.font = bpy.data.fonts.load(path, check_existing=True)
     tmp = bpy.data.objects.new(name + '_text', cu)
@@ -283,10 +332,27 @@ def text(name, s, center, size, material, *, depth=0.0, facing='+z', font=None, 
     return _object(name, bm, [material], **kw)
 
 
-FONTS = {
-    'bold': ('C:/Windows/Fonts/segoeuib.ttf', 'C:/Windows/Fonts/arialbd.ttf'),
-    'mono': ('C:/Windows/Fonts/consolab.ttf', 'C:/Windows/Fonts/courbd.ttf'),
-}
+# The room font ships with the scripts (fonts/, SIL OFL 1.1, licence beside it),
+# so a build on any machine draws the same glyphs: Figtree ExtraBold is the
+# app's own display face (Figtree 800). Static, not variable: Blender's FreeType
+# path would draw a variable font at its default weight.
+FONT = os.path.join(FONT_DIR, 'Figtree-ExtraBold.ttf')
+FONT_FALLBACKS = ('C:/Windows/Fonts/segoeuib.ttf', 'C:/Windows/Fonts/arialbd.ttf',
+                  '/System/Library/Fonts/Supplemental/Arial Bold.ttf')
+_FONT_WARNED = set()
+
+
+def font():
+    """The bundled room font's path. If it is missing, the first system bold
+    font found (or None: Blender's built-in Bfont), with one ROOM WARN, since the
+    labels then differ from machine to machine."""
+    if os.path.exists(FONT):
+        return FONT
+    path = next((p for p in FONT_FALLBACKS if os.path.exists(p)), None)
+    if path not in _FONT_WARNED:
+        _FONT_WARNED.add(path)
+        print('ROOM WARN font: %s is missing; using %s' % (FONT, path or "Blender's built-in font"))
+    return path
 
 # ---------------------------------------------------------------------------
 # Walls, floors and floor paint

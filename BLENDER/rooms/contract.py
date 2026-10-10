@@ -1,13 +1,14 @@
 """The rooms' contract with the app: where the stage, the tutor, the camera,
-the floating windows and the hoop are, which names the app looks up, the
-keep-out zones, and the palettes. Pure numbers and axis/colour maths (no
-bpy), shared by common.py (modelling) and pipeline.py (bake, export, preview).
+the floating window and the hoop are, which names the app looks up, the
+keep-out zones, and the palettes. Pure numbers and axis/colour/camera maths
+(no bpy), shared by common.py (modelling) and pipeline.py (bake, export, preview).
 
 Room frame: three.js axes (x right, y up, z toward the camera), the app's
 world units, shifted so the floor is y = 0. The app mounts a room GLB at
 [0, FLOOR_Y, 0] with no rotation or scale, so room x/z ARE world x/z.
 """
 
+import math
 import os
 import sys
 
@@ -18,6 +19,8 @@ REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
 OUT_DIR = os.path.join(REPO, 'public', 'models', 'rooms')
 MANIFEST_PATH = os.path.join(OUT_DIR, 'rooms.manifest.json')
 TUTOR_GLB = os.path.join(REPO, 'public', 'models', 'tutor.glb')
+FONT_DIR = os.path.join(HERE, 'fonts')
+DRAFT_DIR = os.path.join(REPO, 'tmp', 'rooms')
 
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 
@@ -33,14 +36,35 @@ def flag(name):
     return name in ARGS
 
 
+def out_path(room):
+    """Where the build writes a room's GLB:
+    --out <path> (relative to the repo root) when given;
+    else, for a --no-bake draft, tmp/rooms/<room>_room.draft.glb (a draft never
+    replaces a shipped room);
+    else the shipped file public/models/rooms/<room>_room.glb."""
+    out = arg('--out')
+    if out:
+        return os.path.abspath(os.path.join(REPO, out))
+    if flag('--no-bake'):
+        return os.path.join(DRAFT_DIR, '%s_room.draft.glb' % room)
+    return os.path.join(OUT_DIR, '%s_room.glb' % room)
+
+
+def ships(path):
+    """True for a file in public/models/rooms: only those are listed in the manifest."""
+    norm = lambda p: os.path.normcase(os.path.abspath(p))  # noqa: E731
+    return os.path.dirname(norm(path)) == norm(OUT_DIR)
+
+
 # ---------------------------------------------------------------------------
 # The contract: the app's stage, read from src/ on 2026-10-10. Mirrors
 # src/scene/layout3d.ts, src/scene/physics/config.ts and the live LessonPage
 # frame; if those move, move these (and bump CONTRACT).
 
-CONTRACT = 1  # written into each GLB's root extras and the manifest
+CONTRACT = 2  # written into each GLB's root extras and the manifest. 2: one floating window
 
 FLOOR_Y = -1.55  # world y of the floor (layout3d FLOOR_Y): the app mounts rooms at [0, FLOOR_Y, 0]
+TUTOR_SCALE = 0.8  # layout3d TUTOR_SCALE: model units -> world
 
 APP = {
     # The physics room's inner faces (ROOM_BOX): the tutor and the toys bounce
@@ -52,18 +76,32 @@ APP = {
     'tutor': {
         'spot': (0.0, 0.0, 0.6),  # his centre spot (SPOTS.center); he roams x -1.05..1.05, z 0.6..1.0
         'lane_x': (-1.05, 1.05),
-        'scale': 0.8,  # TUTOR_SCALE: model units -> world
+        'scale': TUTOR_SCALE,
         'height': 2.08,  # feet to cap top (2.6 model units)
         'radius': 0.64,  # body radius (0.8 model units)
     },
     # The white platform with the rainbow rim: app-side, never modelled. Its top
     # layers sit 0.002..0.008 above the floor and its body hangs below it.
     'platform': {'center': (0.0, 0.0, 0.7), 'rx': 1.5, 'rz': 1.05},
-    # The two floating browser windows at rest (WINDOWS): centre, yaw about +y, width x height.
-    # Students drag and resize them, and a focused one pulls the camera 0.9 toward it.
-    'windows': {
-        'notes': {'center': (-3.15, 1.95, -0.3), 'yaw': 0.28, 'size': (2.6, 2.35)},
-        'board': {'center': (3.15, 1.95, -0.3), 'yaw': -0.28, 'size': (2.6, 2.35)},
+    # THE floating browser window: the app has one (notes, board and quiz all live in
+    # it). Every window number lives HERE and nowhere else: the calm boxes, the
+    # build's screen-space check and the preview ghost are all worked out from it.
+    # If src/scene/layout3d.ts moves the window, refresh this dict and bump CONTRACT.
+    'window': {
+        'center': (-3.15, 0.33 - FLOOR_Y, -0.45),  # WINDOW.position (world y 0.33 -> room y 1.88)
+        'yaw': 0.26,  # WINDOW.yaw, about +y: turned toward the stage
+        'size': (3.0, 2.5),  # WINDOW.width x WINDOW.height
+        # Focused (the normal teaching state): turned flatter, scaled up, moved toward
+        # the camera, and the camera and its target pan left (cameraPan()).
+        'focus': {
+            'yaw': 0.14,  # WINDOWS.focusYaw
+            'scale': 1.06,  # WINDOWS.focusScale
+            'lift': 0.25,  # WINDOW_STYLE.focus.lift (src/scene/windows/windowStyle.ts), +z
+            'pan': -0.9,  # cameraPan(): -LESSON_CAMERA.focusShift while any focus is on
+        },
+        'ring': 0.065,  # the teal focus outline round it: WINDOW_STYLE.focus.ring gap + stroke
+        'ring_gap': 0.03,  # ...of which the gap between the window and the stroke
+        # Students drag and resize it (clamped to the resting frame), so keep a margin.
     },
     # LESSON_CAMERA in the room frame, and where LessonPage puts its 16:9 frame in
     # a 1456 x 785 window (measured live). The canvas is full-bleed: CameraRig
@@ -74,10 +112,12 @@ APP = {
         'target': (0.0, 1.43, 0.0),
         'viewport': (1456, 785),
         'frame': (202.0, 68.125, 1052.0, 591.75),  # x, y, w, h in viewport px
-        'pan': 0.9,  # x shift of camera and target while a window is focused
         'near': 0.1,
         'far': 100.0,
     },
+    # The toy ball (PHYSICS.ball.radius = 0.2 model units x TUTOR_SCALE): rack balls
+    # and the loose ball match it, so the app can swap one for its live ball 1:1.
+    'ball_radius': 0.2 * TUTOR_SCALE,
     # The toy hoop (PHYSICS.hoop; src/scene/physics/Toys.tsx owns its colliders and
     # score sensor): rim high on the RIGHT side wall, board flat on that wall facing -x.
     'hoop': {
@@ -110,17 +150,103 @@ CLEAR = {
     # The shot from the release point up and over to the rim: only the hoop lives here.
     'shot': {'box': ((-0.6, 1.6, -3.4), (4.6, 4.9, 1.9)), 'allow': ('hoop_',)},
 }
-# Wall areas the floating windows cover from the lesson camera (mostly the SIDE
-# walls: the back wall only spans screen x 465..991 at 1456 wide). Keep them
-# calm: flat colour or bands, no shelves, posters or props. The hoop is the one
-# exception: the app hangs it there, just above the board window.
-CALM_ALLOW = ('hoop_',)
-CALM = {
-    'notes_wall': ((-4.7, 0.6, -7.0), (-3.9, 4.2, 0.2)),
-    'board_wall': ((3.9, 0.6, -7.0), (4.7, 4.2, 0.2)),
-    'notes_back': ((-4.7, 0.6, -7.0), (-3.3, 4.2, -6.2)),
-    'board_back': ((3.3, 0.6, -7.0), (4.7, 4.2, -6.2)),
-}
+
+# ---------------------------------------------------------------------------
+# The lesson camera and the window, as the app projects them
+
+
+def camera_basis(pan=0.0):
+    """Eye, forward, right and up (room frame) of LESSON_CAMERA panned by `pan` in x."""
+    cam = APP['camera']
+    p, t = cam['position'], cam['target']
+    eye = Vector((p[0] + pan, p[1], p[2]))
+    fwd = (Vector((t[0] + pan, t[1], t[2])) - eye).normalized()
+    right = fwd.cross(Vector((0.0, 1.0, 0.0))).normalized()
+    return eye, fwd, right, right.cross(fwd)
+
+
+def projector(pan=0.0):
+    """A function: room point -> (x, y, depth), the NDC of the lesson camera's 16:9
+    frame (the NDC layout3d.ts quotes for the window; the full-bleed canvas runs
+    past +-1) and the distance along the view axis."""
+    eye, fwd, right, up = camera_basis(pan)
+    cam = APP['camera']
+    ty = math.tan(math.radians(cam['fov'] / 2))
+    tx = ty * cam['frame'][2] / cam['frame'][3]
+
+    def project(p):
+        d = Vector(p) - eye
+        z = d.dot(fwd)
+        return d.dot(right) / z / tx, d.dot(up) / z / ty, z
+    return project
+
+
+def to_ndc(p, pan=0.0):
+    return projector(pan)(p)
+
+
+def window_pose(focused=False):
+    """(centre, yaw, scale, camera pan) of the window at rest or focused."""
+    w = APP['window']
+    cx, cy, cz = w['center']
+    if not focused:
+        return Vector((cx, cy, cz)), w['yaw'], 1.0, 0.0
+    f = w['focus']
+    return Vector((cx, cy, cz + f['lift'])), f['yaw'], f['scale'], f['pan']
+
+
+def window_corners(focused=False, ring=None):
+    """Room points of the window's corners: bottom-left, bottom-right, top-right,
+    top-left from the front. ring (default: only when focused) adds the focus outline."""
+    centre, yaw, s, _ = window_pose(focused)
+    w, h = APP['window']['size']
+    pad = APP['window']['ring'] * s if (focused if ring is None else ring) else 0.0
+    hw, hh = w / 2 * s + pad, h / 2 * s + pad
+    c, sn = math.cos(yaw), math.sin(yaw)
+    return [centre + Vector((x * c, y, -x * sn)) for x, y in ((-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh))]
+
+
+def _calm_boxes(depth=0.8, floor=0.15, steps=16):
+    """Where the window hides the walls: rays from the camera through a grid over
+    the window (focus outline included), at rest and focused, to the first wall
+    they hit. Each wall's hits make one box reaching `depth` into the room, from
+    `floor` (over the skirting and baseboards) up."""
+    hits = {}
+    for focused in (False, True):
+        eye = camera_basis(window_pose(focused)[3])[0]
+        bl, br, tr, tl = window_corners(focused, ring=True)
+        for i in range(steps + 1):
+            for j in range(steps + 1):
+                lo, hi = bl.lerp(br, i / steps), tl.lerp(tr, i / steps)
+                d = lo.lerp(hi, j / steps) - eye
+                walls = [(t, k) for t, k in (((-HALF_W - eye.x) / d.x if d.x < 0 else None, 'left'),
+                                             ((HALF_W - eye.x) / d.x if d.x > 0 else None, 'right'),
+                                             ((BACK_Z - eye.z) / d.z if d.z < 0 else None, 'back'))
+                         if t is not None]
+                t, k = min(walls)
+                p = eye + d * t
+                if p.y > 0:  # rays that reach the floor first hit no wall
+                    hits.setdefault(k, []).append(p)
+    boxes = {}
+    for k, pts in sorted(hits.items()):
+        lo = [min(p[i] for p in pts) for i in range(3)]
+        hi = [max(p[i] for p in pts) for i in range(3)]
+        lo[1] = max(lo[1], floor)
+        if k == 'back':
+            hi[2] = BACK_Z + depth
+        elif k == 'left':
+            hi[0] = -HALF_W + depth
+        else:
+            lo[0] = HALF_W - depth
+        boxes['window_%s' % k] = (tuple(round(v, 3) for v in lo), tuple(round(v, 3) for v in hi))
+    return boxes
+
+
+# Wall areas the floating window hides from the lesson camera, at rest or focused
+# (worked out from APP['window']). Keep them calm: flat colour or bands, no
+# shelves, posters or props, which would be wasted or peek out round its edges.
+CALM_ALLOW = ()  # name prefixes allowed inside anyway (the hoop was, under the old right window)
+CALM = _calm_boxes()
 
 # Names the app looks up (GLTFLoader keeps these as they are: no dots, no spaces).
 NODES = {
@@ -130,7 +256,9 @@ NODES = {
     },
     'play': {
         'required': ['tutor_spot', 'hoop_rim', 'hoop_backboard', 'hoop_net', 'scoreboard_screen', 'ball_rack_slots'],
-        'optional': ['scoreboard_digits', 'rack_balls', 'hoop_mount'],
+        # loose_ball: the basketball on the court, its own node so the app can hide
+        # it while the live ball is in play (it casts no baked shadow on the floor).
+        'optional': ['scoreboard_digits', 'rack_balls', 'hoop_mount', 'loose_ball'],
     },
 }
 
@@ -194,7 +322,7 @@ PREVIEW = {
     'sun': 3.2,  # W/m2 on the tutor (the room is unlit)
     'world': 0.9,
     'ghost': 0.38,  # window ghost opacity
-    'ghost_edge': ('#14A39A', '#4F55C9'),  # notes, board (the mocks' accents)
+    'ghost_edge': '#14A39A',  # its header bar (the mocks' teal)
     'guide': '#FF2E88',
 }
 

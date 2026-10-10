@@ -1,4 +1,4 @@
-"""After modelling: zone checks, the AO bake, vertex-colour shading, the
+"""After modelling: zone checks (checks.py), the AO bake, vertex-colour shading, the
 unlit material swap, the static merge, GLB export, the report and manifest,
 and (preview.py) a render from the app's camera. A room script calls
 common.build(root, path), which runs pipeline.build.
@@ -7,52 +7,54 @@ common.build(root, path), which runs pipeline.build.
 import json
 import os
 import struct
+import time
+from contextlib import contextmanager
 
 import bpy
 from mathutils import Matrix, Vector
 
+from checks import check_zones
 from common import _STATE
 from contract import *  # noqa: F403 (the contract's numbers, palettes and axis helpers)
 
 # ---------------------------------------------------------------------------
-# Checks
+# Meshes
 
 
 def _room_meshes(root):
     return [o for o in root.children_recursive if o.type == 'MESH']
 
 
-def check_zones(root):
-    """Warns about props inside the keep-out (CLEAR) or calm (CALM) boxes."""
-    warnings = []
-    for ob in _room_meshes(root):
-        if ob.get('gg_shell') or ob.get('gg_decal'):
-            continue
-        pts = [from_blender(ob.matrix_world @ v.co) for v in ob.data.vertices]
-        for zone, spec in CLEAR.items():
-            lo, hi = spec['box']
-            if any(ob.name.startswith(a) for a in spec['allow']):
-                continue
-            if any(all(lo[i] < p[i] < hi[i] for i in range(3)) for p in pts):
-                warnings.append('clear zone %r: %s' % (zone, ob.name))
-        for zone, (lo, hi) in CALM.items():
-            if any(ob.name.startswith(a) for a in CALM_ALLOW):
-                continue
-            if any(all(lo[i] < p[i] < hi[i] for i in range(3)) for p in pts):
-                warnings.append('calm zone %r (behind a floating window): %s' % (zone, ob.name))
-    for w in warnings:
-        print('ROOM WARN', w)
-    return warnings
-
-
 # ---------------------------------------------------------------------------
 # Bake, colour, merge
 
 
-def bake_ao(root, *, samples=None, distance=None):
-    """Cycles AO into a per-corner float colour layer `gg_ao` on every room mesh.
-    Two passes: everything but the underlays, then the underlays with the decals
-    hidden (else the planks 4 mm above would black out the seam base)."""
+def _paint(o):
+    return bool(o.get('gg_decal')) and not o.get('gg_shell')
+
+
+# AO bake passes: (bake these, hide these), as tests on the room's meshes.
+PASSES = {
+    # Everything but the underlays; then the underlays with the decals hidden
+    # (else the planks 4 mm above would black out the seam base).
+    'two': ((lambda o: not o.get('gg_underlay'), lambda o: o.get('gg_underlay')),
+            (lambda o: o.get('gg_underlay'), lambda o: o.get('gg_decal'))),
+    # Floor paint apart from the planks. Paint sits 0.5 to 6 mm above them, so in one
+    # pass every plank vertex under a line bakes fully occluded, and that darkness
+    # smears across the plank cell around it as a dirty halo. So: walls, props and
+    # planks with the paint and the seam base hidden; the paint (the planks below
+    # never block its upward rays); the seam base with everything flat on it hidden.
+    'paint_apart': ((lambda o: not o.get('gg_underlay') and not _paint(o), lambda o: o.get('gg_underlay') or _paint(o)),
+                    (_paint, lambda o: o.get('gg_underlay')),
+                    (lambda o: o.get('gg_underlay'), lambda o: o.get('gg_decal'))),
+}
+
+
+def bake_ao(root, *, samples=None, distance=None, passes='two'):
+    """Cycles AO into a per-corner float colour layer `gg_ao` on every room mesh,
+    in `passes` (a PASSES name, or a list of (bake, hide) tests). Loose nodes
+    (common.loose: things the app may hide or move) are hidden while the rest
+    bakes, so they leave no shadow behind, then bake last on their own."""
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
     scene.cycles.device = 'CPU'
@@ -66,9 +68,12 @@ def bake_ao(root, *, samples=None, distance=None):
         me = ob.data
         attr = me.color_attributes.get('gg_ao') or me.color_attributes.new('gg_ao', 'FLOAT_COLOR', 'CORNER')
         me.color_attributes.active_color = attr
-    under = [o for o in meshes if o.get('gg_underlay')]
-    rest = [o for o in meshes if not o.get('gg_underlay')]
-    for targets, hidden in ((rest, under), (under, [o for o in meshes if o.get('gg_decal')])):
+    loose = [o for o in meshes if o.get('gg_loose')]
+    fixed = [o for o in meshes if not o.get('gg_loose')]
+    plan = [([o for o in fixed if bake(o)], [o for o in fixed if hide(o)] + loose)
+            for bake, hide in (PASSES[passes] if isinstance(passes, str) else passes)]
+    plan.append((loose, []))
+    for targets, hidden in plan:
         if not targets:
             continue
         for o in hidden:
@@ -181,10 +186,15 @@ def _keep_material(src):
 
 def swap_materials(root):
     """Every palette slot -> the shared unlit vertex-colour material; keep slots ->
-    their own flat unlit material (renamed back to the palette name at export)."""
+    their own flat unlit material (renamed back to the palette name at export).
+    Meshes with no keep slot lose their UV maps: room_vc has no texture, and a UV
+    map on one merged part (a text mesh) would ship TEXCOORD_0 for the whole room."""
     vc = vc_material()
     for ob in _room_meshes(root):
         me = ob.data
+        if not any(m.get('gg_keep') for m in me.materials):
+            for uv in list(me.uv_layers):
+                me.uv_layers.remove(uv)
         slots = [vc if not m.get('gg_keep') else _keep_material(m) for m in me.materials]
         uniq = list(dict.fromkeys(slots))
         remap = [uniq.index(s) for s in slots]
@@ -226,17 +236,8 @@ def _origin_to_center(ob, at=None):
     ob.matrix_world = ob.matrix_world @ Matrix.Translation(local)
 
 
-def set_origin(ob, at):
-    """A named mesh's pivot (room point) instead of its bounds centre, e.g. the net's top ring."""
-    ob['gg_origin'] = tuple(at)
-
-
 # ---------------------------------------------------------------------------
 # Export and report
-
-
-def out_path(room):
-    return os.path.join(OUT_DIR, '%s_room.glb' % room)
 
 
 def export_glb(root, path):
@@ -321,10 +322,48 @@ def glb_report(path):
     }
 
 
-def write_manifest(room, report, root_nodes):
+@contextmanager
+def _locked(path, *, wait=120.0, stale=300.0):
+    """Holds `path`.lock (created with O_EXCL) so two builds never interleave a
+    read-modify-write of the same file. A lock older than `stale` s is a crashed
+    build's: it is broken."""
+    lock = path + '.lock'
+    t0 = time.time()
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(lock) > stale:
+                    os.remove(lock)
+                    continue
+            except OSError:
+                continue  # released (or broken) between the two calls: try again
+            if time.time() - t0 > wait:
+                raise RuntimeError('%s is still held after %.0f s' % (lock, wait))
+            time.sleep(0.2)
+    try:
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+        yield
+    finally:
+        try:
+            os.remove(lock)
+        except OSError:
+            pass
+
+
+def write_manifest(room, report, root_nodes, path):
     """Merges this room into public/models/rooms/rooms.manifest.json (the contract
-    the app and lab/rooms.tsx read: mount, zones, named node positions)."""
+    the app and lab/rooms.tsx read: mount, zones, named node positions), under a
+    lock: both rooms may build at once."""
     os.makedirs(OUT_DIR, exist_ok=True)
+    with _locked(MANIFEST_PATH):
+        _merge_manifest(room, report, root_nodes, path)
+
+
+def _merge_manifest(room, report, root_nodes, path):
     try:
         with open(MANIFEST_PATH, encoding='utf-8') as f:
             manifest = json.load(f)
@@ -346,7 +385,7 @@ def write_manifest(room, report, root_nodes):
     })
     rooms = manifest.setdefault('rooms', {})
     rooms[room] = {
-        'file': '/models/rooms/%s_room.glb' % room,
+        'file': '/models/rooms/' + os.path.basename(path),
         'bytes': report['bytes'],
         'drawCalls': report['drawCalls'],
         'triangles': report['triangles'],
@@ -367,17 +406,19 @@ def _node_positions(root):
 # ---------------------------------------------------------------------------
 
 
-def build(root, path, *, room=None, bake=None, preview=None, manifest=True):
-    """The whole pipeline after modelling: zone checks, AO bake, shading, material
-    swap, merge, export, report (one `ROOM_REPORT {json}` line) and an optional
-    preview. Script args: --no-bake, --preview <png>, --no-tutor, --no-ghosts, --guides,
-    --pan <x>, --percent <n>."""
+def build(root, path, *, room=None, bake=None, passes='two', preview=None, manifest=True):
+    """The whole pipeline after modelling: zone checks, AO bake (in `passes`, see
+    bake_ao), shading, material swap, merge, export, report (one `ROOM_REPORT
+    {json}` line) and an optional preview. The manifest is only touched for a file
+    in public/models/rooms (common.out_path sends drafts elsewhere). Script args:
+    --out <glb>, --no-bake, --preview <png>, --no-tutor, --no-ghosts, --guides,
+    --pan <x> (the app's focused shot: --pan -0.9), --percent <n>."""
     room = room or root.get('gg_room', 'room')
     warnings = check_zones(root)
     if bake is None:
         bake = not flag('--no-bake')
     if bake:
-        bake_ao(root)
+        bake_ao(root, passes=passes)
     shade(root)
     swap_materials(root)
     merge_static(root)
@@ -389,7 +430,10 @@ def build(root, path, *, room=None, bake=None, preview=None, manifest=True):
     report['missing'] = [n for n in want if n not in report['nodes']]
     report['warnings'] = warnings
     if manifest and room in NODES:
-        write_manifest(room, report, nodes)
+        if ships(path):
+            write_manifest(room, report, nodes, path)
+        else:
+            print('ROOM NOTE %s is a draft (outside public/models/rooms): manifest left alone' % report['file'])
     print('ROOM_REPORT ' + json.dumps({k: v for k, v in report.items() if k != 'nodes'} | {'named': nodes}))
     if report['bytes'] > 2_000_000:
         print('ROOM WARN %s is %.2f MB (budget ~2 MB)' % (report['file'], report['bytes'] / 1e6))

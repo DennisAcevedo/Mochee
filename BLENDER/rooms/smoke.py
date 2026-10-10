@@ -35,5 +35,7 @@ C.quad('scoreboard_screen', (-1.6, 3.4, C.BACK_Z + 0.02), (2.2, 0.9), C.mat('sco
        uv=True, node=True)
 h = C.APP['hoop']
 C.torus('hoop_rim', h['rim'], h['rim_radius'], h['tube'], C.mat('smoke_rim', C.PLAY['ball']), node=True)
+# Nested nodes: a slot group whose children must land on their own room points.
+C.slots('ball_rack_slots', [(-2.9, 0.75, -6.5), (-2.4, 0.75, -6.5)], extras={'radius': C.APP['ball_radius']})
 
 C.build(root, os.path.join(OUT, 'smoke.glb'), manifest=False, preview=os.path.join(OUT, 'smoke_blender.png'))
