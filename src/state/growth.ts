@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { abilityById, abilityToLearn, topicText } from '../growth/abilities'
 import { GROWTH } from '../growth/config'
-import { celebrateMastery, performAbility } from '../growth/perform'
+import { celebrateMastery } from '../growth/perform'
 import { experimentFor, returnFlagOn } from '../growth/schedule'
 import { keywordsFor } from '../growth/topics'
 import { safeStorage } from './progress'
@@ -75,7 +75,6 @@ export interface GrowthState {
   learnedId: number // bumps when a new ability is learned, so the UI can celebrate once
   lastLearned: LearnedAbility | null
   recordAnswer: (topic: TopicRef & { keywords?: string[] }, correct: boolean) => void
-  useAbility: (id: AbilityId) => void // performs it on stage (director + props)
   pendingExperiment: () => ReturnExperiment | null // eligible and unseen, or null
   markExperimentSeen: (id: string) => void
   resetGrowth: () => void
@@ -188,10 +187,6 @@ export const useGrowth = create<GrowthState>()(
         const learned: LearnedAbility = { id: spec.id, topicId: topic.id, learnedAt: now }
         set({ topics, experiments, abilities: [...s.abilities, learned], learnedId: s.learnedId + 1, lastLearned: learned })
         celebrateMastery(spec, next.title)
-      },
-
-      useAbility: (id) => {
-        performAbility(id)
       },
 
       pendingExperiment: () => {

@@ -1,6 +1,6 @@
-// Dev-only lab for the app-shell drawers and the mode switch, over a plain
+// Dev-only lab for the app-shell drawer and the mode switch, over a plain
 // gradient instead of the 3D stage. Talks to the REAL docs endpoints; while
-// the backend is missing the drawers show their not-ready states. The voice
+// the backend is missing the drawer shows its not-ready states. The voice
 // starts muted here so testing never spends ElevenLabs characters.
 // Not part of the production build.
 import '@fontsource/figtree/600.css'
@@ -21,26 +21,9 @@ import { Drawers } from '../src/ui/Drawers/Drawers'
 import { useDocs } from '../src/ui/Drawers/docsStore'
 import { ModeSwitch } from '../src/ui/ModeSwitch/ModeSwitch'
 
-const LAB = {
-  seedStep: 4, // walkthrough step shown as current by "Seed"
-} as const
-
 // Stores on window so the Playwright check can drive and read them.
 Object.assign(window, { __lab: { useDrawers, useGrowth, useWalkthrough, useMode, useDirector, useProgress, useDocs } })
 useWalkthrough.getState().setMuted(true)
-
-// Sample growth + lesson position, for looking at the filled Quest tab.
-function seed() {
-  const g = useGrowth.getState()
-  g.recordAnswer({ id: 'builtin:fcfs', title: 'First-come, first-served', documentId: null }, true)
-  g.recordAnswer({ id: 'builtin:convoy', title: 'Convoy effect', documentId: null }, false)
-  g.recordAnswer({ id: 'builtin:convoy', title: 'Convoy effect', documentId: null }, true)
-  g.recordAnswer({ id: 'builtin:wait', title: 'Waiting time', documentId: null }, false)
-  useGrowth.setState((s) => ({
-    abilities: [{ id: 'queue_juggle', topicId: 'builtin:fcfs', learnedAt: Date.now() }, ...s.abilities.filter((a) => a.id !== 'queue_juggle')],
-  }))
-  useWalkthrough.setState({ started: true, index: LAB.seedStep, phase: 'idle', playing: false })
-}
 
 function DevStrip() {
   const caption = useDirector((d) => d.caption)
@@ -51,9 +34,6 @@ function DevStrip() {
   const muted = useWalkthrough((w) => w.muted)
   return (
     <div className="dev">
-      <button type="button" onClick={seed}>
-        Seed
-      </button>
       <button type="button" onClick={() => useMode.getState().setMode(mode === 'celebrate' ? 'study' : 'celebrate')}>
         {mode === 'celebrate' ? 'End celebrate' : 'Celebrate'}
       </button>

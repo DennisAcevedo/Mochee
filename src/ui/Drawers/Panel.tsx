@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { useDrawers, type DrawerId } from '../../state/drawers'
+import { useDrawers } from '../../state/drawers'
 import s from './Panel.module.css'
 
-// One drawer shell. Wide screens: a fixed glass side panel with a handle tab
-// on its outer edge that collapses and reopens it. Narrow screens (sheetMode):
+// The drawer shell. Wide screens: a fixed glass panel on the left with a handle
+// tab on its outer edge that collapses and reopens it. Narrow screens (sheetMode):
 // a bottom sheet with a drag handle and three snap heights (CSS, data-snap),
 // a focus trap, and Esc to close. Esc also closes a side panel that has focus.
 
@@ -33,8 +33,7 @@ export function useSheetModeSync() {
 }
 
 interface PanelProps {
-  id: DrawerId
-  side: 'left' | 'right'
+  id: string // DOM ids: drawer-handle-<id>, drawer-body-<id>, and the dock's drawer-dock-<id>
   title: string
   accent: string // CSS colour for the header mark and handle
   icon: ReactNode
@@ -42,8 +41,8 @@ interface PanelProps {
   children: ReactNode
 }
 
-export function Panel({ id, side, title, accent, icon, headerExtra, children }: PanelProps) {
-  const open = useDrawers((d) => (id === 'learning' ? d.learningOpen : d.questOpen))
+export function Panel({ id, title, accent, icon, headerExtra, children }: PanelProps) {
+  const open = useDrawers((d) => d.learningOpen)
   const sheet = useDrawers((d) => d.sheetMode)
   const toggle = useDrawers((d) => d.toggle)
   const close = useDrawers((d) => d.close)
@@ -61,7 +60,7 @@ export function Panel({ id, side, title, accent, icon, headerExtra, children }: 
       const inside = ref.current?.contains(document.activeElement)
       if (!inside && !sheet) return
       e.preventDefault()
-      close(id)
+      close()
       if (sheet) document.getElementById(`drawer-dock-${id}`)?.focus()
       else document.getElementById(`drawer-handle-${id}`)?.focus()
     }
@@ -123,7 +122,7 @@ export function Panel({ id, side, title, accent, icon, headerExtra, children }: 
     const vh = window.innerHeight
     const height = SNAP_VH[snap] * vh - (e.clientY - d.y0)
     if (height < SNAP_VH.low * vh * PANEL.dragCloseFraction) {
-      close(id)
+      close()
       setSnap('mid')
       return
     }
@@ -137,7 +136,6 @@ export function Panel({ id, side, title, accent, icon, headerExtra, children }: 
     <aside
       ref={ref}
       className={s.panel}
-      data-side={side}
       data-open={open}
       data-snap={snap}
       data-dragging={dragPx !== null}
@@ -153,7 +151,7 @@ export function Panel({ id, side, title, accent, icon, headerExtra, children }: 
         aria-expanded={open}
         aria-controls={`drawer-body-${id}`}
         aria-label={open ? `Collapse ${title}` : `Open ${title}`}
-        onClick={() => toggle(id)}
+        onClick={toggle}
       >
         <span className={s.handleIcon} aria-hidden>
           {icon}
@@ -184,7 +182,7 @@ export function Panel({ id, side, title, accent, icon, headerExtra, children }: 
             {title}
           </h2>
           {headerExtra}
-          <button type="button" className={s.close} aria-label={`Close ${title}`} onClick={() => close(id)}>
+          <button type="button" className={s.close} aria-label={`Close ${title}`} onClick={close}>
             <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden>
               <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
             </svg>

@@ -9,13 +9,13 @@ import { useChat, type ChatTurn } from './chatStore'
 import { errorText } from './docsClient'
 import { useDocs } from './docsStore'
 import { SendIcon } from './icons'
-import s from './Quest.module.css'
+import s from './ChatQuiz.module.css'
 
-// Chat tab. With an uploaded document selected: grounded answers that cite
-// their pages (chips open the cited page in the Learning drawer), an honest
-// "not in this document" when the server abstains, and a visible label on
-// demo answers. With the built-in lesson: the stage's own ask flow, and this
-// tab shows the lesson transcript.
+// The study hub's Chat view. With an uploaded document selected: grounded
+// answers that cite their pages (chips open the cited page in the hub's
+// reader), an honest "not in this document" when the server abstains, and a
+// visible label on demo answers. With the built-in lesson: the stage's own
+// ask flow, and this view shows the lesson transcript.
 
 const CHAT_UI = {
   transcriptTurns: 14, // built-in lesson lines shown

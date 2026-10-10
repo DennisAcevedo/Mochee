@@ -1,12 +1,8 @@
 import { create } from 'zustand'
 
-// The two app-shell drawers that sit over the stage. LEFT: Learning (the
-// built-in lesson, uploaded PDFs, the page viewer). RIGHT: Quest (walkthrough
-// checklist + growth, grounded chat, document quiz). Below the sheet
-// breakpoint they become bottom sheets and only one is open at a time.
-
-export type DrawerId = 'learning' | 'quest'
-export type QuestTab = 'quest' | 'chat' | 'quiz'
+// The app-shell drawer that sits over the stage: Learning (the study hub with
+// grounded chat and the document quiz, uploaded PDFs, the page viewer). Below
+// the sheet breakpoint it becomes a bottom sheet that the dock opens.
 
 // A cited passage to show in the Learning drawer's page viewer.
 export interface CitationTarget {
@@ -17,46 +13,33 @@ export interface CitationTarget {
 
 export interface DrawersState {
   learningOpen: boolean
-  questOpen: boolean
-  questTab: QuestTab
   documentId: string | null // null = the built-in lesson (CS111 Lecture 4)
   citation: CitationTarget | null
-  sheetMode: boolean // narrow viewport: bottom sheets, one open at a time
+  sheetMode: boolean // narrow viewport: a bottom sheet instead of a side panel
 
-  open: (which: DrawerId) => void
-  close: (which: DrawerId) => void
-  toggle: (which: DrawerId) => void
-  setTab: (tab: QuestTab) => void
+  open: () => void
+  close: () => void
+  toggle: () => void
   selectDocument: (documentId: string | null) => void
   openCitation: (citation: CitationTarget) => void
   setSheetMode: (sheetMode: boolean) => void
 }
 
-const KEY: Record<DrawerId, 'learningOpen' | 'questOpen'> = { learning: 'learningOpen', quest: 'questOpen' }
-const OTHER: Record<DrawerId, DrawerId> = { learning: 'quest', quest: 'learning' }
-
-// Opening one sheet closes the other on narrow screens; side panels coexist.
-const opened = (s: DrawersState, which: DrawerId) =>
-  s.sheetMode ? { [KEY[which]]: true, [KEY[OTHER[which]]]: false } : { [KEY[which]]: true }
-
 export const useDrawers = create<DrawersState>((set) => ({
   learningOpen: true,
-  questOpen: true,
-  questTab: 'quest',
   documentId: null,
   citation: null,
   sheetMode: false,
 
-  open: (which) => set((s) => opened(s, which)),
-  close: (which) => set({ [KEY[which]]: false }),
-  toggle: (which) => set((s) => (s[KEY[which]] ? { [KEY[which]]: false } : opened(s, which))),
-  setTab: (questTab) => set({ questTab }),
+  open: () => set({ learningOpen: true }),
+  close: () => set({ learningOpen: false }),
+  toggle: () => set((s) => ({ learningOpen: !s.learningOpen })),
   // A new document drops a citation that belongs to another one.
   selectDocument: (documentId) =>
     set((s) => ({ documentId, citation: s.citation && s.citation.documentId === documentId ? s.citation : null })),
-  openCitation: (citation) => set((s) => ({ citation, documentId: citation.documentId, ...opened(s, 'learning') })),
-  // Entering sheet mode folds both sheets away so the stage (and the tutor)
-  // stays in view; the dock opens either one.
-  setSheetMode: (sheetMode) =>
-    set((s) => (sheetMode && !s.sheetMode ? { sheetMode, learningOpen: false, questOpen: false } : { sheetMode })),
+  // The study hub follows a new citation to its reader (StudyHub).
+  openCitation: (citation) => set({ citation, documentId: citation.documentId, learningOpen: true }),
+  // Entering sheet mode folds the sheet away so the stage (and the tutor)
+  // stays in view; the dock opens it.
+  setSheetMode: (sheetMode) => set((s) => (sheetMode && !s.sheetMode ? { sheetMode, learningOpen: false } : { sheetMode })),
 }))

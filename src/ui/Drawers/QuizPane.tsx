@@ -9,10 +9,10 @@ import { useTutorStore } from '../../state/store'
 import { errorText, fetchQuiz, submitQuiz, type DocsErrorCode } from './docsClient'
 import { findTopic, useDocs } from './docsStore'
 import { CheckIcon } from './icons'
-import s from './Quest.module.css'
+import s from './ChatQuiz.module.css'
 import { performQuizResult } from './tutorCues'
 
-// Quiz tab. For an uploaded document: one question at a time with big choice
+// The study hub's Quiz view. For an uploaded document: one question at a time with big choice
 // chips. Each submit carries a fresh attemptId (the server's idempotency key)
 // and the server reveals the answer only after it. Every result feeds topic
 // mastery; a first-try correct answer also earns XP and a dance. The built-in
@@ -60,7 +60,7 @@ function BoardHint() {
         ?
       </span>
       <h3 className={s.hintTitle}>The quick check lives on the board</h3>
-      <p className={s.hint}>The built-in lesson asks its question on the board to his right. Pick a PDF on the left for a quiz made from your own notes.</p>
+      <p className={s.hint}>The built-in lesson asks its question on the board to his right. Pick a PDF under Upload Materials for a quiz made from your own notes.</p>
       <button type="button" className={s.primary} onClick={openCheck}>
         Open the quick check
       </button>
@@ -144,7 +144,7 @@ function DocQuiz({ documentId }: { documentId: string }) {
           {firstTryRight}/{total}
         </span>
         <h3 className={s.hintTitle}>{firstTryRight === total ? 'Perfect run!' : 'Quiz complete'}</h3>
-        <p className={s.hint}>First-try answers. Check Quest for the topics he is mastering.</p>
+        <p className={s.hint}>First-try answers. Right answers build his mastery of each topic.</p>
         <button type="button" className={s.primary} onClick={() => void load()}>
           New quiz
         </button>

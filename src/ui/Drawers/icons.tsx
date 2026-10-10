@@ -9,13 +9,6 @@ export const BookIcon = () => (
   </svg>
 )
 
-export const QuestIcon = () => (
-  <svg {...base} aria-hidden>
-    <path d="M5 17V3.5" />
-    <path d="M5 4h9l-2 3.5 2 3.5H5" />
-  </svg>
-)
-
 export const UploadIcon = () => (
   <svg {...base} aria-hidden>
     <path d="M10 13V3.5M6 7l4-4 4 4" />

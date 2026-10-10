@@ -1,8 +1,8 @@
 """End-to-end check of wave B on the lesson stage, in a real Chromium: the
 Study / Play switch, physics play (drag and fling him, the ball and hoop),
 topic mastery and the ability it teaches, the room that grows with it, the
-return experiment, and the document drawers (upload, grounded chat with
-citations, abstain, quiz).
+return experiment, and the Learning drawer's study hub cards (upload,
+grounded chat with citations, abstain, quiz). There is no Quest drawer.
 
 Run against the dev server (npm run dev, http://localhost:5176):
     python tests/e2e/study_play_e2e.py [--base URL] [--out DIR] [--headed]
@@ -89,6 +89,14 @@ def poll(fn, timeout_s: float, poll_s: float = 0.15):
         time.sleep(poll_s)
         v = fn()
     return v
+
+
+def hub(page: Page, card: str) -> None:
+    """Back to the study hub's cards (Learning drawer), then open hub-card-<card>."""
+    back = page.get_by_test_id("hub-back")
+    if back.count() and back.is_visible():
+        back.click()
+    page.get_by_test_id(f"hub-card-{card}").click()
 
 
 def wait_quiet(page: Page, hold_s: float, timeout_s: float) -> bool:
@@ -204,8 +212,11 @@ def run(base: str, out: Path, headed: bool) -> int:
         r.check("canvas renders content", ok, detail)
         notes, board = screen_of(page, "notes-window"), screen_of(page, "board-window")
         vw = CONFIG["viewport"]["width"]
-        r.check("drawers start folded: both windows in view", notes and board and 0 < notes["x"] < vw and 0 < board["x"] < vw
-                and not gg(page, "g.drawers.getState().learningOpen || g.drawers.getState().questOpen"), {"notes": notes, "board": board})
+        r.check("Learning drawer starts folded: both windows in view", notes and board and 0 < notes["x"] < vw and 0 < board["x"] < vw
+                and not gg(page, "g.drawers.getState().learningOpen"), {"notes": notes, "board": board})
+        quest = page.get_by_role("button", name=re.compile(r"\bquest\b", re.I)).count() + page.locator("#drawer-handle-quest, #drawer-dock-quest").count()
+        r.check("no Quest drawer: no Quest handle, tab or dock button", quest == 0 and "questOpen" not in gg(page, "Object.keys(g.drawers.getState())"),
+                {"quest_controls": quest})
         r.check("room evolution: no trophy before mastery", not has_object(page, f"evo-trophy-{CONFIG['topic']}"))
         page.evaluate(WATCH_JS)
 
@@ -295,29 +306,30 @@ def run(base: str, out: Path, headed: bool) -> int:
                     and page.get_by_test_id("mastery-invite").is_visible(), gg(page, "g.mode.getState().mode"))
             r.shot(page, "sp_06_mastery")
 
-            # The new move, from the Quest drawer's 'Do it'.
-            page.get_by_role("button", name=re.compile(r"^open quest", re.I)).click()
-            do_it = page.get_by_role("button", name=re.compile(r"^do it$", re.I)).first
-            do_it.wait_for(state="visible", timeout=5000)
+            # The new move, from the mastery invite's 'Show me'.
+            show_me = page.get_by_test_id("mastery-invite").get_by_role("button", name=re.compile(r"^show me$", re.I))
+            show_me.wait_for(state="visible", timeout=5000)
             gg(page, "g.walkthrough.getState().pause()")  # he stays put: one-shots wait while he walks
             # The mastery celebrate (60) and the level-up that finishing the lesson earns
             # (80, after PLAY.levelUpDelayMs) both rightly outrank a hop (50): let them play out.
             wait_quiet(page, CONFIG["quiet_s"], CONFIG["free_timeout_s"] * 2)
             s0, t0 = state(page), now_ms(page)
-            do_it.click()
+            show_me.click()
             props = poll(lambda: has_object(page, f"evo-ability-{CONFIG['ability']}"), 3)
             cap = poll(lambda: "juggle" in (gg(page, "g.director.getState().caption") or "").lower() and gg(page, "g.director.getState().caption"), 3)
             g1 = wait_gesture(page, gesture_id(s0), CONFIG["gesture_timeout_s"])
             hop = poll(lambda: gg(page, "g.played.find(x => x.clip === 'hop' && x.t >= a)", t0), 4)
-            r.check("'Do it' performs the ability: props + caption + clip", props and cap and g1 and hop,
+            r.check("'Show me' performs the ability: props + caption + clip", props and cap and g1 and hop,
                     {"props": props, "caption": cap, "gesture": g1, "played": bool(hop),
                      "drops": gg(page, "g.drops.filter(x => x.t >= a)", t0), "anim": gg(page, "g.anim")})
             time.sleep(0.6)
             r.shot(page, "sp_07_ability")
             # The handle stays clickable beside the open panel (not under the canvas).
-            page.get_by_role("button", name=re.compile(r"^collapse quest", re.I)).click(timeout=5000)
-            r.check("open drawer's 'Collapse Quest' handle closes it", poll(lambda: gg(page, "g.drawers.getState().questOpen") is False, 3),
-                    gg(page, "g.drawers.getState().questOpen"))
+            page.get_by_role("button", name=re.compile(r"^open learning", re.I)).click(timeout=5000)
+            opened = poll(lambda: gg(page, "g.drawers.getState().learningOpen") is True, 3)
+            page.get_by_role("button", name=re.compile(r"^collapse learning", re.I)).click(timeout=5000)
+            r.check("open drawer's 'Collapse Learning' handle closes it", opened and poll(lambda: gg(page, "g.drawers.getState().learningOpen") is False, 3),
+                    {"opened": opened, "open_after": gg(page, "g.drawers.getState().learningOpen")})
 
         # 5. Room evolution: the built-in lesson's book, its poster, and now a trophy.
         names = [f"evo-book-builtin", f"evo-poster-{CONFIG['topic']}", f"evo-trophy-{CONFIG['topic']}"]
@@ -357,8 +369,9 @@ def run(base: str, out: Path, headed: bool) -> int:
         # comes off the page's response log, the document off the app and GET /api/documents.
         tap = Tap(page, ["**/api/tutor/chat", "**/api/quiz", "**/api/quiz/submit"], CONFIG["quiz_timeout_s"])
         page.get_by_role("button", name=re.compile(r"^open learning", re.I)).click()
+        hub(page, "upload")
         n = len(r.responses)
-        page.locator('input[type="file"]').set_input_files(str(CONFIG["fixture"]))
+        page.locator('input[type="file"][accept*="pdf"]').set_input_files(str(CONFIG["fixture"]))
         sent = poll(lambda: next((st for u, st in r.responses[n:] if u.split("?")[0].endswith("/api/documents") and st != 200), None)
                     or (page.evaluate("() => 0") and None), CONFIG["upload_timeout_s"], 0.3)
         doc_id = poll(lambda: gg(page, "g.drawers.getState().documentId"), 5)
@@ -374,9 +387,8 @@ def run(base: str, out: Path, headed: bool) -> int:
             r.check("room gets the new document's book", poll(lambda: has_object(page, f"evo-book-{doc['id']}"), 6), doc["id"])
             r.shot(page, "sp_10_upload")
 
-            # Grounded chat about the selected document.
-            page.get_by_role("button", name=re.compile(r"^open quest", re.I)).click()
-            page.get_by_role("tab", name=re.compile(r"^chat$", re.I)).click()
+            # Grounded chat about the selected document, from the hub's Chat card.
+            hub(page, "chat")
             box = page.get_by_role("textbox", name=re.compile(r"your question", re.I))
 
             def ask(q: str):
@@ -396,9 +408,11 @@ def run(base: str, out: Path, headed: bool) -> int:
                 mark = page.locator("mark").first
                 quote = re.sub(r"\s+", " ", cites[0]["quote"]).strip()
                 shown = poll(lambda: mark.count() and mark.is_visible() and re.sub(r"\s+", " ", mark.inner_text()).strip(), 8)
-                r.check("chip opens the page viewer with the quote highlighted", shown and (shown in quote or quote in shown),
-                        {"mark": shown, "quote": quote})
+                view = page.evaluate("() => window.__ggStudy?.view ?? null")
+                r.check("chip opens the hub's reader with the quote highlighted", view == "upload" and shown and (shown in quote or quote in shown),
+                        {"view": view, "mark": shown, "quote": quote})
                 r.shot(page, "sp_11_citation")
+                hub(page, "chat")
 
             status, ans = ask(CONFIG["ask_offtopic"])
             r.check("chat: off-topic question -> abstained", status == 200 and ans.get("abstained") is True, {"status": status, "answer": (ans.get("answer") or "")[:90]})
@@ -408,7 +422,7 @@ def run(base: str, out: Path, headed: bool) -> int:
             r.shot(page, "sp_12_abstain")
 
             # Quiz on the document: question -> submit -> result with a citation; a replayed submit is idempotent.
-            page.get_by_role("tab", name=re.compile(r"^quiz$", re.I)).click()
+            hub(page, "quiz")
             n = len(tap.calls)
             page.get_by_role("button", name=re.compile(r"start the quiz", re.I)).click()
             q = tap.next(page, n, lambda c: c["path"].endswith("/api/quiz"), CONFIG["quiz_timeout_s"]) or {}
@@ -430,7 +444,7 @@ def run(base: str, out: Path, headed: bool) -> int:
                 r.check("quiz: same attemptId resubmitted -> same result", same, {"status": again.status, "attemptId": (body or {}).get("attemptId")})
 
             # 8. The demo label, on a mocked demo-mode answer (the live server has a key).
-            page.get_by_role("tab", name=re.compile(r"^chat$", re.I)).click()
+            hub(page, "chat")
             demo = {"answer": "FCFS means **first come, first served**.", "citations": cites[:1], "cue": "point_right",
                     "confidence": "medium", "nextQuestion": None, "abstained": False, "source": "demo"}
             page.route("**/api/tutor/chat", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(demo)), times=1)
