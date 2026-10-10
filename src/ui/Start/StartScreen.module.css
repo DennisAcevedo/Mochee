@@ -12,6 +12,13 @@
   pointer-events: none;
 }
 
+/* Back to the library, top left (fades out with the overlay when the lesson starts). */
+.back {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+}
+
 .head {
   display: flex;
   flex-direction: column;

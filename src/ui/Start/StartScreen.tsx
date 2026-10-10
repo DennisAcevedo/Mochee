@@ -1,6 +1,7 @@
 import { playIntro } from '../../intro/intro'
 import { introRef } from '../../intro/targets'
 import { useCurrentTutor } from '../../state/currentTutor'
+import { BackButton } from '../BackButton/BackButton'
 import styles from './StartScreen.module.css'
 
 // "Start screen" from design/Tutor.dc.html. Only the HTML lives here; the
@@ -10,6 +11,7 @@ export function StartScreen() {
   const tutor = useCurrentTutor()
   return (
     <div ref={introRef('overlay')} className={styles.overlay} data-screen-label="Start screen">
+      <BackButton className={styles.back} />
       <div className={styles.head}>
         <div ref={introRef('title')} className={styles.logo}>
           <div className={styles.logoDot} />

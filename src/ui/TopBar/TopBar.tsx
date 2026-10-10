@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
 import { introRef } from '../../intro/targets'
 import { useCurrentTutor } from '../../state/currentTutor'
 import { useLayout } from '../../state/layout'
 import { selectSection, useTutorStore } from '../../state/store'
+import { BackButton } from '../BackButton/BackButton'
 import styles from './TopBar.module.css'
 
 // `extra` (the lesson's mode switch) sits on top of the right-hand group,
@@ -17,11 +17,7 @@ export function TopBar({ extra }: { extra?: ReactNode }) {
   return (
     <div ref={introRef('topBar')} className={styles.bar} style={{ right: topBarRight }}>
       <div className={styles.left}>
-        <Link to="/" className={styles.logo} aria-label="Home">
-          <div className={styles.logoDot} />
-          Tutor
-        </Link>
-        <div className={styles.divider} />
+        <BackButton />
         <div className={styles.crumb}>
           {tutor.name} · <span className={styles.crumbStrong}>{outline[section]?.title}</span>
         </div>

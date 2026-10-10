@@ -284,11 +284,6 @@ export function CreateTutorPage() {
       <div className={styles.wrap}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <Link to="/" className={styles.logo}>
-              <div className={styles.logoDot} />
-              Tutor
-            </Link>
-            <div className={styles.divider} />
             <div className={styles.crumb}>New tutor</div>
           </div>
           <Link to="/" aria-label="Close" className={styles.close}>
