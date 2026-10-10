@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ece9e3;font-family:'Figtree',system-ui,sans-serif;color:#24232a;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.45 0.09 205)}a:hover{color:oklch(0.38 0.09 205)}
+*{box-sizing:border-box}
+input::placeholder{color:#9a958d}
+@keyframes zFloat{0%{transform:translate(0,0) scale(.6) rotate(-8deg);opacity:0}20%{opacity:1}100%{transform:translate(22px,-56px) scale(1.15) rotate(10deg);opacity:0}}
+</style>
+</helmet>
+<div data-screen-label="Home" style="min-height:100vh;padding:20px;">
+  <div style="max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:34px;">
+    <div style="display:flex;align-items:center;gap:20px;background:#fbfaf7;border-radius:22px;padding:12px 14px 12px 22px;box-shadow:0 1px 2px rgba(60,40,20,0.06);">
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;font-weight:700;font-size:21px;letter-spacing:-0.02em;">
+        <div style="width:12px;height:12px;border-radius:50%;background:oklch(0.62 0.11 198);box-shadow:0 0 0 4px oklch(0.9 0.05 195);"></div>
+        Tutor
+      </div>
+      <div style="flex:1;display:flex;justify-content:center;min-width:0;">
+        <div style="flex:0 1 520px;display:flex;align-items:center;gap:10px;height:46px;background:#f1eee8;border-radius:14px;padding:0 16px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="#8a857d" stroke-width="2.2"></circle><path d="M15.5 15.5L20 20" stroke="#8a857d" stroke-width="2.2" stroke-linecap="round"></path></svg>
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search tutors and notes" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font:inherit;font-size:15px;color:#24232a;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;border:1px solid #e0dbd2;border-radius:6px;padding:2px 6px;background:#fff;">/</div>
+        </div>
+      </div>
+      <div style="width:42px;height:42px;border-radius:50%;background:oklch(0.9 0.05 195);color:oklch(0.38 0.09 205);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;">AK</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;padding:0 6px;">
+      <div style="font-size:36px;font-weight:700;letter-spacing:-0.025em;line-height:1.15;text-wrap:pretty;">{{ greeting }} <span style="color:#8a857d;">What are we studying?</span></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:baseline;gap:10px;padding:0 6px;">
+        <div style="font-size:17px;font-weight:700;">Your tutors</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a857d;">{{ countLabel }}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));gap:16px;">
+        <a href="Create Tutor.dc.html" onMouseEnter="{{ newEnter }}" onMouseLeave="{{ newLeave }}" style="{{ newCardStyle }}">
+          <div style="position:relative;height:210px;border-radius:18px;overflow:hidden;background:radial-gradient(ellipse at 50% 20%, #fffdf9 0%, #f4f0e9 60%, #ebe5da 100%);">
+            <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="wave" speaking="off" roam="0.05" size="1.2" rleft="0.2" rright="0.8" style="position:absolute;left:0;right:0;top:38%;bottom:-38%;" hint-size="100%,100%"></x-import>
+          </div>
+          <div style="padding:16px 8px 6px;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:#24232a;">
+              <div style="width:26px;height:26px;border-radius:8px;background:oklch(0.52 0.1 202);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;">+</div>
+              New tutor
+            </div>
+            <div style="font-size:14px;color:#6c6861;line-height:1.45;text-wrap:pretty;">Upload your notes and get a tutor that teaches them.</div>
+          </div>
+        </a>
+        <sc-for list="{{ tutors }}" as="t" hint-placeholder-count="4">
+          <a href="Tutor.dc.html" onMouseEnter="{{ t.enter }}" onMouseLeave="{{ t.leave }}" style="{{ t.cardStyle }}">
+            <div style="position:relative;height:210px;border-radius:18px;overflow:hidden;background:radial-gradient(ellipse at 50% 30%, #fffdf9 0%, #f4f0e9 55%, #e8e2d7 100%);">
+              <div style="position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg, rgba(228,221,209,0), rgba(226,218,205,0.85));"></div>
+              <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="{{ t.pose }}" cap="{{ t.cap }}" accessory="{{ t.acc }}" acccolor="{{ t.accColor }}" speaking="off" roam="0.12" size="1" rleft="0.15" rright="0.85" style="position:absolute;inset:0;" hint-size="100%,100%"></x-import>
+              <sc-if value="{{ t.sleeping }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute;left:62%;top:20%;font-family:'Caveat',cursive;font-weight:700;color:#9a958d;pointer-events:none;">
+                  <span style="position:absolute;left:0;top:0;font-size:18px;animation:zFloat 3.6s ease-out infinite;opacity:0;">z</span>
+                  <span style="position:absolute;left:8px;top:-4px;font-size:24px;animation:zFloat 3.6s ease-out 1.8s infinite;opacity:0;">z</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:12px;top:12px;height:26px;padding:0 10px;border-radius:8px;background:oklch(0.95 0.03 195);color:oklch(0.38 0.09 205);font-size:12px;font-weight:600;display:flex;align-items:center;">✓ Complete</div>
+              </sc-if>
+            </div>
+            <div style="padding:16px 8px 6px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;flex-direction:column;gap:3px;">
+                <div style="font-size:17px;font-weight:700;color:#24232a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.name }}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a857d;">{{ t.files }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="height:6px;border-radius:3px;background:#ebe7e0;overflow:hidden;">
+                  <div style="{{ t.barStyle }}"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;">
+                  <span style="color:#24232a;font-weight:600;">{{ t.progress }}</span>
+                  <span style="color:#8a857d;white-space:nowrap;">{{ t.last }}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+      <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:24px 6px;font-size:15px;color:#6c6861;">No tutors match “{{ query }}”.</div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { hover: null, newHover: false, query: '' };
+  renderVals() {
+    const { hover, newHover, query } = this.state;
+    const A = 'oklch(0.52 0.1 202)';
+    const h = new Date().getHours();
+    const greeting = h < 12 ? 'Good morning.' : h < 18 ? 'Good afternoon.' : 'Good evening.';
+    const all = [
+      { id: 'cs', name: 'CS111 · Operating Systems', files: 4, done: 3, total: 5, last: 'Last studied 2 days ago', cap: '', acc: 'glasses', accColor: '#2b2b33' },
+      { id: 'bio', name: 'BIO 82 · Genetics', files: 6, done: 1, total: 6, last: 'Last studied yesterday', cap: '#4c9a6a', acc: 'leaf', accColor: '#62b46e' },
+      { id: 'chem', name: 'CHEM 31A · Chemical Principles', files: 3, done: 4, total: 4, last: 'Last studied last week', cap: '#d9824a', acc: 'headphones', accColor: '#5cc4c9' },
+      { id: 'math', name: 'MATH 51 · Linear Algebra', files: 5, done: 2, total: 7, last: 'Last studied 3 days ago', cap: '#c4566e', acc: 'scarf', accColor: '#f2b84b' },
+    ];
+    const q = query.trim().toLowerCase();
+    const list = all.filter(t => !q || t.name.toLowerCase().includes(q));
+    const card = (on, dashed) => ({ display: 'flex', flexDirection: 'column', padding: 10, borderRadius: 26, textDecoration: 'none', color: 'inherit', cursor: 'pointer', background: dashed ? (on ? 'rgba(251,250,247,0.7)' : 'transparent') : '#fbfaf7', border: dashed ? '2px dashed #d3ccc0' : '2px solid transparent', boxShadow: on && !dashed ? '0 22px 40px -22px rgba(80,55,25,0.4), 0 1px 2px rgba(60,40,20,0.06)' : dashed ? 'none' : '0 1px 2px rgba(60,40,20,0.06)', transform: on ? 'translateY(-4px)' : 'none', transition: 'transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, background .2s ease' });
+    return {
+      greeting, query,
+      onQuery: e => this.setState({ query: e.target.value }),
+      countLabel: `${all.length} tutors`,
+      noResults: list.length === 0,
+      newCardStyle: card(newHover, true),
+      newEnter: () => this.setState({ newHover: true }),
+      newLeave: () => this.setState({ newHover: false }),
+      tutors: list.map(t => {
+        const on = hover === t.id;
+        const complete = t.done >= t.total;
+        return {
+          ...t,
+          pose: on ? 'wave' : 'sleep',
+          sleeping: !on,
+          done: complete,
+          files: `${t.files} files`,
+          progress: complete ? `All ${t.total} sections` : `${t.done} of ${t.total} sections`,
+          barStyle: { height: '100%', width: `${Math.round((t.done / t.total) * 100)}%`, borderRadius: 3, background: A },
+          cardStyle: card(on, false),
+          enter: () => this.setState({ hover: t.id }),
+          leave: () => this.setState(s => (s.hover === t.id ? { hover: null } : null)),
+        };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>

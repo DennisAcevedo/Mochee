@@ -1,0 +1,18 @@
+.page {
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.main {
+  max-width: 1480px;
+  width: 100%;
+  margin: 0 auto;
+  height: max(780px, calc(100vh - 40px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 860px;
+}

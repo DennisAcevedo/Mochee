@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ece9e3;font-family:'Figtree',system-ui,sans-serif;color:#24232a;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.45 0.09 205)}a:hover{color:oklch(0.38 0.09 205)}
+*{box-sizing:border-box}
+input::placeholder{color:#9a958d}
+@keyframes mRing{0%{transform:scale(1);opacity:.45}100%{transform:scale(1.75);opacity:0}}
+@keyframes mBar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes mDot{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes mCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes sRing{0%{transform:scale(1,1);opacity:.4}100%{transform:scale(1.14,1.5);opacity:0}}
+@keyframes zFloat{0%{transform:translate(0,0) scale(.6) rotate(-8deg);opacity:0}20%{opacity:1}100%{transform:translate(30px,-80px) scale(1.25) rotate(10deg);opacity:0}}
+</style>
+</helmet>
+<div style="min-height:100vh;padding:20px;display:flex;flex-direction:column;gap:40px;">
+  <sc-if value="{{ showStart }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Start screen" style="{{ startOverlayStyle }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:34px;letter-spacing:-0.02em;">
+          <div style="width:16px;height:16px;border-radius:50%;background:oklch(0.62 0.11 198);box-shadow:0 0 0 6px oklch(0.9 0.05 195);"></div>
+          Tutor
+        </div>
+        <div style="font-size:16px;color:#6c6861;">Your 3D tutor for CS111 · Lecture 4</div>
+      </div>
+      <div style="position:relative;width:300px;height:300px;">
+        <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="sleep" speaking="off" roam="0.05" size="1" rleft="0" rright="1" style="position:absolute;inset:0;" hint-size="300px,300px"></x-import>
+        <div style="position:absolute;left:62%;top:22%;font-family:'Caveat',cursive;font-weight:700;color:#8a857d;pointer-events:none;">
+          <span style="position:absolute;left:0;top:0;font-size:22px;animation:zFloat 3.6s ease-out infinite;opacity:0;">z</span>
+          <span style="position:absolute;left:10px;top:-6px;font-size:28px;animation:zFloat 3.6s ease-out 1.2s infinite;opacity:0;">z</span>
+          <span style="position:absolute;left:4px;top:-2px;font-size:34px;animation:zFloat 3.6s ease-out 2.4s infinite;opacity:0;">Z</span>
+        </div>
+      </div>
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;border-radius:999px;background:oklch(0.62 0.11 198);animation:sRing 2s ease-out infinite;pointer-events:none;"></div>
+        <div style="position:absolute;inset:0;border-radius:999px;background:oklch(0.62 0.11 198);animation:sRing 2s ease-out 1s infinite;pointer-events:none;"></div>
+        <button ref="{{ startRef }}" onClick="{{ onStart }}" onMouseEnter="{{ startEnter }}" onMouseLeave="{{ startLeave }}" onMouseDown="{{ startDown }}" onMouseUp="{{ startUp }}" onFocus="{{ startFocus }}" onBlur="{{ startBlur }}" aria-label="Start lesson" style="{{ startBtnStyle }}">
+          <span style="{{ startIconStyle }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="#ffffff" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"></path></svg>
+          </span>
+          Start lesson
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <div data-screen-label="Main screen" style="max-width:1480px;width:100%;margin:0 auto;height:max(780px, calc(100vh - 40px));display:flex;flex-direction:column;gap:14px;min-width:860px;">
+    <div ref="{{ stageRef }}" style="flex:1;min-height:0;position:relative;border-radius:28px;overflow:hidden;background:radial-gradient(ellipse at 32% 30%, #fffdf9 0%, #f4f0e9 50%, #e8e2d7 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.7), 0 1px 2px rgba(60,40,20,0.06);">
+      <div style="position:absolute;left:0;right:0;bottom:0;height:36%;background:linear-gradient(180deg, rgba(228,221,209,0) 0%, rgba(226,218,205,0.85) 100%);"></div>
+      <div style="position:absolute;left:0;right:0;top:64%;height:1px;background:linear-gradient(90deg, rgba(200,190,175,0), rgba(200,190,175,0.45), rgba(200,190,175,0));"></div>
+      <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="{{ pose }}" speaking="{{ speakingStr }}" rleft="0.02" rright="{{ regionRight }}" roam="{{ roam }}" size="{{ charSize }}" style="position:absolute;inset:0;" hint-size="100%,100%"></x-import>
+      <div style="{{ topBarStyle }}">
+        <div style="display:flex;align-items:center;gap:18px;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;font-weight:700;font-size:21px;letter-spacing:-0.02em;">
+              <div style="width:12px;height:12px;border-radius:50%;background:oklch(0.62 0.11 198);box-shadow:0 0 0 4px oklch(0.9 0.05 195);"></div>
+              Tutor
+            </div>
+            <div style="width:1px;height:18px;background:#d9d3c8;"></div>
+            <div style="font-size:14px;color:#6c6861;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">CS111 · Lecture 4 · <span style="color:#24232a;font-weight:600;">CPU Scheduling</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6c6861;white-space:nowrap;">
+            {{ progressLabel }}
+            <div style="display:flex;gap:4px;">
+              <sc-for list="{{ outline }}" as="o" hint-placeholder-count="5">
+                <div style="{{ o.pipStyle }}"></div>
+              </sc-for>
+            </div>
+          </div>
+        
+          <sc-if value="{{ panelClosed }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ togglePanel }}" style="height:38px;padding:0 14px;border-radius:12px;border:1px solid #e0dbd2;background:#fbfaf7;font:inherit;font-size:14px;font-weight:600;color:#24232a;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 2px 8px rgba(60,40,20,0.08);" style-hover="background:#fff;"><span style="color:#8a857d;">‹</span>Lesson panel</button>
+          </sc-if>
+        </div>
+      </div>
+      <div style="{{ boardWrapStyle }}">
+        <div style="background:#fdfdfb;border-radius:22px;border:1px solid #e9e4db;box-shadow:0 34px 60px -34px rgba(90,65,30,0.4), 0 2px 6px rgba(90,65,30,0.06);padding:24px 26px 26px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#8a857d;white-space:nowrap;">
+              <span>Board</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;min-width:0;">{{ boardSection }}</span>
+            </div>
+
+            <sc-if value="{{ isLecture }}" hint-placeholder-val="{{ true }}">
+              <div style="font-family:'Caveat',cursive;font-weight:700;font-size:34px;line-height:1;color:#24232a;">FCFS: run jobs in arrival order</div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;height:46px;border-radius:10px;overflow:hidden;border:1.5px solid #3a3840;">
+                  <div style="flex:24;background:oklch(0.9 0.06 195);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;">P1 · 24 ms</div>
+                  <div style="flex:3;background:oklch(0.9 0.06 85);border-left:1.5px solid #3a3840;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;">P2</div>
+                  <div style="flex:3;background:oklch(0.9 0.06 300);border-left:1.5px solid #3a3840;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;">P3</div>
+                </div>
+                <div style="position:relative;height:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6c6861;">
+                  <span style="position:absolute;left:0;">0</span>
+                  <span style="position:absolute;left:80%;transform:translateX(-50%);">24</span>
+                  <span style="position:absolute;right:0;">30</span>
+                </div>
+              </div>
+              <div style="font-family:'Caveat',cursive;font-weight:500;font-size:27px;line-height:1.2;color:#2c2b33;display:flex;flex-direction:column;gap:2px;white-space:nowrap;">
+                <div>avg wait = (0+24+27) ÷ 3</div>
+                <div style="display:flex;align-items:center;gap:10px;padding-left:72px;">= <span style="white-space:nowrap;border:2.5px solid oklch(0.62 0.11 198);border-radius:50% 46% 52% 44%;padding:0 12px;color:oklch(0.42 0.09 205);font-weight:700;">17 ms</span></div>
+              </div>
+              <div style="font-size:14px;color:#6c6861;line-height:1.5;border-top:1px dashed #e2ddd3;padding-top:14px;text-wrap:pretty;">Run the short jobs first and the same three processes average just 3 ms.</div>
+            </sc-if>
+
+            <sc-if value="{{ isQuiz }}" hint-placeholder-val="{{ false }}">
+              <div style="font-family:'Caveat',cursive;font-weight:700;font-size:34px;line-height:1;">Quick check</div>
+              <div style="font-size:16px;line-height:1.5;color:#2c2b33;text-wrap:pretty;">The same jobs arrive as <b>P2, P3, P1</b> (3, 3, 24 ms). What is the average wait under FCFS?</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <sc-for list="{{ options }}" as="opt" hint-placeholder-count="4">
+                  <button onClick="{{ opt.onClick }}" style="{{ opt.style }}">{{ opt.label }}</button>
+                </sc-for>
+              </div>
+              <div style="font-size:14px;color:#6c6861;min-height:21px;">{{ feedback }}</div>
+            </sc-if>
+
+        </div>
+      </div>
+      <div style="{{ panelStyle }}">
+        <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;display:flex;padding:4px;background:#efebe4;border-radius:14px;gap:4px;">
+          <button onClick="{{ setLecture }}" style="{{ lectureTabStyle }}">Lecture</button>
+          <button onClick="{{ setQuiz }}" style="{{ quizTabStyle }}">Quiz</button>
+        </div>
+        <button onClick="{{ togglePanel }}" title="Hide panel" style="width:40px;height:40px;flex-shrink:0;border-radius:12px;border:1px solid #e0dbd2;background:#fff;cursor:pointer;font:inherit;font-size:18px;color:#6c6861;display:flex;align-items:center;justify-content:center;" style-hover="background:#f5f2ec;">›</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:13px;font-weight:600;color:#6c6861;">Your notes</div>
+            <button style="display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid #e0dbd2;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#24232a;cursor:pointer;" style-hover="background:#f5f2ec;"><span style="font-size:16px;line-height:1;">+</span>Upload</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <sc-for list="{{ notes }}" as="n" hint-placeholder-count="3">
+              <div style="{{ n.rowStyle }}">
+                <div style="width:34px;height:40px;border-radius:8px;background:#fff;border:1px solid #e6e1d8;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#9a5a4a;flex-shrink:0;">PDF</div>
+                <div style="min-width:0;flex:1;">
+                  <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ n.name }}</div>
+                  <div style="font-size:12px;color:#8a857d;">{{ n.meta }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:13px;font-weight:600;color:#6c6861;">Lesson outline</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <sc-for list="{{ outline }}" as="o" hint-placeholder-count="5">
+              <div style="{{ o.rowStyle }}">
+                <div style="{{ o.badgeStyle }}">{{ o.badge }}</div>
+                <div style="flex:1;">{{ o.title }}</div>
+                <sc-if value="{{ o.current }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:oklch(0.42 0.09 205);">Now</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1 0 auto;min-height:220px;display:flex;flex-direction:column;gap:10px;border-top:1px solid #ece8e1;padding-top:18px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:7px;height:7px;border-radius:50%;background:oklch(0.62 0.11 198);animation:mDot 1.4s ease-in-out infinite;"></div>
+            <div style="font-size:13px;font-weight:600;color:#6c6861;">Live transcript</div>
+          </div>
+          <div ref="{{ tRef }}" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px;">
+            <sc-for list="{{ lines }}" as="l" hint-placeholder-count="3">
+              <sc-if value="{{ l.tutor }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:3px;">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">Tutor · {{ l.time }}</div>
+                  <div style="{{ l.textStyle }}">{{ l.text }}<sc-if value="{{ l.live }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;width:2px;height:15px;margin-left:3px;vertical-align:-2px;background:oklch(0.62 0.11 198);animation:mCaret 1s infinite;"></span></sc-if></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ l.student }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">You · {{ l.time }}</div>
+                  <div style="max-width:86%;background:#efebe4;border-radius:14px 14px 4px 14px;padding:9px 13px;font-size:14px;line-height:1.45;">{{ l.text }}</div>
+                </div>
+              </sc-if>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fbfaf7;border-radius:24px;padding:12px 14px 12px 12px;display:flex;align-items:center;gap:18px;box-shadow:0 1px 2px rgba(60,40,20,0.06);">
+      <div style="position:relative;width:68px;height:68px;flex-shrink:0;">
+        <sc-if value="{{ isListening }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;border-radius:50%;background:oklch(0.62 0.11 198);animation:mRing 1.6s ease-out infinite;"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;background:oklch(0.62 0.11 198);animation:mRing 1.6s ease-out .8s infinite;"></div>
+        </sc-if>
+        <button onClick="{{ onMic }}" style="{{ micStyle }}">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="{{ micCapsule }}"></div>
+            <div style="{{ micCup }}"></div>
+            <div style="{{ micStem }}"></div>
+          </div>
+        </button>
+      </div>
+      <div style="width:190px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:15px;font-weight:600;">{{ micTitle }}</div>
+        <sc-if value="{{ showBars }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:3px;height:16px;">
+            <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+              <div style="{{ b.style }}"></div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ showHint }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px;color:#8a857d;">Hold <span style="font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid #e0dbd2;border-radius:5px;padding:1px 5px;background:#fff;">Space</span> or tap the mic</div>
+        </sc-if>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:8px;height:56px;background:#f1eee8;border-radius:18px;padding:0 8px 0 20px;">
+        <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onKey }}" placeholder="Ask a question about this lecture…" style="flex:1;border:none;outline:none;background:transparent;font:inherit;font-size:16px;color:#24232a;">
+        <button onClick="{{ onSend }}" style="width:42px;height:42px;border-radius:13px;border:none;background:#24232a;color:#fff;font-size:19px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:#3a3840;">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <div data-screen-label="Poses" style="max-width:1480px;width:100%;margin:0 auto 40px;display:flex;flex-direction:column;gap:18px;">
+    <div style="display:flex;flex-direction:column;gap:4px;padding:0 6px;">
+      <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">Character poses</div>
+      <div style="font-size:15px;color:#6c6861;">Alternate states used during a lesson.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(380px, 1fr));gap:14px;">
+      <div style="position:relative;height:420px;border-radius:28px;overflow:hidden;background:radial-gradient(ellipse at 40% 30%, #fffdf9 0%, #f4f0e9 50%, #e8e2d7 100%);">
+        <div style="position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg, rgba(228,221,209,0), rgba(226,218,205,0.85));"></div>
+        <div style="position:absolute;right:-30px;top:90px;width:170px;height:200px;z-index:1;background:#fdfdfb;border:1px solid #e9e4db;border-radius:18px;box-shadow:0 30px 50px -30px rgba(90,65,30,0.4);padding:22px;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Caveat',cursive;font-weight:700;font-size:28px;line-height:1;">17 ms</div>
+          <div style="height:22px;border-radius:6px;border:1.5px solid #3a3840;background:oklch(0.9 0.06 195);"></div>
+          <div style="height:2px;width:80%;background:#e6e1d8;"></div>
+          <div style="height:2px;width:60%;background:#e6e1d8;"></div>
+        </div>
+        <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="point" speaking="on" rleft="0" rright="0.56" roam="0.3" size="1.15" style="position:absolute;inset:0;" hint-size="100%,100%"></x-import>
+        <div style="position:absolute;left:24px;bottom:22px;display:flex;align-items:center;gap:10px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">A</div>
+          <div style="font-size:15px;font-weight:600;">Pointing at the whiteboard</div>
+        </div>
+      </div>
+      <div style="position:relative;height:420px;border-radius:28px;overflow:hidden;background:radial-gradient(ellipse at 50% 30%, #fffdf9 0%, #f4f0e9 50%, #e8e2d7 100%);">
+        <div style="position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg, rgba(228,221,209,0), rgba(226,218,205,0.85));"></div>
+        <div style="position:absolute;left:24px;top:22px;z-index:1;display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:12px;background:oklch(0.95 0.03 195);color:oklch(0.38 0.09 205);font-size:14px;font-weight:600;">✓ 3 ms is correct</div>
+        <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="celebrate" speaking="off" rleft="0.3" rright="0.98" roam="0.3" size="1.0" style="position:absolute;inset:0;" hint-size="100%,100%"></x-import>
+        <div style="position:absolute;left:24px;bottom:22px;display:flex;align-items:center;gap:10px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">B</div>
+          <div style="font-size:15px;font-weight:600;">Celebrating a correct quiz answer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;roam&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.75,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Character&quot;},&quot;characterSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1.15,&quot;min&quot;:0.7,&quot;max&quot;:1.6,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Character&quot;}}">
+class Component extends DCLogic {
+  state = {
+    panelOpen: true, stageW: 1000, started: false, leaving: false, sHover: false, sPress: false, sFocusVis: false, greet: false,
+    mode: 'lecture', mic: 'speaking', answer: null, draft: '',
+    lines: [
+      { who: 'tutor', time: '12:04', text: "So far we've said the scheduler picks which process runs next. The simplest rule is first-come, first-served." },
+      { who: 'student', time: '12:05', text: 'So it just runs them in the order they show up?' },
+      { who: 'tutor', time: '12:05', text: 'Exactly. Look at the board: P1 takes 24 ms, so P2 and P3 wait behind it. Their average wait comes out to 17 milliseconds.', live: true },
+    ],
+  };
+  tRef = React.createRef();
+  startRef = React.createRef();
+  stageRef = React.createRef();
+  componentDidMount() {
+    this.onKeyStart = (e) => {
+      if (this.state.started || this.state.leaving) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target === this.startRef.current) return;
+      if (e.target && /INPUT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
+      e.preventDefault(); this.start();
+    };
+    window.addEventListener('keydown', this.onKeyStart);
+    setTimeout(() => { const b = this.startRef.current; if (b) b.focus({ preventScroll: true }); }, 50);
+    this.scroll();
+    if (this.stageRef.current) {
+      this.ro = new ResizeObserver(([e]) => { const w = Math.round(e.contentRect.width); if (w !== this.state.stageW) this.setState({ stageW: w }); });
+      this.ro.observe(this.stageRef.current);
+    }
+  }
+  componentDidUpdate() { this.scroll(); }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKeyStart); clearTimeout(this.t2); clearTimeout(this.t3); this.ro && this.ro.disconnect(); }
+  unlockAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        const ctx = window.__tutorAudioCtx || (window.__tutorAudioCtx = new AC());
+        if (ctx.state === 'suspended') ctx.resume();
+        const src = ctx.createBufferSource(); src.buffer = ctx.createBuffer(1, 1, 22050); src.connect(ctx.destination); src.start(0);
+      }
+      if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u); }
+      window.__tutorAudioUnlocked = true;
+    } catch (e) {}
+  }
+  start() {
+    if (this.state.started || this.state.leaving) return;
+    this.unlockAudio();
+    this.setState({ leaving: true, sPress: false });
+    this.t2 = setTimeout(() => this.setState({ started: true, greet: true }), 600);
+    this.t3 = setTimeout(() => this.setState({ greet: false }), 3200);
+  }
+  scroll() { const el = this.tRef.current; if (el) el.scrollTop = el.scrollHeight; }
+  now() { const d = new Date(); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  clearLive(lines) { return lines.map(l => ({ ...l, live: false })); }
+  tutorSays(text, extra = {}) {
+    this.setState(s => ({ ...extra, mic: 'speaking', lines: [...this.clearLive(s.lines), { who: 'tutor', time: this.now(), text, live: true }] }));
+  }
+  ask(text, reply) {
+    this.setState(s => ({ mic: 'idle', draft: '', lines: [...this.clearLive(s.lines), { who: 'student', time: this.now(), text }] }));
+    clearTimeout(this.t);
+    this.t = setTimeout(() => this.tutorSays(reply), 900);
+  }
+  setMode(mode) {
+    if (mode === this.state.mode) return;
+    if (mode === 'quiz') this.tutorSays("Let's check that it stuck. Same three jobs, new arrival order. What's the average wait?", { mode, answer: null });
+    else this.tutorSays('Back to the lecture. Next up: shortest job first.', { mode, answer: null });
+  }
+  pick(i) {
+    if (this.state.answer === 1) return;
+    if (i === 1) this.tutorSays('Yes! 3 ms. The waits are 0, 3 and 6, because the long job goes last.', { answer: i });
+    else this.tutorSays('Not quite. Write out when each job starts: P2 at 0, P3 at 3, P1 at 6. Now average those.', { answer: i });
+  }
+  startVals() {
+    const { started, leaving, sHover, sPress, sFocusVis } = this.state;
+    const A = 'oklch(0.52 0.1 202)';
+    return {
+      showStart: !started,
+      startRef: this.startRef,
+      startOverlayStyle: { position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, padding: 24, background: 'radial-gradient(ellipse at 50% 35%, #fffdf9 0%, #f4f0e9 50%, #e8e2d7 100%)', opacity: leaving ? 0 : 1, transform: leaving ? 'scale(1.02)' : 'none', transition: 'opacity .6s ease, transform .6s ease', pointerEvents: leaving ? 'none' : 'auto' },
+      startBtnStyle: { position: 'relative', height: 64, padding: '0 30px 0 12px', display: 'flex', alignItems: 'center', gap: 14, borderRadius: 999, border: 'none', background: A, color: '#fff', font: 'inherit', fontFamily: "'Figtree', system-ui, sans-serif", fontSize: 19, fontWeight: 600, letterSpacing: '-0.01em', cursor: 'pointer', outline: 'none',
+        transform: sPress ? 'scale(0.95)' : sHover ? 'translateY(-2px)' : 'none',
+        boxShadow: [sHover ? '0 18px 36px -12px oklch(0.45 0.1 202 / 0.75)' : '0 10px 22px -10px oklch(0.45 0.1 202 / 0.7)', sFocusVis ? '0 0 0 3px #fbfaf7, 0 0 0 6px oklch(0.62 0.11 198)' : null].filter(Boolean).join(', '),
+        transition: 'transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease' },
+      startIconStyle: { width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, transform: sHover ? 'translateX(2px)' : 'none', transition: 'transform .18s cubic-bezier(.2,.8,.2,1)' },
+      onStart: () => this.start(),
+      startEnter: () => this.setState({ sHover: true }),
+      startLeave: () => this.setState({ sHover: false, sPress: false }),
+      startDown: () => this.setState({ sPress: true }),
+      startUp: () => this.setState({ sPress: false }),
+      startFocus: (e) => { let v = true; try { v = e.target.matches(':focus-visible'); } catch (_) {} this.setState({ sFocusVis: v }); },
+      startBlur: () => this.setState({ sFocusVis: false }),
+    };
+  }
+  layout() {
+    const W = this.state.stageW || 1000, open = this.state.panelOpen, PW = 360;
+    const ease = 'cubic-bezier(.2,.8,.2,1)';
+    const boardW = Math.round(Math.max(280, Math.min(420, W * 0.3)));
+    const boardRight = open ? PW + 16 + 20 : 28;
+    return {
+      regionRight: String(Math.max(0.2, (W - boardRight - boardW - 12) / W).toFixed(3)),
+      topBarStyle: { position: 'absolute', top: 0, left: 0, right: open ? PW + 16 : 0, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 28px', gap: 16, transition: `right .45s ${ease}` },
+      boardWrapStyle: { position: 'absolute', top: '50%', right: boardRight, width: boardW, transform: 'translateY(-44%)', zIndex: 1, transition: `right .45s ${ease}` },
+      panelStyle: { position: 'absolute', top: 12, right: 12, bottom: 12, width: PW, zIndex: 3, background: 'rgba(251,250,247,0.94)', backdropFilter: 'blur(14px)', borderRadius: 22, padding: 20, display: 'flex', flexDirection: 'column', gap: 22, overflowY: 'auto', boxShadow: '0 24px 60px -24px rgba(70,50,25,0.35), 0 0 0 1px rgba(0,0,0,0.04)', transform: open ? 'translateX(0)' : 'translateX(calc(100% + 24px))', transition: `transform .45s ${ease}` },
+    };
+  }
+  renderVals() {
+    const { mode, mic, answer, draft, lines } = this.state;
+    const A = 'oklch(0.52 0.1 202)', ASOFT = 'oklch(0.95 0.03 195)', AINK = 'oklch(0.42 0.09 205)';
+    const isQuiz = mode === 'quiz';
+    const cur = isQuiz ? 4 : 1;
+    const tab = on => ({ flex: 1, height: 40, border: 'none', borderRadius: 11, font: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', background: on ? '#fff' : 'transparent', color: on ? '#24232a' : '#6c6861', boxShadow: on ? '0 1px 3px rgba(60,40,20,0.12)' : 'none' });
+    const outlineTitles = ['Why schedule at all?', 'First-come, first-served', 'Shortest job first', 'Round robin', 'Quick check'];
+    const outline = outlineTitles.map((title, i) => {
+      const done = i < cur, current = i === cur;
+      return {
+        title, current, badge: done ? '✓' : String(i + 1),
+        rowStyle: { display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 12, fontSize: 14, fontWeight: current ? 600 : 500, background: current ? ASOFT : 'transparent', color: done ? '#8a857d' : '#24232a' },
+        badgeStyle: { width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0, background: current ? A : done ? '#e9e5de' : 'transparent', color: current ? '#fff' : done ? '#6c6861' : '#8a857d', border: current || done ? 'none' : '1.5px solid #dcd6cc' },
+        pipStyle: { width: current ? 18 : 6, height: 6, borderRadius: 3, background: current ? A : done ? '#bdb6aa' : '#dcd6cc' },
+      };
+    });
+    const notes = [
+      { name: 'CS111 Lecture 4.pdf', meta: '18 pages · in use', active: true },
+      { name: 'CS111 Lecture 3.pdf', meta: '22 pages' },
+      { name: 'Scheduling cheat sheet.pdf', meta: '2 pages' },
+    ].map(n => ({ ...n, rowStyle: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, background: n.active ? ASOFT : 'transparent' } }));
+    const optLabels = ['6 ms', '3 ms', '17 ms', '9 ms'];
+    const options = optLabels.map((label, i) => {
+      const chosen = answer === i, right = chosen && i === 1, wrong = chosen && i !== 1;
+      return {
+        label, onClick: () => this.pick(i),
+        style: { height: 52, borderRadius: 14, font: 'inherit', fontSize: 17, fontWeight: 600, cursor: 'pointer', border: right ? `2px solid ${A}` : wrong ? '2px solid oklch(0.62 0.12 30)' : '1.5px solid #e2ddd3', background: right ? ASOFT : wrong ? 'oklch(0.96 0.025 30)' : '#fff', color: right ? AINK : '#24232a' },
+      };
+    });
+    const feedback = answer === null ? 'Tap an answer, or say it out loud.' : answer === 1 ? 'Correct. Short jobs first keeps the wait low.' : 'Try again. Hint: list each start time.';
+    const listening = mic === 'listening', speaking = mic === 'speaking';
+    const fg = speaking ? A : '#fff';
+    const barH = [8, 14, 10, 16, 9, 13, 7];
+    return {
+      isLecture: !isQuiz, isQuiz,
+      boardSection: isQuiz ? '05 · Quick check' : '02 · First-come, first-served',
+      progressLabel: `Section ${cur + 1} of 5`,
+      pose: this.state.greet ? 'wave' : isQuiz && answer === 1 ? 'celebrate' : 'explain',
+      ...this.startVals(),
+      speaking,
+      lectureTabStyle: tab(!isQuiz), quizTabStyle: tab(isQuiz),
+      setLecture: () => this.setMode('lecture'), setQuiz: () => this.setMode('quiz'),
+      notes, outline, options, feedback,
+      tRef: this.tRef, stageRef: this.stageRef,
+      ...this.layout(),
+      speakingStr: speaking ? 'on' : 'off',
+      roam: String(this.props.roam ?? 0.75), charSize: String(this.props.characterSize ?? 1.15),
+      panelClosed: !this.state.panelOpen,
+      togglePanel: () => this.setState(s => ({ panelOpen: !s.panelOpen })),
+      lines: lines.map(l => ({ ...l, tutor: l.who === 'tutor', student: l.who === 'student', live: !!l.live, textStyle: { fontSize: 14.5, lineHeight: 1.5, color: l.live ? '#24232a' : '#5f5b55', fontWeight: l.live ? 500 : 400, textWrap: 'pretty' } })),
+      isListening: listening,
+      micTitle: listening ? 'Listening…' : speaking ? 'Tutor is speaking' : 'Tap to talk',
+      showBars: listening || speaking, showHint: !listening && !speaking,
+      bars: barH.map((h, i) => ({ style: { width: 4, height: h + 2, borderRadius: 2, background: listening ? '#24232a' : A, transformOrigin: 'center', animation: `mBar ${0.7 + (i % 3) * 0.18}s ease-in-out ${i * 0.09}s infinite` } })),
+      micStyle: { position: 'relative', width: 68, height: 68, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: speaking ? '#fff' : A, border: speaking ? `2px solid ${A}` : 'none', boxShadow: '0 10px 22px -10px oklch(0.45 0.1 202 / 0.7)' },
+      micCapsule: { width: 13, height: 20, borderRadius: 8, background: fg },
+      micCup: { width: 22, height: 11, marginTop: -6, border: `2.5px solid ${fg}`, borderTop: 'none', borderRadius: '0 0 12px 12px' },
+      micStem: { width: 2.5, height: 5, background: fg },
+      onMic: () => {
+        if (listening) this.ask('Why is FCFS bad when a long job arrives first?', "Because every short job queues behind it. That's called the convoy effect, and it's why the average wait jumps to 17 ms.");
+        else { clearTimeout(this.t); this.setState({ mic: 'listening' }); }
+      },
+      draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onSend: () => { const t = draft.trim(); if (t) this.ask(t, 'Good question. Let me tie that back to the board.'); },
+      onKey: e => { if (e.key === 'Enter') { const t = draft.trim(); if (t) this.ask(t, 'Good question. Let me tie that back to the board.'); } },
+    };
+  }
+}
+</script>
+</body>
+</html>

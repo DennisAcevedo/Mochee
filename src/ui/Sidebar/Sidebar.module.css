@@ -1,0 +1,229 @@
+.panel {
+  position: absolute;
+  top: var(--panel-inset);
+  right: var(--panel-inset);
+  bottom: var(--panel-inset);
+  width: var(--panel-w);
+  z-index: 3;
+  background: rgba(251, 250, 247, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: var(--r-panel);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-panel);
+  transform: translateX(calc(100% + 24px));
+  transition: transform var(--panel-ms) var(--ease);
+}
+.panel[data-open='true'] {
+  transform: translateX(0);
+}
+
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tabs {
+  flex: 1;
+  display: flex;
+  padding: 4px;
+  background: var(--surface-tint);
+  border-radius: var(--r-tabs);
+  gap: 4px;
+}
+
+.tab {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: var(--r-tab);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+}
+.tab[data-on='true'] {
+  background: #fff;
+  color: var(--text);
+  box-shadow: var(--shadow-tab);
+}
+
+.collapse {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--r-button);
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.collapse:hover {
+  background: var(--surface-hover);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.upload {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-small);
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.upload:hover {
+  background: var(--surface-hover);
+}
+
+.plus {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noteRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-row);
+  background: transparent;
+}
+.noteRow[data-active='true'] {
+  background: var(--accent-soft);
+}
+
+.pdfIcon {
+  width: 34px;
+  height: 40px;
+  border-radius: var(--r-pdf);
+  background: #fff;
+  border: 1px solid var(--border-icon);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 5px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--pdf-label);
+  flex-shrink: 0;
+}
+
+.noteText {
+  min-width: 0;
+  flex: 1;
+}
+
+.noteName {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noteMeta {
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.outline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.outlineRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: var(--r-row);
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text);
+}
+.outlineRow[data-state='current'] {
+  font-weight: 600;
+  background: var(--accent-soft);
+}
+.outlineRow[data-state='done'] {
+  color: var(--muted-2);
+}
+
+.badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--muted-2);
+  border: 1.5px solid var(--border-badge);
+}
+.badge[data-state='current'] {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+}
+.badge[data-state='done'] {
+  background: var(--badge-done);
+  color: var(--muted);
+  border: none;
+}
+
+.outlineTitle {
+  flex: 1;
+}
+
+.now {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}

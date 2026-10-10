@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caveat:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ece9e3;font-family:'Figtree',system-ui,sans-serif;color:#24232a;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.45 0.09 205)}a:hover{color:oklch(0.38 0.09 205)}
+*{box-sizing:border-box}
+input::placeholder{color:#9a958d}
+@keyframes mBar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes fadeUp{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sRing{0%{transform:scale(1,1);opacity:.4}100%{transform:scale(1.14,1.5);opacity:0}}
+</style>
+</helmet>
+<div data-screen-label="Create tutor" style="min-height:100vh;padding:20px;">
+  <div style="max-width:1400px;margin:0 auto;height:max(760px, calc(100vh - 40px));display:flex;flex-direction:column;gap:14px;min-width:900px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:6px 8px;">
+      <div style="display:flex;align-items:center;gap:18px;">
+        <a href="Tutor Home.dc.html" style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:21px;letter-spacing:-0.02em;color:#24232a;text-decoration:none;">
+          <div style="width:12px;height:12px;border-radius:50%;background:oklch(0.62 0.11 198);box-shadow:0 0 0 4px oklch(0.9 0.05 195);"></div>
+          Tutor
+        </a>
+        <div style="width:1px;height:18px;background:#d9d3c8;"></div>
+        <div style="font-size:14px;color:#6c6861;">New tutor</div>
+      </div>
+      <a href="Tutor Home.dc.html" aria-label="Close" style="width:40px;height:40px;border-radius:12px;border:1px solid #e0dbd2;background:#fbfaf7;display:flex;align-items:center;justify-content:center;text-decoration:none;" style-hover="background:#fff;">
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="#6c6861" stroke-width="2.6" stroke-linecap="round"></path></svg>
+      </a>
+    </div>
+
+    <div style="flex:1;min-height:0;display:flex;gap:14px;">
+      <div style="flex:1 1 0;min-width:0;max-width:640px;background:#fbfaf7;border-radius:28px;padding:30px 34px;display:flex;flex-direction:column;gap:26px;box-shadow:0 1px 2px rgba(60,40,20,0.06);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+              <div style="{{ s.dotStyle }}">{{ s.mark }}</div>
+              <div style="{{ s.labelStyle }}">{{ s.label }}</div>
+              <sc-if value="{{ s.notLast }}" hint-placeholder-val="{{ true }}">
+                <div style="flex:1;height:2px;border-radius:1px;background:#e6e1d8;min-width:12px;"></div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:24px;padding:2px;">
+
+          <sc-if value="{{ isStep0 }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">Name your tutor</div>
+              <div style="font-size:15px;color:#6c6861;">Use the course name so it's easy to find later.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:13px;font-weight:600;color:#6c6861;">Tutor name</div>
+              <input ref="{{ nameRef }}" value="{{ name }}" onChange="{{ onName }}" onKeyDown="{{ onNameKey }}" placeholder="e.g. CS111 · Operating Systems" style="height:58px;border:2px solid transparent;border-radius:16px;background:#f1eee8;padding:0 18px;font:inherit;font-size:18px;color:#24232a;outline:none;" style-focus="border-color:oklch(0.62 0.11 198);background:#fff;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:13px;font-weight:600;color:#6c6861;">Subject</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <sc-for list="{{ subjects }}" as="sub" hint-placeholder-count="6">
+                  <button onClick="{{ sub.onClick }}" style="{{ sub.style }}">{{ sub.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">Add your notes</div>
+              <div style="font-size:15px;color:#6c6861;">Lecture slides, readings, problem sets. PDFs work best.</div>
+            </div>
+            <label onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="{{ dropStyle }}">
+              <input type="file" accept=".pdf,application/pdf" multiple="multiple" onChange="{{ onPick }}" style="display:none;">
+              <div style="width:56px;height:56px;border-radius:50%;background:#fff;box-shadow:0 6px 16px -8px rgba(60,40,20,0.3);display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17V6M7 10.5L12 5.5l5 5" fill="none" stroke="oklch(0.52 0.1 202)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M5 19h14" stroke="oklch(0.52 0.1 202)" stroke-width="2.4" stroke-linecap="round"></path></svg>
+              </div>
+              <div style="font-size:18px;font-weight:600;">{{ dropTitle }}</div>
+              <div style="font-size:14px;color:#6c6861;">or <span style="color:oklch(0.45 0.09 205);font-weight:600;text-decoration:underline;text-underline-offset:3px;">browse your files</span></div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">PDF · up to 50 MB each</div>
+            </label>
+            <sc-if value="{{ noFiles }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ useSamples }}" style="align-self:flex-start;border:none;background:none;padding:0;font:inherit;font-size:14px;font-weight:600;color:oklch(0.45 0.09 205);cursor:pointer;">No files handy? Use sample CS111 notes</button>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <sc-for list="{{ files }}" as="f" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:#fff;border:1px solid #ece8e1;animation:fadeUp .3s ease both;">
+                  <div style="width:34px;height:40px;border-radius:8px;background:#fbfaf7;border:1px solid #e6e1d8;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#9a5a4a;flex-shrink:0;">PDF</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f.name }}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">{{ f.size }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:oklch(0.42 0.09 205);"><div style="width:6px;height:6px;border-radius:50%;background:oklch(0.62 0.11 198);"></div>Ready</div>
+                  <button onClick="{{ f.remove }}" aria-label="Remove file" style="width:30px;height:30px;border-radius:9px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="background:#f1eee8;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="#8a857d" stroke-width="3" stroke-linecap="round"></path></svg>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">Pick a look</div>
+              <div style="font-size:15px;color:#6c6861;">Your tutor wears this in every lesson.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="font-size:13px;font-weight:600;color:#6c6861;">Cap color</div>
+              <div style="display:flex;flex-wrap:wrap;gap:12px;">
+                <sc-for list="{{ caps }}" as="c" hint-placeholder-count="6">
+                  <button onClick="{{ c.onClick }}" aria-label="{{ c.label }}" title="{{ c.label }}" style="{{ c.ringStyle }}">
+                    <div style="{{ c.swatchStyle }}"></div>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="font-size:13px;font-weight:600;color:#6c6861;">Accessory</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(96px, 1fr));gap:8px;">
+                <sc-for list="{{ accs }}" as="a" hint-placeholder-count="5">
+                  <button onClick="{{ a.onClick }}" style="{{ a.style }}">
+                    <span style="font-size:15px;font-weight:600;">{{ a.label }}</span>
+                    <span style="font-size:12px;color:#8a857d;">{{ a.hint }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ showAccColor }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="font-size:13px;font-weight:600;color:#6c6861;">{{ accColorTitle }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                  <sc-for list="{{ accColors }}" as="ac" hint-placeholder-count="7">
+                    <button onClick="{{ ac.onClick }}" aria-label="{{ ac.label }}" title="{{ ac.label }}" style="{{ ac.ringStyle }}">
+                      <div style="{{ ac.swatchStyle }}"></div>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">Pick a voice</div>
+              <div style="font-size:15px;color:#6c6861;">Tap play to hear a sample.</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:10px;">
+              <sc-for list="{{ voices }}" as="v" hint-placeholder-count="4">
+                <div onClick="{{ v.select }}" style="{{ v.style }}">
+                  <button onClick="{{ v.play }}" aria-label="{{ v.playLabel }}" style="{{ v.playStyle }}">
+                    <sc-if value="{{ v.playing }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:2px;height:16px;">
+                        <div style="width:3px;height:14px;border-radius:2px;background:#fff;animation:mBar .7s ease-in-out infinite;"></div>
+                        <div style="width:3px;height:14px;border-radius:2px;background:#fff;animation:mBar .7s ease-in-out .15s infinite;"></div>
+                        <div style="width:3px;height:14px;border-radius:2px;background:#fff;animation:mBar .7s ease-in-out .3s infinite;"></div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ v.idle }}" hint-placeholder-val="{{ true }}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="{{ v.iconColor }}" stroke="{{ v.iconColor }}" stroke-width="3" stroke-linejoin="round"></path></svg>
+                    </sc-if>
+                  </button>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                    <div style="font-size:16px;font-weight:700;">{{ v.name }}</div>
+                    <div style="font-size:13px;color:#6c6861;">{{ v.desc }}</div>
+                  </div>
+                  <div style="{{ v.radioStyle }}"></div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">{{ studyTitle }}</div>
+              <div style="font-size:15px;color:#6c6861;">{{ studySub }}</div>
+            </div>
+            <div style="height:6px;border-radius:3px;background:#ebe7e0;overflow:hidden;">
+              <div style="{{ studyBarStyle }}"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ studyLines }}" as="l" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:10px;font-size:15px;animation:fadeUp .35s ease both;">
+                  <sc-if value="{{ l.done }}" hint-placeholder-val="{{ true }}">
+                    <div style="width:20px;height:20px;border-radius:50%;background:oklch(0.95 0.03 195);color:oklch(0.42 0.09 205);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">✓</div>
+                  </sc-if>
+                  <sc-if value="{{ l.active }}" hint-placeholder-val="{{ false }}">
+                    <div style="width:20px;height:20px;border-radius:50%;border:2.5px solid oklch(0.9 0.05 195);border-top-color:oklch(0.52 0.1 202);animation:spin .8s linear infinite;flex-shrink:0;"></div>
+                  </sc-if>
+                  <span style="{{ l.textStyle }}">{{ l.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ studyDone }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #ece8e1;padding-top:20px;animation:fadeUp .4s ease both;">
+                <div style="font-size:13px;font-weight:600;color:#6c6861;">Lesson outline</div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <sc-for list="{{ outline }}" as="o" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;font-size:15px;font-weight:500;animation:fadeUp .35s ease both;" style-hover="background:#f4f1eb;">
+                      <div style="width:24px;height:24px;border-radius:50%;border:1.5px solid #dcd6cc;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#6c6861;flex-shrink:0;">{{ o.n }}</div>
+                      <div style="flex:1;">{{ o.title }}</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a857d;">{{ o.mins }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="position:relative;align-self:flex-start;margin-top:8px;display:flex;">
+                  <div style="position:absolute;inset:0;border-radius:999px;background:oklch(0.62 0.11 198);animation:sRing 2s ease-out infinite;pointer-events:none;"></div>
+                  <a href="Tutor.dc.html" style="position:relative;height:64px;padding:0 30px 0 12px;display:flex;align-items:center;gap:14px;border-radius:999px;background:oklch(0.52 0.1 202);color:#fff;font-size:19px;font-weight:600;text-decoration:none;box-shadow:0 10px 22px -10px oklch(0.45 0.1 202 / 0.7);transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease;" style-hover="transform:translateY(-2px);box-shadow:0 18px 36px -12px oklch(0.45 0.1 202 / 0.75);color:#fff;" style-active="transform:scale(0.95);">
+                    <span style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;padding-left:2px;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="#ffffff" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"></path></svg>
+                    </span>
+                    Start lesson
+                  </a>
+                </div>
+              </div>
+            </sc-if>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ showFooter }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #ece8e1;padding-top:20px;">
+            <button onClick="{{ onBack }}" style="{{ backStyle }}">Back</button>
+            <button onClick="{{ onNext }}" style="{{ nextStyle }}">{{ nextLabel }}</button>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1.1 1 0;min-width:0;position:relative;border-radius:28px;overflow:hidden;background:radial-gradient(ellipse at 50% 32%, #fffdf9 0%, #f4f0e9 50%, #e8e2d7 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.7), 0 1px 2px rgba(60,40,20,0.06);">
+        <div style="position:absolute;left:0;right:0;bottom:0;height:36%;background:linear-gradient(180deg, rgba(228,221,209,0) 0%, rgba(226,218,205,0.85) 100%);"></div>
+        <div style="position:absolute;left:22px;top:20px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#8a857d;">Live preview</div>
+        <x-import component-from-global-scope="tutor-3d" from="./tutor-3d.js" pose="{{ pose }}" speaking="{{ speakingStr }}" cap="{{ cap }}" accessory="{{ acc }}" acccolor="{{ accColor }}" roam="{{ roam }}" size="1.35" rleft="0.08" rright="0.92" style="position:absolute;inset:0 0 70px 0;" hint-size="100%,100%"></x-import>
+        <div style="position:absolute;left:0;right:0;bottom:26px;display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div style="font-family:'Caveat',cursive;font-weight:700;font-size:34px;line-height:1;color:#24232a;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ tagName }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a857d;">{{ tagSub }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { step: 0, name: '', subject: 'Computer science', lookTouched: false, files: [], drag: false, cap: '', acc: 'glasses', accColors: {}, voice: 'juniper', playing: null, studyIdx: 0, studyDone: false, flash: null };
+  nameRef = React.createRef();
+  componentDidMount() { setTimeout(() => this.nameRef.current && this.nameRef.current.focus({ preventScroll: true }), 80); this.flash('wave', 2600); }
+  componentWillUnmount() { clearTimeout(this.ft); clearInterval(this.si); clearTimeout(this.pt); window.speechSynthesis && window.speechSynthesis.cancel(); }
+  flash(pose, ms) { clearTimeout(this.ft); this.setState({ flash: pose }); this.ft = setTimeout(() => this.setState({ flash: null }), ms); }
+  fmt(bytes) { return bytes > 1e6 ? (bytes / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1e3)) + ' KB'; }
+  addFiles(list) {
+    const add = Array.from(list || []).filter(f => /pdf$/i.test(f.name) || f.type === 'application/pdf').map(f => ({ name: f.name, size: this.fmt(f.size) }));
+    if (!add.length) return;
+    this.setState(s => ({ files: [...s.files, ...add.filter(a => !s.files.some(f => f.name === a.name))], drag: false }));
+    this.flash('celebrate', 1300);
+  }
+  next() {
+    const s = this.state;
+    if (!this.canNext()) return;
+    if (s.step === 3) return this.startStudy();
+    this.setState({ step: s.step + 1 });
+    if (s.step + 1 === 2) this.flash('celebrate', 1300);
+  }
+  canNext() { const s = this.state; return s.step === 0 ? !!s.name.trim() : s.step === 1 ? s.files.length > 0 : true; }
+  startStudy() {
+    window.speechSynthesis && window.speechSynthesis.cancel();
+    this.setState({ step: 4, studyIdx: 0, studyDone: false, playing: null });
+    clearInterval(this.si);
+    this.si = setInterval(() => {
+      const n = this.studyLines().length;
+      if (this.state.studyIdx + 1 >= n) { clearInterval(this.si); this.setState({ studyIdx: n, studyDone: true }); this.flash('celebrate', 2400); }
+      else this.setState(st => ({ studyIdx: st.studyIdx + 1 }));
+    }, 1150);
+  }
+  studyLines() {
+    const f = this.state.files;
+    const first = (f[0] ? f[0].name : 'your notes').replace(/\.pdf$/i, '').replace(/^CS\d+\s*/i, '');
+    return [`Reading ${f.length} file${f.length === 1 ? '' : 's'}`, `Found 5 topics in ${first}`, 'Pulled out 18 key terms', 'Wrote 12 practice questions', 'Built your lesson outline'];
+  }
+  playVoice(v) {
+    const syn = window.speechSynthesis;
+    clearTimeout(this.pt);
+    if (this.state.playing === v.id) { syn && syn.cancel(); this.setState({ playing: null }); return; }
+    this.setState({ playing: v.id, voice: v.id });
+    const done = () => this.setState(s => (s.playing === v.id ? { playing: null } : null));
+    if (!syn) { this.pt = setTimeout(done, 2600); return; }
+    syn.cancel();
+    const u = new SpeechSynthesisUtterance(`Hi, I'm ${v.name}. I've read your notes, and I'm ready when you are.`);
+    const en = syn.getVoices().filter(x => /^en/i.test(x.lang));
+    if (en.length) u.voice = en[v.vi % en.length];
+    u.pitch = v.pitch; u.rate = v.rate; u.onend = done; u.onerror = done;
+    syn.speak(u);
+    this.pt = setTimeout(done, 9000);
+  }
+  renderVals() {
+    const s = this.state;
+    const A = 'oklch(0.52 0.1 202)', ASOFT = 'oklch(0.95 0.03 195)', AINK = 'oklch(0.42 0.09 205)';
+    const labels = ['Name', 'Notes', 'Look', 'Voice'];
+    const subjects = ['Computer science', 'Biology', 'Chemistry', 'Math', 'History', 'Other'];
+    const suggest = { 'Computer science': ['', 'glasses'], Biology: ['#4c9a6a', 'leaf'], Chemistry: ['#d9824a', 'none'], Math: ['#c4566e', 'bowtie'], History: ['#2e2f3a', 'none'], Other: ['', 'none'] };
+    const caps = [{ v: '', label: 'Indigo', bg: 'linear-gradient(160deg, #6a4fd0, #3d5ad6)' }, { v: '#1f8a92', label: 'Teal' }, { v: '#4c9a6a', label: 'Leaf' }, { v: '#d9824a', label: 'Apricot' }, { v: '#c4566e', label: 'Rose' }, { v: '#2e2f3a', label: 'Ink' }];
+    const accs = [{ v: 'none', label: 'None', hint: 'Just the cap' }, { v: 'glasses', label: 'Glasses', hint: 'Bookish' }, { v: 'leaf', label: 'Leaf', hint: 'Sprouting' }, { v: 'mic', label: 'Mic', hint: 'Ready to talk' }, { v: 'bowtie', label: 'Bow tie', hint: 'Dapper' }, { v: 'headphones', label: 'Earbuds', hint: 'Tuned in' }, { v: 'scarf', label: 'Tie', hint: 'Sharp' }, { v: 'pencil', label: 'Pencil', hint: 'Note-taker' }];
+    const accPalette = [{ v: '#2b2b33', label: 'Ink' }, { v: '#5cc4c9', label: 'Teal' }, { v: '#7c5cf2', label: 'Violet' }, { v: '#e0607a', label: 'Rose' }, { v: '#f2b84b', label: 'Sunny' }, { v: '#62b46e', label: 'Green' }, { v: '#f7f5f0', label: 'Cream' }];
+    const accDefault = { glasses: '#2b2b33', leaf: '#62b46e', mic: '#5cc4c9', bowtie: '#7c5cf2', headphones: '#e0607a', scarf: '#f2b84b', pencil: '#5cc4c9' };
+    const accCol = s.accColors[s.acc] || accDefault[s.acc] || '';
+    const accName = (accs.find(x => x.v === s.acc) || {}).label || '';
+    const voices = [
+      { id: 'juniper', name: 'Juniper', desc: 'Warm and unhurried', pitch: 1.05, rate: 0.92, vi: 0 },
+      { id: 'atlas', name: 'Atlas', desc: 'Clear and upbeat', pitch: 0.85, rate: 1.0, vi: 1 },
+      { id: 'wren', name: 'Wren', desc: 'Bright and quick', pitch: 1.35, rate: 1.12, vi: 2 },
+      { id: 'sol', name: 'Sol', desc: 'Low and calm', pitch: 0.7, rate: 0.88, vi: 3 },
+    ];
+    const lines = this.studyLines();
+    const pill = (on) => ({ height: 40, padding: '0 16px', borderRadius: 12, font: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: on ? `2px solid ${A}` : '1.5px solid #e2ddd3', background: on ? ASOFT : '#fff', color: on ? AINK : '#24232a' });
+    let pose = 'explain';
+    if (s.flash) pose = s.flash;
+    else if (s.step === 1 && s.drag) pose = 'listen';
+    else if (s.step === 3) pose = s.playing ? 'explain' : 'listen';
+    else if (s.step === 4) pose = s.studyDone ? 'explain' : 'read';
+    const voice = voices.find(v => v.id === s.voice);
+    const can = this.canNext();
+    return {
+      steps: labels.map((label, i) => {
+        const done = i < s.step, cur = i === s.step;
+        return { label, notLast: i < labels.length - 1, mark: done ? '✓' : String(i + 1),
+          dotStyle: { width: 26, height: 26, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: cur ? A : done ? ASOFT : 'transparent', color: cur ? '#fff' : done ? AINK : '#8a857d', border: cur || done ? 'none' : '1.5px solid #dcd6cc' },
+          labelStyle: { fontSize: 13, fontWeight: 600, color: cur ? '#24232a' : '#8a857d', whiteSpace: 'nowrap' } };
+      }),
+      isStep0: s.step === 0, isStep1: s.step === 1, isStep2: s.step === 2, isStep3: s.step === 3, isStep4: s.step === 4,
+      name: s.name, nameRef: this.nameRef,
+      onName: e => this.setState({ name: e.target.value }),
+      onNameKey: e => { if (e.key === 'Enter') this.next(); },
+      subjects: subjects.map(label => ({ label, style: pill(s.subject === label), onClick: () => this.setState(st => st.lookTouched ? { subject: label } : { subject: label, cap: suggest[label][0], acc: suggest[label][1] }) })),
+      dropStyle: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 230, padding: 24, borderRadius: 22, cursor: 'pointer', textAlign: 'center', border: `2px dashed ${s.drag ? 'oklch(0.62 0.11 198)' : '#d3ccc0'}`, background: s.drag ? ASOFT : '#f6f3ee', transform: s.drag ? 'scale(1.01)' : 'none', transition: 'all .2s ease' },
+      dropTitle: s.drag ? 'Drop to add' : 'Drop PDFs here',
+      onDragOver: e => { e.preventDefault(); if (!s.drag) this.setState({ drag: true }); },
+      onDragLeave: () => this.setState({ drag: false }),
+      onDrop: e => { e.preventDefault(); this.addFiles(e.dataTransfer && e.dataTransfer.files); this.setState({ drag: false }); },
+      onPick: e => { this.addFiles(e.target.files); e.target.value = ''; },
+      noFiles: s.files.length === 0,
+      useSamples: () => { this.setState({ files: [{ name: 'CS111 Lecture 4.pdf', size: '2.4 MB' }, { name: 'CS111 Lecture 3.pdf', size: '3.1 MB' }, { name: 'Scheduling cheat sheet.pdf', size: '412 KB' }] }); this.flash('celebrate', 1300); },
+      files: s.files.map((f, i) => ({ ...f, remove: () => this.setState(st => ({ files: st.files.filter((_, k) => k !== i) })) })),
+      caps: caps.map(c => { const on = s.cap === c.v; return { label: c.label, onClick: () => { this.setState({ cap: c.v, lookTouched: true }); this.flash('celebrate', 1100); },
+        ringStyle: { width: 52, height: 52, borderRadius: '50%', padding: 4, cursor: 'pointer', background: 'transparent', border: on ? `2.5px solid ${A}` : '2.5px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        swatchStyle: { width: '100%', height: '100%', borderRadius: '50%', background: c.bg || c.v, boxShadow: 'inset 0 -3px 6px rgba(0,0,0,0.18), inset 0 2px 4px rgba(255,255,255,0.3)' } }; }),
+      accs: accs.map(a => { const on = s.acc === a.v; return { ...a, onClick: () => { this.setState({ acc: a.v, lookTouched: true }); this.flash('celebrate', 1100); },
+        style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2, height: 72, padding: '0 14px', borderRadius: 14, cursor: 'pointer', font: 'inherit', textAlign: 'left', color: on ? AINK : '#24232a', border: on ? `2px solid ${A}` : '1.5px solid #e2ddd3', background: on ? ASOFT : '#fff' } }; }),
+      voices: voices.map(v => { const on = s.voice === v.id, playing = s.playing === v.id; return { ...v, playing, idle: !playing, iconColor: on ? '#ffffff' : '#24232a', playLabel: playing ? `Stop ${v.name}` : `Play ${v.name} sample`,
+        select: () => this.setState({ voice: v.id }),
+        play: e => { e.stopPropagation(); this.playVoice(v); },
+        style: { display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 18, cursor: 'pointer', border: on ? `2px solid ${A}` : '1.5px solid #e2ddd3', background: on ? ASOFT : '#fff' },
+        playStyle: { width: 46, height: 46, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: playing ? 0 : 2, background: on || playing ? A : '#f1eee8', boxShadow: on ? '0 8px 18px -10px oklch(0.45 0.1 202 / 0.7)' : 'none' },
+        radioStyle: { width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: on ? `6px solid ${A}` : '2px solid #d3ccc0', background: '#fff' } }; }),
+      studyTitle: s.studyDone ? 'Your lesson is ready' : 'Studying your notes…',
+      studySub: s.studyDone ? `${s.name.trim() || 'Your tutor'} turned ${s.files.length} file${s.files.length === 1 ? '' : 's'} into 5 sections.` : 'This takes a few seconds.',
+      studyBarStyle: { height: '100%', width: `${Math.round((Math.min(s.studyIdx + (s.studyDone ? 0 : 0.5), lines.length) / lines.length) * 100)}%`, borderRadius: 3, background: A, transition: 'width .9s ease' },
+      studyLines: lines.slice(0, Math.min(s.studyIdx + 1, lines.length)).map((text, i) => { const done = s.studyDone || i < s.studyIdx; return { text, done, active: !done, textStyle: { color: done ? '#24232a' : '#6c6861', fontWeight: done ? 500 : 400 } }; }),
+      studyDone: s.studyDone,
+      outline: ['Why schedule at all?', 'First-come, first-served', 'Shortest job first', 'Round robin', 'Quick check'].map((title, i) => ({ title, n: i + 1, mins: ['4 min', '6 min', '6 min', '7 min', '3 min'][i] })),
+      showFooter: s.step < 4,
+      onBack: () => { if (s.step === 0) { window.location.href = 'Tutor Home.dc.html'; return; } window.speechSynthesis && window.speechSynthesis.cancel(); this.setState({ step: s.step - 1, playing: null }); },
+      onNext: () => this.next(),
+      nextLabel: s.step === 3 ? 'Create tutor' : 'Continue',
+      backStyle: { height: 48, padding: '0 20px', borderRadius: 14, border: '1px solid #e0dbd2', background: '#fff', font: 'inherit', fontSize: 15, fontWeight: 600, color: '#24232a', cursor: 'pointer' },
+      nextStyle: { height: 52, padding: '0 28px', borderRadius: 999, border: 'none', font: 'inherit', fontSize: 16, fontWeight: 600, cursor: can ? 'pointer' : 'not-allowed', background: can ? A : '#d9d4cb', color: '#fff', boxShadow: can ? '0 10px 22px -10px oklch(0.45 0.1 202 / 0.7)' : 'none', transition: 'background .2s ease' },
+      pose, speakingStr: s.playing ? 'on' : 'off',
+      cap: s.cap, acc: s.acc, accColor: accCol,
+      showAccColor: s.acc !== 'none', accColorTitle: `${accName} color`,
+      accColors: accPalette.map(c => { const on = accCol === c.v; return { label: c.label, onClick: () => { this.setState(st => ({ accColors: { ...st.accColors, [st.acc]: c.v }, lookTouched: true })); },
+        ringStyle: { width: 44, height: 44, borderRadius: '50%', padding: 4, cursor: 'pointer', background: 'transparent', border: on ? `2.5px solid ${A}` : '2.5px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        swatchStyle: { width: '100%', height: '100%', borderRadius: '50%', background: c.v, boxShadow: 'inset 0 -3px 6px rgba(0,0,0,0.16), inset 0 2px 4px rgba(255,255,255,0.3), 0 0 0 1px rgba(0,0,0,0.06)' } }; }),
+      roam: s.step === 4 ? '0.05' : '0.45',
+      tagName: s.name.trim() || 'Your tutor',
+      tagSub: s.step >= 3 ? `${voice.name} voice · ${s.subject}` : s.subject,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+.block {
+  flex: 1 0 auto;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--panel-divider);
+  padding-top: 18px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+  animation: mDot 1.4s ease-in-out infinite;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.tutorLine {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.studentLine {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
+.tutorText {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  font-weight: 400;
+  text-wrap: pretty;
+}
+.tutorText[data-live='true'] {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 15px;
+  margin-left: 3px;
+  vertical-align: -2px;
+  background: var(--accent-bright);
+  animation: mCaret 1s infinite;
+}
+
+.bubble {
+  max-width: 86%;
+  background: var(--surface-tint);
+  border-radius: 14px 14px 4px 14px;
+  padding: 9px 13px;
+  font-size: 14px;
+  line-height: 1.45;
+}

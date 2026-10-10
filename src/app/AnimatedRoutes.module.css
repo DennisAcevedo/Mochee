@@ -1,0 +1,48 @@
+/* Page transitions: ~300ms in on the app's easing, a quicker fade out. */
+.page {
+  position: relative;
+}
+
+.page[data-stage='in'] {
+  animation: pageIn 0.3s var(--ease) backwards; /* nothing lingers once in */
+}
+
+.page[data-stage='out'] {
+  animation: pageOut 0.14s ease-in both;
+  pointer-events: none;
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    top: 10px;
+  }
+  to {
+    opacity: 1;
+    top: 0;
+  }
+}
+
+@keyframes pageOut {
+  from {
+    opacity: 1;
+    top: 0;
+  }
+  to {
+    opacity: 0;
+    top: -6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pageIn {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pageOut {
+    to {
+      opacity: 0;
+    }
+  }
+}

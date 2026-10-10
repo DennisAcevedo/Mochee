@@ -1,0 +1,158 @@
+.bar {
+  background: var(--surface);
+  border-radius: var(--r-input-bar);
+  padding: 12px 14px 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: var(--shadow-bar);
+}
+
+/* Mic */
+.micWrap {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--accent-bright);
+  animation: mRing 1.6s ease-out infinite;
+}
+
+.mic {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border: none;
+  box-shadow: var(--shadow-mic);
+  --glyph: #fff;
+}
+.mic[data-speaking='true'] {
+  background: #fff;
+  border: 2px solid var(--accent);
+  --glyph: var(--accent);
+}
+
+.micGlyph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.capsule {
+  width: 13px;
+  height: 20px;
+  border-radius: 8px;
+  background: var(--glyph);
+}
+
+.cup {
+  width: 22px;
+  height: 11px;
+  margin-top: -6px;
+  border: 2.5px solid var(--glyph);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.stem {
+  width: 2.5px;
+  height: 5px;
+  background: var(--glyph);
+}
+
+/* Status column */
+.status {
+  width: 190px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+}
+
+.barLine {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: center;
+}
+.barLine[data-listening='true'] {
+  background: var(--text);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted-2);
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: #fff;
+}
+
+/* Text field */
+.field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  background: var(--surface-field);
+  border-radius: var(--r-field);
+  padding: 0 8px 0 20px;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.send {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-send);
+  border: none;
+  background: var(--text);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.send:hover {
+  background: var(--ink);
+}

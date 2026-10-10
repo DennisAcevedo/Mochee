@@ -1,0 +1,45 @@
+.stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-radius: var(--r-stage);
+  overflow: hidden;
+  background: radial-gradient(ellipse at 32% 30%, var(--stage-a) 0%, var(--stage-b) 50%, var(--stage-c) 100%);
+  box-shadow: var(--shadow-stage);
+}
+
+.floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36%;
+  background: linear-gradient(180deg, rgba(228, 221, 209, 0) 0%, rgba(226, 218, 205, 0.85) 100%);
+}
+
+.horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 64%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(200, 190, 175, 0), rgba(200, 190, 175, 0.45), rgba(200, 190, 175, 0));
+}
+
+/* Fullscreen and fixed: escapes the stage's overflow clip so the start
+   screen can use the whole viewport. CameraRig clips it back to the stage. */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Start-screen gradient from design/Tutor.dc.html; faded out by the intro. */
+.startBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 35%, var(--stage-a) 0%, var(--stage-b) 50%, var(--stage-c) 100%);
+}

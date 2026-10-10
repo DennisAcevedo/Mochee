@@ -1,0 +1,197 @@
+/* Start screen, values lifted from design/Tutor.dc.html (startVals()). */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+
+.logoDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 6px var(--accent-halo);
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+/* Empty box the 3D camera frames the sleeping character into. */
+.slot {
+  position: relative;
+  width: 300px;
+  height: 300px;
+}
+
+.zs {
+  position: absolute;
+  left: 62%;
+  top: 22%;
+  width: 40px;
+  height: 40px;
+  font-family: var(--font-hand);
+  font-weight: 700;
+  color: var(--muted-2);
+  pointer-events: none;
+}
+
+.z {
+  position: absolute;
+  opacity: 0;
+  animation: zFloat 3.6s ease-out infinite;
+}
+.z[data-z='1'] {
+  left: 0;
+  top: 0;
+  font-size: 22px;
+}
+.z[data-z='2'] {
+  left: 10px;
+  top: -6px;
+  font-size: 28px;
+  animation-delay: 1.2s;
+}
+.z[data-z='3'] {
+  left: 4px;
+  top: -2px;
+  font-size: 34px;
+  animation-delay: 2.4s;
+}
+
+.cta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--accent-bright);
+  animation: sRing 2s ease-out infinite;
+  pointer-events: none;
+}
+.ring[data-late='true'] {
+  animation-delay: 1s;
+}
+
+/* Hover lifts, press squishes, keyboard focus gets the double ring. */
+.button {
+  --btn-shadow: 0 10px 22px -10px oklch(0.45 0.1 202 / 0.7);
+  --btn-ring: 0 0 0 0 transparent;
+  position: relative;
+  height: 64px;
+  padding: 0 30px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  outline: none;
+  pointer-events: auto;
+  box-shadow: var(--btn-shadow), var(--btn-ring);
+  transition:
+    transform 0.18s var(--ease),
+    box-shadow 0.2s ease;
+}
+.button:hover {
+  --btn-shadow: 0 18px 36px -12px oklch(0.45 0.1 202 / 0.75);
+  transform: translateY(-2px);
+}
+.button:active {
+  transform: scale(0.95);
+}
+.button:focus-visible {
+  --btn-ring: 0 0 0 3px #fbfaf7, 0 0 0 6px var(--accent-bright);
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+  transition: transform 0.18s var(--ease);
+}
+.button:hover .icon {
+  transform: translateX(2px);
+}
+
+.skip {
+  position: fixed;
+  right: 28px;
+  bottom: 24px;
+  z-index: 60;
+  height: 32px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--r-small);
+  border: 1px solid var(--border);
+  background: rgba(251, 250, 247, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--muted-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: skipIn 0.3s 0.4s var(--ease) both;
+}
+.skip:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.skip:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
+.skipChevron {
+  font-size: 15px;
+  line-height: 1;
+}
+
+@keyframes skipIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}

@@ -1,0 +1,80 @@
+/* Mirrors src/theme.ts. Edit both or neither. */
+:root {
+  --font-ui: 'Figtree', system-ui, sans-serif;
+  --font-hand: 'Caveat', cursive;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --bg: #ece9e3;
+  --stage-a: #fffdf9;
+  --stage-b: #f4f0e9;
+  --stage-c: #e8e2d7;
+
+  --text: #24232a;
+  --text-soft: #2c2b33;
+  --text-dim: #5f5b55;
+  --muted: #6c6861;
+  --muted-2: #8a857d;
+  --placeholder: #9a958d;
+  --ink: #3a3840;
+
+  --border: #e0dbd2;
+  --border-board: #e9e4db;
+  --border-option: #e2ddd3;
+  --border-icon: #e6e1d8;
+  --border-badge: #dcd6cc;
+  --divider: #d9d3c8;
+  --panel-divider: #ece8e1;
+
+  --surface: #fbfaf7;
+  --surface-board: #fdfdfb;
+  --surface-tint: #efebe4;
+  --surface-field: #f1eee8;
+  --surface-hover: #f5f2ec;
+  --badge-done: #e9e5de;
+  --pip-done: #bdb6aa;
+  --pdf-label: #9a5a4a;
+
+  --accent: oklch(0.52 0.1 202);
+  --accent-soft: oklch(0.95 0.03 195);
+  --accent-ink: oklch(0.42 0.09 205);
+  --accent-bright: oklch(0.62 0.11 198);
+  --accent-halo: oklch(0.9 0.05 195);
+  --link: oklch(0.45 0.09 205);
+  --link-hover: oklch(0.38 0.09 205);
+
+  --gantt-p1: oklch(0.9 0.06 195);
+  --gantt-p2: oklch(0.9 0.06 85);
+  --gantt-p3: oklch(0.9 0.06 300);
+
+  --error: oklch(0.62 0.12 30);
+  --error-soft: oklch(0.96 0.025 30);
+
+  --r-stage: 28px;
+  --r-input-bar: 24px;
+  --r-board: 22px;
+  --r-panel: 22px;
+  --r-field: 18px;
+  --r-option: 14px;
+  --r-tabs: 14px;
+  --r-button: 12px;
+  --r-send: 13px;
+  --r-row: 12px;
+  --r-tab: 11px;
+  --r-small: 10px;
+  --r-pdf: 8px;
+  --r-pip: 3px;
+
+  --shadow-stage: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 1px 2px rgba(60, 40, 20, 0.06);
+  --shadow-bar: 0 1px 2px rgba(60, 40, 20, 0.06);
+  --shadow-board: 0 34px 60px -34px rgba(90, 65, 30, 0.4), 0 2px 6px rgba(90, 65, 30, 0.06);
+  --shadow-panel: 0 24px 60px -24px rgba(70, 50, 25, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-button: 0 2px 8px rgba(60, 40, 20, 0.08);
+  --shadow-tab: 0 1px 3px rgba(60, 40, 20, 0.12);
+  --shadow-mic: 0 10px 22px -10px oklch(0.45 0.1 202 / 0.7);
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --panel-ms: 450ms;
+
+  --panel-w: 360px;
+  --panel-inset: 12px;
+}

@@ -1,0 +1,365 @@
+/* Values lifted from design/Tutor Home.dc.html. */
+.page {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+/* One fixed canvas for every card's character; above the cards, transparent
+   except where a character draws, and never takes the pointer. */
+.canvas {
+  z-index: 2;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 12px 14px 12px 22px;
+  box-shadow: var(--shadow-bar);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.logoDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 4px var(--accent-halo);
+}
+
+.searchRow {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.search {
+  flex: 0 1 520px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  background: var(--surface-field);
+  border-radius: 14px;
+  padding: 0 16px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: #fff;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent-halo);
+  color: oklch(0.38 0.09 205);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.hello {
+  padding: 0 6px;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  text-wrap: pretty;
+}
+
+.helloSoft {
+  color: var(--muted-2);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 6px;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+/* card(on, dashed) from the export. */
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: 26px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  background: var(--surface);
+  border: 2px solid transparent;
+  box-shadow: var(--shadow-bar);
+  transition:
+    transform 0.25s var(--ease),
+    box-shadow 0.25s ease,
+    background 0.2s ease;
+}
+.card:hover {
+  color: inherit;
+}
+.card[data-hover='true'] {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 40px -22px rgba(80, 55, 25, 0.4), 0 1px 2px rgba(60, 40, 20, 0.06);
+}
+.card[data-dashed='true'] {
+  background: transparent;
+  border: 2px dashed #d3ccc0;
+  box-shadow: none;
+}
+.card[data-dashed='true'][data-hover='true'] {
+  background: rgba(251, 250, 247, 0.7);
+  box-shadow: none;
+}
+.card:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 3px;
+}
+
+.art {
+  position: relative;
+  height: 210px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 30%, var(--stage-a) 0%, var(--stage-b) 55%, var(--stage-c) 100%);
+}
+.art[data-variant='new'] {
+  background: radial-gradient(ellipse at 50% 20%, var(--stage-a) 0%, var(--stage-b) 60%, #ebe5da 100%);
+}
+
+.floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34%;
+  background: linear-gradient(180deg, rgba(228, 221, 209, 0), rgba(226, 218, 205, 0.85));
+}
+
+/* The rect the shared canvas draws this card's character into. */
+.view {
+  position: absolute;
+  inset: 0;
+}
+
+.zs {
+  position: absolute;
+  left: 62%;
+  top: 20%;
+  font-family: var(--font-hand);
+  font-weight: 700;
+  color: var(--placeholder);
+  pointer-events: none;
+}
+
+.z {
+  position: absolute;
+  opacity: 0;
+  animation: zFloatCard 3.6s ease-out infinite;
+}
+.z[data-z='1'] {
+  left: 0;
+  top: 0;
+  font-size: 18px;
+}
+.z[data-z='2'] {
+  left: 8px;
+  top: -4px;
+  font-size: 24px;
+  animation-delay: 1.8s;
+}
+
+@keyframes zFloatCard {
+  0% {
+    transform: translate(0, 0) scale(0.6) rotate(-8deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(22px, -56px) scale(1.15) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+.badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: oklch(0.38 0.09 205);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.body {
+  padding: 16px 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.body[data-gap='tight'] {
+  gap: 6px;
+}
+
+.newTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.plus {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.newDesc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.files {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.track {
+  height: 6px;
+  border-radius: 3px;
+  background: #ebe7e0;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.progress {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.last {
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 24px 6px;
+  font-size: 15px;
+  color: var(--muted);
+}
