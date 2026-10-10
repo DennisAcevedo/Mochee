@@ -11,12 +11,14 @@ import { useWalkthrough } from '../lesson/runner'
 import { RESOLVED_STEPS } from '../lesson/walkthrough'
 import { anchors } from '../scene/anchors'
 import { ROOM_BOX, shootBall, tossTutor, usePlayBody } from '../scene/physics'
+import { windowRects } from '../scene/windows/registry'
 import { useDirector } from '../state/director'
 import { useDrawers } from '../state/drawers'
 import { useGrowth } from '../state/growth'
 import { useMode } from '../state/mode'
 import { useProgress } from '../state/progress'
 import { useTutorStore } from '../state/store'
+import { useWindows } from '../state/windows'
 
 // Dev-only hooks for the end-to-end tests (tests/e2e/lesson_e2e.py, study_play_e2e.py):
 // window.__gg exposes the stores, the walkthrough steps, the loaded model's
@@ -42,6 +44,8 @@ interface GG {
   played: { clip: string; t: number }[] // one-shots the tutor really started (performance.now() ms)
   loops: { clip: string; t: number }[] // base loops he switched to
   drops: { clip: string; reason: string; t: number }[] // one-shots the state machine dropped
+  // The two Chrome windows: their store, and each tab's / button's / grip's screen rect for real mouse drags.
+  windows: { store: typeof useWindows; rects: () => ReturnType<typeof windowRects> }
 }
 
 declare global {
@@ -157,6 +161,7 @@ export function GGHooks() {
       played,
       loops,
       drops,
+      windows: { store: useWindows, rects: () => windowRects(camera, canvas) },
     }
     return () => {
       delete window.__gg

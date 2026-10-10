@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "test:anim": "node --test tests/character/*.test.ts",
     "test:server": "node --test tests/server/*.test.ts",
+    "test:ui": "node --test tests/ui/*.test.ts",
     "test:lesson": "node --test tests/lesson/*.test.ts"
   },
   "dependencies": {
