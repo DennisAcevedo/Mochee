@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roaming and emotes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ec}
+button{font-family:inherit;color:inherit}
+button:focus-visible{outline:3px solid #4285f4;outline-offset:2px}
+@keyframes ggStart{
+  0%{transform:translateY(0) scale(1,1) rotateY(0deg)}
+  12%{transform:translateY(0) scale(1.1,0.86) rotateY(-30deg);animation-timing-function:cubic-bezier(0.6,0,0.4,1)}
+  68%{transform:translateY(-16%) scale(0.86,1.16) rotateY(2160deg)}
+  80%{transform:translateY(0) scale(1.07,0.93) rotateY(2190deg)}
+  90%{transform:translateY(0) scale(0.98,1.02) rotateY(2150deg)}
+  100%{transform:translateY(0) scale(1,1) rotateY(2160deg)}
+}
+@keyframes ggWalk{0%,50%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-5%) rotate(-3deg)}75%{transform:translateY(-5%) rotate(3deg)}}
+@keyframes ggCheer{0%,100%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.08,0.9)}35%{transform:translateY(-22%) scale(0.94,1.08)}55%{transform:translateY(0) scale(1.06,0.94)}72%{transform:translateY(-12%) scale(0.97,1.04)}88%{transform:translateY(0) scale(1.02,0.98)}}
+@keyframes ggShrug{0%,100%{transform:rotate(0deg) translateY(0)}30%,70%{transform:rotate(-6deg) translateY(-3%)}}
+@keyframes ggThink{0%,100%{transform:rotate(0deg)}50%{transform:rotate(4deg)}}
+@keyframes ggWave{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+@keyframes ggIdle{0%,100%{transform:scale(1,1)}50%{transform:scale(0.985,1.02)}}
+@keyframes ggConfetti{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(240%) rotate(300deg);opacity:0}}
+.gg-start{animation:ggStart 2.8s ease-out both}
+.gg-walk{animation:ggWalk 0.42s ease-in-out 3}
+.gg-cheer{animation:ggCheer 1.1s ease-out both}
+.gg-shrug{animation:ggShrug 1.2s ease-in-out both}
+.gg-think{animation:ggThink 1.6s ease-in-out infinite}
+.gg-wave{animation:ggWave 0.6s ease-in-out 2}
+.gg-idle{animation:ggIdle 3s ease-in-out infinite}
+.gg-bit{animation:ggConfetti 1.4s ease-in both}
+@media (prefers-reduced-motion: reduce){.gg-start,.gg-walk,.gg-cheer,.gg-shrug,.gg-think,.gg-wave,.gg-idle,.gg-bit{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; font-family: 'Figtree', system-ui, sans-serif; color: #1d1b24; background: #f3f1ec">
+
+  <section aria-label="Roaming preview" style="position: relative; flex: 1 1 560px; max-width: 900px; aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; container-type: inline-size; background: #f8f7f4; box-shadow: 0 8px 30px rgba(29,27,36,0.10)">
+    <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(48% 70% at 0% 62%, rgba(140,182,255,0.55) 0%, rgba(140,182,255,0) 100%), radial-gradient(40% 55% at 100% 0%, rgba(255,184,170,0.55) 0%, rgba(255,184,170,0) 100%), radial-gradient(42% 60% at 100% 85%, rgba(255,230,150,0.5) 0%, rgba(255,230,150,0) 100%)"></div>
+
+    <div aria-hidden="true" style="position: absolute; left: 3%; top: 16%; width: 22%; height: 46%; border-radius: 1.2cqw; background: rgba(255,255,255,0.75); box-shadow: 0 0 0 1px rgba(29,27,36,0.06); display: grid; place-items: center; font-size: 1.3cqw; font-weight: 800; color: #8a8794">Notes window</div>
+    <div aria-hidden="true" style="position: absolute; right: 3%; top: 16%; width: 22%; height: 46%; border-radius: 1.2cqw; background: rgba(255,255,255,0.75); box-shadow: 0 0 0 1px rgba(29,27,36,0.06); display: grid; place-items: center; font-size: 1.3cqw; font-weight: 800; color: #8a8794">Board window</div>
+
+    <div aria-hidden="true" style="position: absolute; left: 30%; right: 30%; bottom: 12.5%; height: 0; border-top: 0.25cqw dashed rgba(61,90,214,0.45)"></div>
+    <span style="position: absolute; left: 30%; bottom: 7.5%; font-family: 'JetBrains Mono', monospace; font-size: 1cqw; color: #3d5ad6">roam lane, 30% to 70%</span>
+
+    <div style="{{ guyPos }}">
+      <sc-if value="{{ hasBadge }}" hint-placeholder-val="{{ true }}">
+        <span style="{{ badgeStyle }}">{{ badge }}</span>
+      </sc-if>
+      <sc-if value="{{ confetti }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ bits }}" as="b" hint-placeholder-count="10">
+          <span class="gg-bit" style="{{ b.style }}"></span>
+        </sc-for>
+      </sc-if>
+      <div class="{{ actClass }}" style="transform-origin: 50% 100%">
+        <svg role="img" aria-label="{{ guyLabel }}" viewBox="0 0 240 268" style="display: block; width: 100%; overflow: visible">
+          <defs>
+            <radialGradient id="r-body" cx="0.42" cy="0.36" r="0.7"><stop offset="0" stop-color="#ffffff"></stop><stop offset="0.7" stop-color="#f4f3f7"></stop><stop offset="1" stop-color="#dcdbe4"></stop></radialGradient>
+            <linearGradient id="r-brim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4285f4"></stop><stop offset="0.34" stop-color="#ea4335"></stop><stop offset="0.66" stop-color="#fbbc04"></stop><stop offset="1" stop-color="#34a853"></stop></linearGradient>
+            <linearGradient id="r-spark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ea4335"></stop><stop offset="0.38" stop-color="#fbbc04"></stop><stop offset="0.62" stop-color="#34a853"></stop><stop offset="1" stop-color="#4285f4"></stop></linearGradient>
+            <radialGradient id="r-cap" cx="0.4" cy="0.3" r="0.8"><stop offset="0" stop-color="#ffffff"></stop><stop offset="1" stop-color="#e7e6ee"></stop></radialGradient>
+          </defs>
+          <g transform="{{ faceTf }}">
+            <ellipse cx="80" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+            <ellipse cx="80" cy="248" rx="26" ry="12.5" fill="url(#r-body)"></ellipse>
+            <ellipse cx="160" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+            <ellipse cx="160" cy="248" rx="26" ry="12.5" fill="url(#r-body)"></ellipse>
+            <ellipse cx="120" cy="150" rx="94" ry="94" fill="url(#r-body)"></ellipse>
+            <g transform="{{ rightArmTf }}"><ellipse cx="214" cy="190" rx="22" ry="19" fill="url(#r-body)"></ellipse></g>
+            <g transform="{{ leftArmTf }}">
+              <ellipse cx="30" cy="112" rx="25" ry="31" fill="url(#r-body)"></ellipse>
+              <ellipse cx="50" cy="104" rx="10" ry="13" fill="url(#r-body)"></ellipse>
+            </g>
+            <path d="M40 96 C 40 18, 204 14, 208 102 C 168 84, 80 82, 40 96 Z" fill="url(#r-cap)"></path>
+            <ellipse cx="124" cy="24" rx="7" ry="4" fill="#efeef4"></ellipse>
+            <path d="M30 104 C 72 74, 172 72, 214 106 L 208 118 C 170 92, 76 92, 36 116 Z" fill="url(#r-brim)"></path>
+            <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(110 56) scale(20)" fill="url(#r-spark)"></path>
+            <g transform="{{ browTf }}">
+              <path d="M80 126 Q 92 118 104 124" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+              <path d="M140 124 Q 152 118 164 128" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+            </g>
+            <ellipse cx="94" cy="146" rx="12" ry="15" fill="#141318"></ellipse>
+            <circle cx="98" cy="140" r="4.2" fill="#ffffff"></circle>
+            <ellipse cx="150" cy="148" rx="12" ry="15" fill="#141318"></ellipse>
+            <circle cx="154" cy="142" r="4.2" fill="#ffffff"></circle>
+            <ellipse cx="74" cy="172" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+            <ellipse cx="170" cy="175" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+            <path d="{{ mouthD }}" fill="#4a2328"></path>
+            <path d="M112 179 Q 122 173 132 179 Q 128 187 122 188 Q 115 187 112 179 Z" fill="#f08a90" opacity="{{ tongueOpacity }}"></path>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <div style="flex: 1 1 380px; max-width: 470px; display: flex; flex-direction: column; gap: 14px">
+    <h2 style="margin: 0; font-size: 24px; font-weight: 800">How he moves</h2>
+    <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #4a4754">Every pose keeps his feet. Try each trigger; the preview plays what the app will.</p>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <sc-for list="{{ triggers }}" as="t" hint-placeholder-count="6">
+        <button type="button" onClick="{{ t.run }}" aria-pressed="{{ t.pressed }}" style="{{ t.style }}">
+          <span aria-hidden="true" style="{{ t.dotStyle }}"></span>
+          <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 15px; font-weight: 800">{{ t.label }}</span><span style="font-size: 13px; line-height: 1.35; color: #4a4754">{{ t.note }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+    <button type="button" onClick="{{ toggleAuto }}" aria-pressed="{{ autoPressed }}" style="{{ autoStyle }}">{{ autoLabel }}</button>
+    <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.4; color: #4a4754">
+      <li>He only roams between lesson beats, never while pointing at a line or speaking an answer.</li>
+      <li>He stays in the lane between the windows and turns to face where he walks.</li>
+      <li>He stops roaming and steps aside while a window is maximized.</li>
+    </ul>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":640}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { act: 'start', x: 50, face: 1, auto: false };
+    this.timers = [];
+    this.loop = null;
+  }
+
+  clear() {
+    this.timers.forEach((t) => clearTimeout(t));
+    this.timers = [];
+  }
+
+  later(ms, fn) {
+    this.timers.push(setTimeout(fn, ms));
+  }
+
+  // Clear the class for a tick so the same animation can play twice in a row.
+  play(act, x, then) {
+    this.clear();
+    const face = x === this.state.x ? this.state.face : x < this.state.x ? -1 : 1;
+    this.setState({ act: 'none' });
+    this.later(30, () => this.setState({ act, x, face }));
+    (then || []).forEach(([ms, next]) => this.later(ms + 30, () => this.setState({ act: next })));
+  }
+
+  start() { this.play('start', 50, [[2800, 'wave'], [4000, 'idle']]); }
+  pace() { this.play('walk', this.state.x < 50 ? 64 : 36, [[1260, 'idle']]); }
+  wander() {
+    let x = this.state.x;
+    while (Math.abs(x - this.state.x) < 10) x = 32 + Math.round(Math.random() * 36);
+    this.play('walk', x, [[1260, 'idle']]);
+  }
+  right() { this.play('cheer', this.state.x, [[1600, 'idle']]); }
+  wrong() { this.play('shrug', this.state.x, [[1400, 'walk'], [1450, 'idle']]); }
+  ask() { this.play('think', this.state.x, [[2200, 'idle']]); }
+
+  toggleAuto() {
+    if (this.loop) {
+      clearInterval(this.loop);
+      this.loop = null;
+      this.setState({ auto: false });
+      return;
+    }
+    this.loop = setInterval(() => {
+      if (this.state.act === 'idle') (Math.random() < 0.5 ? this.pace() : this.wander());
+    }, 2600);
+    this.setState({ auto: true });
+  }
+
+  renderVals() {
+    const { act, x, face, auto } = this.state;
+    const MOUTH = {
+      smile: 'M108 166 Q 122 169 136 166 Q 134 186 122 188 Q 110 186 108 166 Z',
+      big: 'M104 164 Q 122 168 140 164 Q 138 194 122 196 Q 106 194 104 164 Z',
+      flat: 'M108 176 Q 115 171 122 176 Q 129 181 136 176 L 136 180 Q 129 185 122 180 Q 115 175 108 180 Z',
+      o: 'M115 174 Q 122 166 129 174 Q 129 185 122 185 Q 115 185 115 174 Z',
+    };
+    const pose = {
+      start: { mouth: 'big', left: 'rotate(-60 30 112) translate(-6 -10)', right: 'rotate(40 214 190)', brow: 'translate(0 -6)', badge: '' },
+      wave: { mouth: 'smile', left: 'rotate(-18 30 112)', right: '', brow: 'translate(0 -3)', badge: 'Hi! Ready to learn?', color: '#3d5ad6' },
+      walk: { mouth: 'smile', left: 'rotate(10 30 112) translate(6 30)', right: '', brow: '', badge: '' },
+      cheer: { mouth: 'big', left: 'rotate(-45 30 112) translate(0 -16)', right: 'rotate(-60 214 190) translate(0 -20)', brow: 'translate(0 -7)', badge: 'Yes! +10 XP', color: '#1f8a43' },
+      shrug: { mouth: 'flat', left: 'rotate(55 30 140) translate(6 24)', right: 'rotate(-30 214 190) translate(4 -10)', brow: 'translate(0 3)', badge: 'So close! Let me show you.', color: '#ea4335' },
+      think: { mouth: 'o', left: 'translate(80 72) rotate(15 30 112)', right: '', brow: 'translate(0 -4)', badge: 'Hmm, good question...', color: '#7c5cf2' },
+      idle: { mouth: 'smile', left: 'rotate(10 30 112) translate(6 30)', right: '', brow: '', badge: '' },
+      none: { mouth: 'smile', left: 'rotate(10 30 112) translate(6 30)', right: '', brow: '', badge: '' },
+    }[act];
+    const COLORS = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#7c5cf2', '#ff6fae'];
+    const triggers = [
+      ['start', 'Lesson starts', 'Spins in like a top (6 turns), lands with a wobble, then waves.', () => this.start(), '#4285f4'],
+      ['pace', 'Pace', 'Between beats he walks to the other side of the lane.', () => this.pace(), '#12a4b4'],
+      ['wander', 'Wander', 'Between beats he drifts to a random spot in the lane.', () => this.wander(), '#ffc83d'],
+      ['right', 'Right quiz answer', 'Double hop with confetti and XP.', () => this.right(), '#34a853'],
+      ['wrong', 'Wrong quiz answer', 'Shrugs, then walks to the notes to show the right line.', () => this.wrong(), '#ea4335'],
+      ['ask', 'Student asks a question', 'Hand on chin while Gemini answers, then talks.', () => this.ask(), '#7c5cf2'],
+    ];
+    const ACT_OF = { start: 'start', pace: 'walk', wander: 'walk', right: 'cheer', wrong: 'shrug', ask: 'think' };
+    return {
+      guyPos: 'position: absolute; left: ' + x + '%; bottom: 10%; width: 16%; transform: translateX(-50%); transition: left 1.2s ease-in-out; z-index: 3',
+      actClass: act === 'none' ? '' : 'gg-' + act,
+      faceTf: face < 0 ? 'translate(240 0) scale(-1 1)' : 'translate(0 0)',
+      leftArmTf: pose.left || 'translate(0 0)',
+      rightArmTf: pose.right || 'translate(0 0)',
+      browTf: pose.brow || 'translate(0 0)',
+      mouthD: MOUTH[pose.mouth],
+      tongueOpacity: pose.mouth === 'smile' || pose.mouth === 'big' ? '1' : '0',
+      hasBadge: !!pose.badge,
+      badge: pose.badge,
+      badgeStyle: 'position: absolute; left: 50%; bottom: 102%; transform: translateX(-50%); white-space: nowrap; padding: 0.5cqw 1.1cqw; border-radius: 999px; background: #ffffff; box-shadow: 0 0.6cqw 1.6cqw rgba(60,70,130,0.18); font-size: 1.3cqw; font-weight: 800; color: ' +
+        (pose.color || '#1d1b24'),
+      guyLabel: 'Gemini Guy, ' + (act === 'none' ? 'idle' : act),
+      confetti: act === 'cheer',
+      bits: Array.from({ length: 10 }, (_, i) => ({
+        style: 'position: absolute; top: ' + (-8 - (i % 3) * 6) + '%; left: ' + (6 + i * 9) + '%; width: 0.7cqw; height: 1.2cqw; border-radius: 0.2cqw; background: ' +
+          COLORS[i % COLORS.length] + '; animation-delay: ' + (i % 4) * 0.08 + 's',
+      })),
+      triggers: triggers.map(([key, label, note, run, color]) => {
+        const on = ACT_OF[key] === act;
+        return {
+          label,
+          note,
+          run,
+          pressed: on ? 'true' : 'false',
+          style: 'display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; cursor: pointer; text-align: left; background: #ffffff; border: 2px solid ' + (on ? color : '#eceaf2'),
+          dotStyle: 'flex: none; width: 12px; height: 12px; border-radius: 50%; background: ' + color,
+        };
+      }),
+      toggleAuto: () => this.toggleAuto(),
+      autoPressed: auto ? 'true' : 'false',
+      autoLabel: auto ? 'Stop auto roam' : 'Auto roam (picks pace or wander on its own)',
+      autoStyle: 'align-self: flex-start; padding: 10px 16px; border: 0; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 800; background: ' +
+        (auto ? '#1d1b24' : '#3d5ad6') + '; color: #ffffff',
+    };
+  }
+}
+</script>
+</body>
+</html>

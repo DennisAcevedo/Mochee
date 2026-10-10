@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New tab page close-up</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&amp;family=Caveat:wght@700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef3ff}
+button{font-family:inherit;color:inherit}
+button:focus-visible,textarea:focus-visible{outline:3px solid #4285f4;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 28px 28px 24px; display: flex; flex-direction: column; gap: 14px; font-family: 'Figtree', system-ui, sans-serif; color: #1d1b24; background: radial-gradient(60% 80% at 0% 100%, #d7e5ff 0%, rgba(215,229,255,0) 100%), radial-gradient(60% 80% at 100% 0%, #ffe6d6 0%, rgba(255,230,214,0) 100%), #f8f7f4">
+
+  <div style="position: relative; flex: 1 1 auto; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; background: #ffffff; box-shadow: 0 18px 40px rgba(60,70,130,0.18), 0 0 0 1px rgba(29,27,36,0.06)">
+    <div style="display: flex; align-items: flex-end; gap: 4px; padding: 8px 8px 0; background: #eceaf2">
+      <span aria-hidden="true" style="display: flex; gap: 5px; padding: 0 8px 11px 4px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #ff6b5b"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #ffc83d"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #4cc76a"></span></span>
+      <div role="tablist" aria-label="Notes window tabs" style="flex: 1 1 auto; min-width: 0; display: flex; gap: 3px">
+        <div style="flex: 0 1 170px; min-width: 60px; display: flex; align-items: center; gap: 6px; padding: 7px 6px 7px 11px; border-radius: 11px 11px 0 0; color: #4a4754">
+          <span aria-hidden="true" style="flex: none; width: 9px; height: 9px; border-radius: 50%; background: #12a4b4"></span>
+          <span style="flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">CS111 Lecture 4.pdf</span>
+          <button type="button" aria-label="Close tab: CS111 Lecture 4.pdf" style="flex: none; width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #6e6b78; cursor: pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        </div>
+        <div style="flex: 0 1 170px; min-width: 60px; display: flex; align-items: center; gap: 6px; padding: 7px 6px 7px 11px; border-radius: 11px 11px 0 0; background: #ffffff">
+          <span aria-hidden="true" style="flex: none; width: 9px; height: 9px; border-radius: 50%; background: #b4b2bf"></span>
+          <span style="flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">New tab</span>
+          <button type="button" aria-label="Close tab: New tab" style="flex: none; width: 22px; height: 22px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #f3f2f7; color: #6e6b78; cursor: pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        </div>
+      </div>
+      <button type="button" aria-label="New tab" style="flex: none; width: 28px; height: 28px; margin-bottom: 6px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #ffffff; color: #3d5ad6; cursor: pointer; box-shadow: 0 2px 5px rgba(29,27,36,0.12)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    </div>
+
+    <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 22px">
+      <h2 style="margin: 0; font-size: 20px; font-weight: 800">Open in this tab</h2>
+
+      <button type="button" onClick="{{ pickScratch }}" aria-pressed="{{ scratchPressed }}" style="{{ scratchStyle }}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1f8a43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"></path></svg>
+        <span style="display: flex; flex-direction: column"><span style="font-size: 15px; font-weight: 800">Scratch note</span><span style="font-size: 13px; color: #4a4754">A blank page for your own notes. Saved on this device.</span></span>
+      </button>
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #6e6b78">LESSON SECTIONS</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+          <sc-for list="{{ sections }}" as="s" hint-placeholder-count="5">
+            <button type="button" onClick="{{ s.pick }}" aria-pressed="{{ s.pressed }}" style="{{ s.style }}">
+              <span aria-hidden="true" style="{{ s.dotStyle }}"></span>
+              <span style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.title }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h3 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #6e6b78">YOUR PDFS · PICK A PAGE</h3>
+        <sc-for list="{{ pdfs }}" as="p" hint-placeholder-count="2">
+          <button type="button" onClick="{{ p.pick }}" aria-pressed="{{ p.pressed }}" style="{{ p.style }}">
+            <span aria-hidden="true" style="flex: none; padding: 2px 6px; border-radius: 5px; background: #3d5ad6; color: #ffffff; font-size: 10px; font-weight: 800">PDF</span>
+            <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 13px; font-weight: 800">{{ p.title }}</span><span style="font-size: 12px; color: #4a4754">{{ p.sub }}</span></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div aria-hidden="true" style="position: absolute; right: 6px; bottom: 6px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: #f3f2f7; color: #8a8794; cursor: nwse-resize">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 10L10 20M20 16l-4 4"></path></svg>
+    </div>
+  </div>
+
+  <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #4a4754"><b style="color: #1d1b24">{{ picked }}</b> The plus button opens this page in a fresh tab; picking an item turns this tab into it. Closing the last tab leaves a new tab, so a window is never empty. Drag the corner to resize, or use the maximize button in the address bar.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":640,"height":520}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pick: null };
+  }
+
+  renderVals() {
+    const pick = this.state.pick;
+    const row = (on) => 'min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; cursor: pointer; text-align: left; font-size: 13px; font-weight: 700; background: #ffffff; border: 2px solid ' +
+      (on ? '#4285f4' : '#eceaf2');
+    const dot = (c) => 'flex: none; width: 9px; height: 9px; border-radius: 50%; background: ' + c;
+    const sections = [
+      ['CS111 Lecture 4.pdf', '#12a4b4'],
+      ['CS111 Lecture 3.pdf', '#7c5cf2'],
+      ['Scheduling cheat sheet.pdf', '#ffc83d'],
+      ['Board · FCFS', '#4285f4'],
+      ['Quick check', '#ea4335'],
+    ];
+    const pdfs = [
+      ['cs111-fcfs.pdf · page 1', 'First-Come, First-Served Scheduling'],
+      ['cs111-fcfs.pdf · page 2', 'Convoy Effect in FCFS'],
+    ];
+    return {
+      scratchPressed: pick === 'Scratch note' ? 'true' : 'false',
+      scratchStyle: 'display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; cursor: pointer; text-align: left; background: #e3f5e8; border: 2px solid ' +
+        (pick === 'Scratch note' ? '#1f8a43' : '#e3f5e8'),
+      pickScratch: () => this.setState({ pick: 'Scratch note' }),
+      sections: sections.map(([title, c]) => ({
+        title,
+        dotStyle: dot(c),
+        pressed: pick === title ? 'true' : 'false',
+        style: row(pick === title),
+        pick: () => this.setState({ pick: title }),
+      })),
+      pdfs: pdfs.map(([title, sub]) => ({
+        title,
+        sub,
+        pressed: pick === title ? 'true' : 'false',
+        style: row(pick === title) + '; gap: 10px',
+        pick: () => this.setState({ pick: title }),
+      })),
+      picked: pick ? 'Opens: ' + pick + '.' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>
