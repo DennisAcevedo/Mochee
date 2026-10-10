@@ -20,7 +20,7 @@ RON2K's asks for this round, verbatim where it matters:
 
 ## Rules for every agent
 
-- Repo `C:\Users\thegr\OneDrive\Desktop\GeminiGuy`, branch `ron2k/local-dev`. Do NOT commit, push, stash, reset or touch git config. Never `cd` out of the repo in Bash (use absolute paths).
+- Work in the repo root on branch `ron2k/local-dev`. Do NOT commit, push, stash, reset or touch git config. Never `cd` out of the repo in Bash (use absolute paths).
 - Never read, print or copy `gemini_API.txt` or `ElevenLabsAPI.txt`. Never call `/api/tts` or `/api/ask` in a loop (ElevenLabs credits are limited; the e2e suites already mock or cache what they need).
 - The Vite dev server runs on http://localhost:5176. NEVER kill or restart it. HMR picks up edits.
 - Do not touch: `BLENDER/**`, `public/models/**` (a character-rebuild agent owns them right now), `server/**`, `shared/**` unless your section says so.
