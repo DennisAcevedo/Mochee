@@ -1,5 +1,6 @@
 import { stripMarks } from './markup'
-import { prefetchVoice, voiceUrl } from './voiceEleven'
+import { prefetchVoice, prepareVoice, type VoiceClip } from './voiceEleven'
+import { startLatency, type LatencyTrace } from './latency'
 
 // The tutor's voice (ElevenLabs through the server proxy, else the browser's
 // speechSynthesis) and ears (SpeechRecognition), with a reading-pace timer
@@ -18,7 +19,7 @@ const SPEECH = {
   minTailMs: 500, // shortest wait after the voice is cut off mid-line
   afterCancelMs: 60, // Chrome can drop an utterance queued right after cancel()
   listenStopMs: 1500, // how long to wait for the recognizer's final result after stop()
-  voiceWaitMs: 9_000, // extra time a line stays open while its ElevenLabs audio loads
+  voiceWaitMs: 14_000, // covers the server's 12-second upstream deadline
 } as const
 
 let voice: SpeechSynthesisVoice | null = null
@@ -60,6 +61,10 @@ export function prefetchSpeech(text: string) {
 }
 
 interface Speaking {
+  abort: AbortController
+  clip: VoiceClip | null
+  trace: LatencyTrace
+  fallback: boolean
   text: string
   utterance: SpeechSynthesisUtterance | null // held so Chrome can't garbage-collect it mid-line
   audio: HTMLAudioElement | null
@@ -79,6 +84,9 @@ export function stopSpeaking() {
   current.done = true
   clearTimeout(current.timer)
   current.audio?.pause()
+  current.abort.abort()
+  current.clip?.dispose()
+  current.trace.finish('cancelled')
   current = null
   const syn = window.speechSynthesis
   if (syn && (syn.speaking || syn.pending)) {
@@ -90,16 +98,19 @@ export function stopSpeaking() {
 // Speaks `text` (marks stripped) and calls onEnd once, when the voice ends or
 // the fallback timer fires. A newer speak() or stopSpeaking() cancels it
 // without calling onEnd.
-export function speak(text: string, onEnd: () => void) {
+export function speak(text: string, onEnd: () => void, trace = startLatency('speech')) {
   stopSpeaking()
   const plain = stripMarks(text)
   const estimate = readingMs(plain)
-  const me: Speaking = { text: plain, utterance: null, audio: null, onMute: null, timer: 0 as unknown as ReturnType<typeof setTimeout>, done: false }
+  const me: Speaking = { abort: new AbortController(), clip: null, trace, fallback: false, text: plain, utterance: null, audio: null, onMute: null, timer: 0 as unknown as ReturnType<typeof setTimeout>, done: false }
   const finish = () => {
     if (me.done) return
     me.done = true
     clearTimeout(me.timer)
     me.audio?.pause()
+    me.abort.abort()
+    me.clip?.dispose()
+    trace.finish(!voiceEnabled ? 'muted' : me.fallback ? 'fallback' : 'complete')
     if (current === me) current = null
     onEnd()
   }
@@ -110,20 +121,23 @@ export function speak(text: string, onEnd: () => void) {
   }
   // ElevenLabs first; the line stays open while its audio loads.
   me.timer = setTimeout(finish, estimate + SPEECH.voiceWaitMs)
-  void voiceUrl(plain).then((url) => {
-    if (me.done) return
-    if (url && voiceEnabled) playAudio(me, url, estimate, finish)
+  void prepareVoice(plain, me.abort.signal, trace).then((clip) => {
+    if (me.done) { clip?.dispose(); return }
+    me.clip = clip
+    if (clip && voiceEnabled) playAudio(me, clip, estimate, finish)
     else speakBrowser(me, estimate, finish) // muted while loading: the reading timer only
   })
 }
 
 // Plays the ElevenLabs line; falls back to the browser voice if playback fails
 // (decode error, autoplay blocked).
-function playAudio(me: Speaking, url: string, estimate: number, finish: () => void) {
-  const audio = new Audio(url)
+function playAudio(me: Speaking, clip: VoiceClip, estimate: number, finish: () => void) {
+  const audio = new Audio(clip.url)
   me.audio = audio
   const fallBack = () => {
     if (me.done || me.audio !== audio || !voiceEnabled) return
+    audio.pause()
+    clip.dispose()
     me.audio = null
     me.onMute = null
     speakBrowser(me, estimate, finish)
@@ -138,17 +152,27 @@ function playAudio(me: Speaking, url: string, estimate: number, finish: () => vo
   // Audio really started: trade the load timer for a safety net sized to the clip.
   audio.onplaying = () => {
     if (me.done) return
+    me.trace.mark('playbackStarted')
     clearTimeout(me.timer)
     const ms = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration * 1000 : estimate
-    me.timer = setTimeout(finish, ms * SPEECH.safetyFactor + SPEECH.minTailMs)
+    me.timer = setTimeout(finish, ms * SPEECH.safetyFactor + SPEECH.voiceWaitMs)
   }
   audio.onended = finish
   audio.onerror = fallBack
+  void clip.completed.then(() => {
+    if (me.done || me.audio !== audio || !voiceEnabled) return
+    clearTimeout(me.timer)
+    const left = Number.isFinite(audio.duration) ? Math.max(0, audio.duration - audio.currentTime) * 1000 : estimate
+    me.timer = setTimeout(finish, left * SPEECH.safetyFactor + SPEECH.minTailMs)
+  }, fallBack)
   audio.play().catch(fallBack)
 }
 
 // The browser voice, with the reading timer as its floor.
 function speakBrowser(me: Speaking, estimate: number, finish: () => void) {
+  me.clip?.dispose()
+  me.fallback = true
+  me.trace.mark('browserFallback')
   const plain = me.text
   clearTimeout(me.timer)
   me.timer = setTimeout(finish, estimate)
@@ -164,6 +188,7 @@ function speakBrowser(me: Speaking, estimate: number, finish: () => void) {
     let startedAt = 0
     // Speech really started: trade the reading timer for a generous safety net.
     u.onstart = () => {
+      me.trace.mark('playbackStarted')
       if (me.done) return
       startedAt = performance.now()
       clearTimeout(me.timer)

@@ -138,6 +138,12 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
   if (!key) return send(res, 503, { error: 'no-key' })
   const model = process.env.GEMINI_MODEL?.trim() || CONFIG.defaultModel
   const thinking = thinkingConfig(model)
+  const started = performance.now()
+  const disconnected = new AbortController()
+  const onClose = () => { if (!res.writableFinished) disconnected.abort() }
+  res.once('close', onClose)
+  res.once('finish', () => res.off('close', onClose))
+  if (res.destroyed) return
 
   let upstream: Response
   try {
@@ -155,9 +161,10 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
           ...(thinking ? { thinkingConfig: thinking } : {}),
         },
       }),
-      signal: AbortSignal.timeout(CONFIG.timeoutMs),
+      signal: AbortSignal.any([disconnected.signal, AbortSignal.timeout(CONFIG.timeoutMs)]),
     })
   } catch (e) {
+    if (disconnected.signal.aborted) return
     const timedOut = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
     return send(res, 504, { error: timedOut ? 'timeout' : 'network' })
   }
@@ -172,6 +179,7 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
     const parsed = JSON.parse(text) as Record<string, unknown>
     const reply = sanitizeReply({ ...parsed, highlight: parsed.highlight === 'none' ? null : parsed.highlight, model })
     if (!reply) return send(res, 502, { error: 'empty' })
+    res.setHeader('server-timing', `gemini;dur=${(performance.now() - started).toFixed(1)}`)
     return send(res, 200, reply)
   } catch {
     return send(res, 502, { error: 'parse' })

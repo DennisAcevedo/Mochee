@@ -6,6 +6,7 @@ import { useGrowth } from '../state/growth'
 import { unlockedDances, useProgress, type XpReason } from '../state/progress'
 import { useTutorStore, type Mode } from '../state/store'
 import { stripMarks } from './markup'
+import type { LatencyTrace } from './latency'
 import { prefetchSpeech, setVoiceEnabled, speak, stopSpeaking } from './speech'
 import { QUIZ_FEEDBACK, RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 
@@ -82,7 +83,7 @@ function micIdle() {
 
 // Says a line: transcript (plain), caption (with **bold**), voice. onEnd runs
 // when the voice or the reading timer finishes, never after a cancel.
-export function sayLine(text: string, onEnd?: () => void, extra?: { mode?: Mode; answer?: number | null }) {
+export function sayLine(text: string, onEnd?: () => void, extra?: { mode?: Mode; answer?: number | null }, trace?: LatencyTrace) {
   const plain = stripMarks(text)
   expectLine = plain
   useTutorStore.getState().tutorSays(plain, extra)
@@ -91,7 +92,7 @@ export function sayLine(text: string, onEnd?: () => void, extra?: { mode?: Mode;
   speak(text, () => {
     micIdle()
     onEnd?.()
-  })
+  }, trace)
 }
 
 function rewardOnce(key: string, reason: XpReason) {
@@ -132,9 +133,15 @@ function apply(index: number) {
   // Reaching the closing step completes the lesson; its line is the send-off.
   if (index === s.steps.length - 1) rewardOnce(REWARD_KEYS.lesson, 'lessonDone')
   setStage(step)
-  // Fetch the next step's voice line while this one plays (once per step).
+  // Synthesize during the walk and keep a small look-ahead; don't spend the
+  // daily voice budget generating an entire lesson the student may never hear.
+  prefetchSpeech(step.say)
   const upcoming = s.steps[index + 1]
   if (upcoming) prefetchSpeech(upcoming.say)
+  if (step.wait === 'quiz') {
+    prefetchSpeech(QUIZ_FEEDBACK.correct)
+    prefetchSpeech(QUIZ_FEEDBACK.wrong)
+  }
   if (moving) later(RUNNER.walkMs, () => speakStep(step))
   else speakStep(step)
 }
@@ -364,6 +371,7 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
 
   // Leaving the lesson: silence and reset (rewards and the mute choice stay).
   stop: () => {
+    useTutorStore.setState({ awaitingReply: false })
     cancelAll()
     micIdle()
     set(initialRun())
@@ -376,6 +384,7 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
 export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}): () => void {
   let autoTimer: ReturnType<typeof setTimeout> | undefined
   const maybeAutoStart = () => {
+    if (useTutorStore.getState().phase === 'intro') prefetchSpeech(RESOLVED_STEPS[0].say)
     if (!autoStart || autoTimer || useWalkthrough.getState().started) return
     if (useTutorStore.getState().phase !== 'live') return
     autoTimer = setTimeout(() => {

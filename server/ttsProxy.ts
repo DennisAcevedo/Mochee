@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
-import { refuseCrossSite } from './requestGuard'
+import { refuseCrossSite } from './requestGuard.ts'
 
 // Server-side ElevenLabs proxy for the tutor's voice: POST /api/tts {text} ->
 // audio/mpeg on the dev and preview servers. The key is read per request (env
@@ -48,7 +48,19 @@ function writeBilled(dir: string, billed: number) {
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, CONFIG.budgetFile), JSON.stringify({ date: today(), billed }))
 }
-const inFlight = new Map<string, Promise<Buffer | number>>()
+interface SpeechJob {
+  chunks: Buffer[]
+  clients: Set<ServerResponse>
+  abort: AbortController
+  started: number
+}
+const inFlight = new Map<string, SpeechJob>()
+
+// Injected by the streaming tests; production uses the normal upstream fetch.
+export interface TtsOptions {
+  fetch?: typeof fetch
+  readKey?: (root: string) => string | null
+}
 
 function readKey(root: string): string | null {
   let key = process.env.ELEVENLABS_API_KEY?.trim() ?? ''
@@ -104,27 +116,66 @@ function readBody(req: IncomingMessage): Promise<string> {
   })
 }
 
-// Calls ElevenLabs once; resolves to the audio or an HTTP status to report.
-async function synthesize(key: string, voice: string, model: string, text: string): Promise<Buffer | number> {
-  let upstream: Response
+function writeChunk(job: SpeechJob, res: ServerResponse, chunk: Buffer) {
+  if (res.destroyed) return
+  if (!res.headersSent) {
+    res.setHeader('content-type', 'audio/mpeg')
+    res.setHeader('cache-control', 'private, no-store')
+    res.setHeader('x-tts-cache', 'miss')
+    res.setHeader('server-timing', `tts;dur=${(performance.now() - job.started).toFixed(1)}`)
+  }
+  // Bound memory for a client that stops reading. Other listeners keep playing.
+  if (res.writableLength > 1024 * 1024) res.destroy()
+  else res.write(chunk)
+}
+
+// Fan out each audio chunk immediately; cache only a successfully completed clip.
+async function synthesize(job: SpeechJob, file: string, key: string, voice: string, model: string, text: string, upstreamFetch: typeof fetch) {
   try {
-    upstream = await fetch(`${CONFIG.endpoint}/${encodeURIComponent(voice)}?output_format=${CONFIG.outputFormat}`, {
+    const upstream = await upstreamFetch(`${CONFIG.endpoint}/${encodeURIComponent(voice)}/stream?output_format=${CONFIG.outputFormat}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'audio/mpeg', 'xi-api-key': key },
       body: JSON.stringify({ text, model_id: model, voice_settings: CONFIG.voiceSettings }),
-      signal: AbortSignal.timeout(CONFIG.timeoutMs),
+      signal: AbortSignal.any([job.abort.signal, AbortSignal.timeout(CONFIG.timeoutMs)]),
     })
-  } catch {
-    return 504
+    if (!upstream.ok || !upstream.body) {
+      void upstream.body?.cancel()
+      for (const res of job.clients) sendJson(res, 502, { error: 'upstream', status: upstream.status })
+      return
+    }
+    const reader = upstream.body.getReader()
+    let bytes = 0
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (!value.byteLength) continue
+        bytes += value.byteLength
+        if (bytes > 8 * 1024 * 1024) throw new Error('audio-too-large')
+        const chunk = Buffer.from(value)
+        job.chunks.push(chunk)
+        for (const res of job.clients) writeChunk(job, res, chunk)
+      }
+    } finally {
+      await reader.cancel().catch(() => {})
+      reader.releaseLock()
+    }
+    if (!bytes) throw new Error('empty-audio')
+    if (!job.abort.signal.aborted) {
+      try { writeFileSync(file, Buffer.concat(job.chunks)) } catch { /* Playback works without a disk cache. */ }
+    }
+    for (const res of job.clients) res.end()
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'TimeoutError'
+    for (const res of job.clients) {
+      if (res.destroyed) continue
+      if (res.headersSent) res.destroy() // A partial MP3 must not look like a complete response.
+      else sendJson(res, timedOut ? 504 : 502, { error: timedOut ? 'timeout' : 'upstream' })
+    }
   }
-  if (!upstream.ok) {
-    void upstream.body?.cancel()
-    return upstream.status
-  }
-  return Buffer.from(await upstream.arrayBuffer())
 }
 
-async function handleTts(root: string, req: IncomingMessage, res: ServerResponse) {
+async function handleTts(root: string, req: IncomingMessage, res: ServerResponse, options: TtsOptions) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'method' })
   const refused = refuseCrossSite(req, 'application/json')
   if (refused) return sendJson(res, refused.status, { error: refused.error })
@@ -137,6 +188,7 @@ async function handleTts(root: string, req: IncomingMessage, res: ServerResponse
   }
   if (!text) return sendJson(res, 400, { error: 'bad-request' })
   if (text.length > CONFIG.maxChars) return sendJson(res, 413, { error: 'too-long' })
+  if (res.destroyed) return
 
   const voice = process.env.ELEVENLABS_VOICE_ID?.trim() || CONFIG.defaultVoice
   const model = process.env.ELEVENLABS_MODEL?.trim() || CONFIG.defaultModel
@@ -150,32 +202,37 @@ async function handleTts(root: string, req: IncomingMessage, res: ServerResponse
     // Not cached yet.
   }
 
-  let pending = inFlight.get(id)
-  if (!pending) {
-    const key = readKey(root)
+  // Include the root so separate middleware instances never share document roots or budgets.
+  const jobId = `${root}:${id}`
+  let job = inFlight.get(jobId)
+  if (job?.abort.signal.aborted) job = undefined
+  let key: string | null = null
+  if (!job) {
+    key = (options.readKey ?? readKey)(root)
     if (!key) return sendJson(res, 503, { error: 'no-key' })
     // Read and write back to back with no await between, so concurrent requests cannot both pass on one count.
     const billed = readBilled(dir)
     if (billed + text.length > CONFIG.budgetChars) return sendJson(res, 429, { error: 'budget' })
     writeBilled(dir, billed + text.length)
-    pending = synthesize(key, voice, model, text).finally(() => inFlight.delete(id))
-    inFlight.set(id, pending)
+    job = { chunks: [], clients: new Set(), abort: new AbortController(), started: performance.now() }
+    inFlight.set(jobId, job)
   }
-  const result = await pending
-  if (typeof result === 'number') return sendJson(res, 502, { error: 'upstream', status: result })
-  try {
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(file, result)
-  } catch {
-    // Serving still works without the disk cache.
-  }
-  return sendAudio(res, result, 'miss')
+  const active = job
+  active.clients.add(res)
+  res.once('close', () => {
+    active.clients.delete(res)
+    if (!active.clients.size) active.abort.abort()
+  })
+  for (const chunk of active.chunks) writeChunk(active, res, chunk)
+  if (key) void synthesize(active, file, key, voice, model, text, options.fetch ?? fetch).finally(() => {
+    if (inFlight.get(jobId) === active) inFlight.delete(jobId)
+  })
 }
 
-export function ttsMiddleware(getRoot: () => string): Connect.NextHandleFunction {
+export function ttsMiddleware(getRoot: () => string, options: TtsOptions = {}): Connect.NextHandleFunction {
   return (req, res, next) => {
     if (req.url?.split('?')[0] !== CONFIG.route) return next()
-    handleTts(getRoot(), req, res).catch(() => {
+    handleTts(getRoot(), req, res, options).catch(() => {
       if (!res.headersSent) sendJson(res, 500, { error: 'internal' })
     })
   }

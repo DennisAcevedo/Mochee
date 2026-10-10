@@ -15,6 +15,7 @@ export async function askGemini(request: AskRequest, signal?: AbortSignal): Prom
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), ASK.timeoutMs)
   const onAbort = () => ctrl.abort()
+  if (signal?.aborted) { clearTimeout(timer); return null }
   signal?.addEventListener('abort', onAbort)
   try {
     const res = await fetch(ASK.url, {
