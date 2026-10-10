@@ -1,0 +1,52 @@
+import { PALETTE } from '../scene/layout3d'
+import type { XpReason } from '../state/progress'
+
+// Every timing and colour of the play system. Durations are in milliseconds
+// and line up with the Blender one-shots (giggle, highfive, catch, yum, dances).
+
+export type PlayAction = 'poke' | 'highfive' | 'catch' | 'snack' | 'dance'
+
+export const PLAY = {
+  // Minimum gap between two uses of the same action, so spamming cannot farm XP.
+  // Roughly the length of each clip, so a new one never cuts the last one off.
+  cooldownMs: { poke: 1100, highfive: 1700, catch: 2600, snack: 2400, dance: 2900 } as Record<PlayAction, number>,
+
+  highfive: { contactMs: 300 }, // palm meets palm: stars + XP
+  catch: {
+    flightMs: 900, // ball in the air
+    clipLeadMs: 280, // start the catch clip this early so his hands are up on arrival
+    holdMs: 1000, // he holds it, then it pops into sparkles
+  },
+  snack: {
+    flightMs: 820,
+    clipLeadMs: 90,
+    gulpMs: 160, // shrinks into his mouth over this long after arrival
+  },
+  dance: {
+    starsAtMs: 650, // second wave of effects mid-dance
+    sparklesAtMs: 1500,
+    partyMs: 3000, // how long the party lights stay on (level 5+)
+  },
+  levelUpDelayMs: 650, // let the action's own reaction read before the level-up takes over
+  bannerMs: 4200,
+  toastMs: 1500,
+  maxToasts: 4,
+} as const
+
+// Colour of each XP toast, by what earned it.
+export const XP_COLOR: Record<XpReason, string> = {
+  poke: PALETTE.pink,
+  highfive: PALETTE.sun,
+  catch: PALETTE.teal,
+  snack: PALETTE.coral,
+  dance: PALETTE.violet,
+  stepDone: PALETTE.lime,
+  quizCorrect: PALETTE.indigo,
+  lessonDone: PALETTE.violet,
+}
+
+// Ball and snack colours rotate through these.
+export const PROP_COLORS = [PALETTE.coral, PALETTE.teal, PALETTE.sun, PALETTE.violet, PALETTE.lime, PALETTE.pink] as const
+
+// Rainbow cap (level 4): index 0 keeps the model's own indigo.
+export const CAP_COLORS = [null, PALETTE.coral, PALETTE.teal, PALETTE.sun, PALETTE.lime, PALETTE.pink, PALETTE.violet] as const
