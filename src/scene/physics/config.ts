@@ -55,6 +55,18 @@ export const PHYSICS = {
     swing: { gain: 0.07, max: 0.45, damp: 9 }, // held: lean against the drag velocity
     toss: { side: 3.2, up: 8.5, back: -0.6 }, // tossTutor(): launch velocity (side alternates)
     landing: { xMax: 3.4, zMin: -3.0, zMax: ROOM_BOX.frontZ - BODY_RADIUS * TUTOR_SCALE }, // where he may stand after a fling
+    // What knocked him over (useTumbles), judged when he lands. First match wins: shaken, bonk, flicked, thrown, dropped.
+    tumble: {
+      shakeMinSpeed: 2.5, // held: a sideways drag faster than this (world u/s) counts toward a shake...
+      shakeFlips: 4, // ...this many direction reversals...
+      shakeWindow: 1.2, // ...within this many seconds = shaken
+      bonkSpeed: 4, // flying: reaching a wall or the ceiling faster than this = bonk
+      bonkMargin: 0.08, // world units of slack beyond the capsule when testing wall contact
+      flickHeldSeconds: 0.3, // held for less than this...
+      flickSpeed: 3, // ...and let go faster than this = flicked
+      thrownSpeed: 5.5, // any other release (or toss) faster than this = thrown
+      dropHeight: 0.9, // fell more than this (feet, world units) from his highest point = dropped
+    },
   },
 
   ball: {
