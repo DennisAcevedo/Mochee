@@ -3,6 +3,7 @@ import '@fontsource/figtree/800.css'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { INK_ON, paletteVars } from '../../lesson/accents'
+import { useLessonPack } from '../../lesson/packSession'
 import { useWalkthrough, type WalkthroughState } from '../../lesson/runner'
 import { PALETTE } from '../../scene/layout3d'
 import styles from './WalkthroughBar.module.css'
@@ -138,6 +139,7 @@ export function WalkthroughBar({ className }: Props) {
   const color = s.started ? step.color : 'teal'
   const done = s.phase === 'done'
   const showPause = s.started && s.playing && !done
+  const packTitle = useLessonPack((p) => p.pack?.title ?? null)
   const status = statusOf(s)
   const waiting = s.phase === 'waiting'
 
@@ -150,10 +152,11 @@ export function WalkthroughBar({ className }: Props) {
       aria-label="Guided lesson controls"
     >
       <div className={styles.row}>
-        <div className={styles.chip} data-waiting={waiting}>
+        <div className={styles.chip} data-waiting={waiting} data-testid="walk-step-label">
           {s.started ? (
             <>
-              Step <b>{s.index + 1}</b> of {s.steps.length}
+              {packTitle ? `${packTitle} · ` : 'Step '}
+              <b>{s.index + 1}</b> of {s.steps.length}
             </>
           ) : (
             <>Guided lesson</>

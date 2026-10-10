@@ -20,6 +20,22 @@ export interface NoteTab {
   lines: NoteLine[]
 }
 
+// A notes tab built from an uploaded document's LessonPack (src/lesson/packSession.ts):
+// the same shape NotesPage renders, with the page each line comes from.
+export interface CitedNoteLine extends NoteLine {
+  page: number
+}
+
+export interface CitedNoteTab extends NoteTab {
+  lines: CitedNoteLine[]
+}
+
+// Stable ids of a pack's notes lines: p<section>-head for the heading,
+// p<section>-l<i> for notes.lines[i] (i = index in the pack, kept even when
+// a line is dropped for citing a page outside its section).
+export const packHeadId = (section: number) => `p${section}-head`
+export const packLineId = (section: number, i: number) => `p${section}-l${i}`
+
 export const notesTabs: NoteTab[] = [
   {
     title: 'CS111 Lecture 4.pdf',
