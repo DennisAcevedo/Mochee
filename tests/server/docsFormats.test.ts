@@ -462,6 +462,66 @@ describe('research papers', () => {
     }
   })
 
+  test('interleaved parts become page ranges the session can show, keeping the most lines', async () => {
+    // Nine pages, one finding each. Method and Results both open on p.4 and
+    // interleave (a results table inside the methods chapter, as in a real
+    // thesis), and Data comes back out of page order. The session shows a
+    // section's lines only from its page to the next section's page.
+    const FINDINGS = [
+      'Bookmakers build a margin into every price they publish.',
+      'Raw prediction accuracy alone never turned into profit here.',
+      'Fourteen seasons of league fixtures were collected for training.',
+      'Ratings are updated after every fixture with a fixed learning rate.',
+      'Rolling form windows use only matches played before kickoff.',
+      'Forests were tuned with chronological cross validation folds.',
+      'The forest beat the closing price on ranked probability score.',
+      'Quarter staking lifted the final bankroll above the flat plan.',
+      'Account limits and liquidity were left out of the simulation.',
+    ]
+    const section = (part: string, title: string, page: number, notePages: number[]) => ({
+      part,
+      title,
+      keywords: [],
+      page,
+      mins: 3,
+      say: ['First spoken line.', 'Second spoken line.'],
+      notesHead: '',
+      notes: notePages.map((p) => ({ text: FINDINGS[p - 1], page: p })),
+      boardHead: '',
+      board: [],
+    })
+    const json = {
+      sections: [
+        section('question', 'The question', 1, [1, 2]),
+        section('method', 'The method', 4, [4, 5, 6]),
+        section('results', 'The results', 4, [4, 7, 8]),
+        section('data', 'The data', 3, [3]),
+        section('limitations', 'The limits', 9, [9]),
+      ],
+    }
+    const ctx = freshService(async (c) => (isPaperCall(c) ? { ok: true, json } : { ok: false, error: 'upstream' }), 'test-key')
+    try {
+      const doc = (await ctx.service.ingest(new TextEncoder().encode(FINDINGS.join('\n\f')), 'thesis.txt', 'cs111', 'paper')).body as DocumentInfo
+      assert.equal(doc.pageCount, 9)
+      const pack = (await ctx.service.lesson(doc.id)).body as LessonPack
+      assert.deepEqual(
+        pack.sections.map((s) => [s.title.split(':')[0], s.page]),
+        [['Question', 1], ['Data', 3], ['Method', 4], ['Results', 7], ['Takeaways', 9]],
+      )
+      // The session's rule (src/lesson/packSession.ts sectionPages; not imported: it would pull DOM code into the node typecheck).
+      pack.sections.forEach((s, i) => {
+        const to = Math.max(s.page, pack.sections[i + 1]?.page ?? Infinity)
+        for (const l of s.notes.lines) assert.ok(l.page >= s.page && l.page <= to, `${s.title}: p. ${l.page} outside ${s.page}-${to}`)
+      })
+      assert.deepEqual(pack.sections[2].notes.lines.map((l) => l.page), [4, 5, 6])
+      assert.deepEqual(pack.sections[3].notes.lines.map((l) => l.page), [7, 8], 'the p.4 results line is the one dropped')
+      assert.deepEqual(doc.topics.map((t) => t.firstPage), [1, 3, 4, 7, 9])
+      assert.deepEqual(pack.sections.map((s) => s.topicId), doc.topics.map((t) => t.id))
+    } finally {
+      ctx.dispose()
+    }
+  })
+
   test('rows from before kinds existed read as class material', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'gg-docs-kind-'))
     const old = new DatabaseSync(join(dataDir, DOCS_CONFIG.dbFile))
