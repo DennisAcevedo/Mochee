@@ -54,6 +54,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  max-width: max(0px, calc(50vw - 540px)); /* ends before the play HUD centred over the stage */
 }
 
 .crumbStrong {
@@ -66,6 +67,12 @@
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
+}
+
+.right[data-stack] {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .progress {
@@ -95,28 +102,4 @@
 .pip[data-state='current'] {
   width: 18px;
   background: var(--accent);
-}
-
-.panelButton {
-  height: 38px;
-  padding: 0 14px;
-  border-radius: var(--r-button);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  box-shadow: var(--shadow-button);
-}
-.panelButton:hover {
-  background: #fff;
-}
-
-.chevron {
-  color: var(--muted-2);
 }

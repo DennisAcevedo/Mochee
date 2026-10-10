@@ -1,9 +1,12 @@
 import { Canvas } from '@react-three/fiber'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, type ReactNode } from 'react'
 import { ACESFilmicToneMapping, type PerspectiveCamera } from 'three'
 import { CAMERA, CHARACTER, RENDER } from '../animation/config'
 import { Character } from '../character/Character'
+import { BlenderTutorSafe } from '../character/blender/BlenderTutorSafe'
+import { GGHooks } from '../debug/GGHooks'
 import { introRef, introTargets } from '../intro/targets'
+import { poke } from '../play/actions'
 import { useCurrentTutor } from '../state/currentTutor'
 import { lookOf } from '../state/library'
 import { useLayout } from '../state/layout'
@@ -11,23 +14,33 @@ import { useTutorStore } from '../state/store'
 import { layout as L } from '../theme'
 import { CameraRig } from './CameraRig'
 import { CharacterDirector } from './CharacterDirector'
+import { CapTint } from './fx/CapTint'
+import { FxLayer } from './fx/FxLayer'
+import { PartyLights } from './fx/PartyLights'
+import { PlayProps } from './fx/PlayProps'
+import { AbilityProps, ReturnExperiment, RoomEvolution } from './evolution'
 import { Lights } from './Lights'
+import { PhysicsRoom, PhysicsTutor, Toys } from './physics'
+import { LessonRoom } from './room/LessonRoom'
 import styles from './Stage.module.css'
 
 interface Props {
   children?: ReactNode
 }
 
-// The rounded stage: gradient backdrop, floor, horizon, and whatever UI chrome
-// is passed in as children (top bar, board, panel).
+// The rounded stage and whatever UI chrome is passed in as children (top bar,
+// caption, HUD).
 //
 // The 3D scene is ONE fullscreen canvas (position: fixed) shared by the start
 // screen and the lesson. It sits inside the stage so it paints above the
 // stage backdrop and below the chrome. The start-screen gradient is a fixed
-// layer just under it that the intro fades away.
+// layer just under it that the intro fades away. While the start screen and
+// the intro run, the classic character plays the intro; once the lesson is
+// live, the white-box room, the Blender tutor and the effects take over.
 export function Stage({ children }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const setStageW = useTutorStore((s) => s.setStageW)
+  const live = useTutorStore((s) => s.phase === 'live')
   const { regionRight } = useLayout()
   const tutor = useCurrentTutor()
 
@@ -45,14 +58,14 @@ export function Stage({ children }: Props) {
 
   return (
     <div ref={ref} className={styles.stage}>
-      <div className={styles.floor} />
-      <div className={styles.horizon} />
       <div ref={introRef('backdrop')} className={styles.startBackdrop} />
 
       <div ref={introRef('scene')} className={styles.scene}>
-        {/* Renderer settings match tutor-3d.js: ACES filmic at 1.18, soft shadows, DPR ≤ 2. */}
+        {/* Renderer settings match tutor-3d.js: ACES filmic at 1.18, soft shadows, DPR ≤ 2.
+            Pointer events only once live: 3D clicks (quiz keys, tickles, window tabs)
+            land on the canvas; DOM chrome sits above it with its own z-index. */}
         <Canvas
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+          style={{ position: 'absolute', inset: 0, pointerEvents: live ? 'auto' : 'none' }}
           shadows="soft"
           dpr={[1, RENDER.maxDpr]}
           gl={{ antialias: true, alpha: true, toneMapping: ACESFilmicToneMapping, toneMappingExposure: RENDER.exposure }}
@@ -65,14 +78,45 @@ export function Stage({ children }: Props) {
         >
           <CameraRig />
           <Lights />
-          <Character
-            size={CHARACTER.defaultSize}
-            roam={CHARACTER.defaultRoam}
-            rleft={L.regionLeft}
-            rright={regionRight}
-            look={lookOf(tutor)}
-            introDriven
-          />
+          <GGHooks />
+          {/* The room and the Blender tutor mount hidden during the intro, so the
+              window fonts and the GLB are ready the moment the lesson goes live. */}
+          <group visible={live}>
+            <LessonRoom />
+            <RoomEvolution />
+          </group>
+          {/* Room space (no transform), so the physics bodies and the drawn tutor
+              agree. Rapier loads once here, during the intro, while all of it is hidden.
+              A tap on him (no drag) is the tickle: PhysicsTutor owns his pointer. */}
+          <Suspense fallback={null}>
+            <PhysicsRoom>
+              <group name="tutor" visible={live}>
+                <PhysicsTutor onTap={poke}>
+                  <BlenderTutorSafe visible={live} />
+                </PhysicsTutor>
+              </group>
+              {live && <Toys />}
+            </PhysicsRoom>
+          </Suspense>
+          {live ? (
+            <>
+              <CapTint />
+              <PartyLights />
+              <PlayProps />
+              <FxLayer />
+              <AbilityProps />
+              <ReturnExperiment />
+            </>
+          ) : (
+            <Character
+              size={CHARACTER.defaultSize}
+              roam={CHARACTER.defaultRoam}
+              rleft={L.regionLeft}
+              rright={regionRight}
+              look={lookOf(tutor)}
+              introDriven
+            />
+          )}
         </Canvas>
       </div>
       <CharacterDirector />
