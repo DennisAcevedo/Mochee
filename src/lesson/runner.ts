@@ -152,9 +152,9 @@ function speakStep(step: ResolvedStep) {
 }
 
 function lineEnded(step: ResolvedStep) {
-  useWalkthrough.setState({ lineDone: true, loopOverride: null })
+  useWalkthrough.setState({ lineDone: true })
   if (step.wait === 'quiz' && useWalkthrough.getState().quizResult !== 'correct') {
-    useWalkthrough.setState({ phase: 'waiting' })
+    useWalkthrough.setState({ phase: 'waiting', loopOverride: null })
     return
   }
   advanceOrFinish()
@@ -163,14 +163,16 @@ function lineEnded(step: ResolvedStep) {
 function advanceOrFinish() {
   const { index, playing, steps } = useWalkthrough.getState()
   if (index >= steps.length - 1) {
-    useWalkthrough.setState({ phase: 'done', playing: false })
+    useWalkthrough.setState({ phase: 'done', playing: false, loopOverride: null })
     rewardOnce(REWARD_KEYS.lesson, 'lessonDone')
     return
   }
   if (!playing) {
-    useWalkthrough.setState({ phase: 'idle' })
+    useWalkthrough.setState({ phase: 'idle', loopOverride: null })
     return
   }
+  // Keep the step's loop through the gap: dropping to idle for 650 ms made him
+  // lower his arm and restart the point clip between two board steps.
   useWalkthrough.setState({ phase: 'gap' })
   later(RUNNER.gapMs, () => apply(index + 1))
 }

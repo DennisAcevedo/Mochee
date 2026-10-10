@@ -9,7 +9,7 @@
     },
     {
       "name": "talk",
-      "duration": 1.6,
+      "duration": 2.0,
       "loop": true,
       "face": "neutral",
       "fx": []
@@ -30,14 +30,14 @@
     },
     {
       "name": "point_left",
-      "duration": 1.6,
+      "duration": 4.8,
       "loop": true,
       "face": "neutral",
       "fx": []
     },
     {
       "name": "point_right",
-      "duration": 1.6,
+      "duration": 4.8,
       "loop": true,
       "face": "neutral",
       "fx": []

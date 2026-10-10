@@ -214,20 +214,22 @@ def idle():
 
 
 def talk():
-    d = 1.6
+    # Every key eases in and out (bezier): 'back' arrivals left each pose at full
+    # speed and read as a twitch twice a loop. 2.0 s keeps the beats unhurried.
+    d = 2.0
     return clip('talk', d, True, 'neutral', [], {
-        'body': looped([K(0, body()), K(0.2, body(y=0.025, sy=1.03, rx=-3, ry=5)), K(0.4, body(sy=0.97, rx=2, ry=3)),
-                        K(0.8, body(y=0.025, sy=1.03, rx=-3, ry=-4, rz=2)), K(1.0, body(sy=0.97, rx=2, ry=-2)),
-                        K(1.2, body(y=0.01, rx=-1))], d),
+        'body': looped([K(0, body()), K(0.25, body(y=0.025, sy=1.03, rx=-3, ry=5)), K(0.5, body(sy=0.97, rx=2, ry=3)),
+                        K(1.0, body(y=0.025, sy=1.03, rx=-3, ry=-4, rz=2)), K(1.25, body(sy=0.97, rx=2, ry=-2)),
+                        K(1.5, body(y=0.01, rx=-1))], d),
         'hand.L': looped([K(0, hand(1, out=-0.12, up=0.3, fwd=0.18, pitch=-20, tilt=-10)),
-                          K(0.25, hand(1, out=-0.05, up=0.42, fwd=0.22, pitch=-30, yaw=25, tilt=5), 'back'),
-                          K(0.5, hand(1, out=-0.14, up=0.26, fwd=0.2, pitch=-15, tilt=-12)),
-                          K(0.85, hand(1, out=-0.02, up=0.45, fwd=0.16, pitch=-25, yaw=30, tilt=10), 'back'),
-                          K(1.15, hand(1, out=-0.1, up=0.3, fwd=0.2, pitch=-20, tilt=-5))], d),
+                          K(0.32, hand(1, out=-0.05, up=0.42, fwd=0.22, pitch=-30, yaw=25, tilt=5)),
+                          K(0.65, hand(1, out=-0.14, up=0.26, fwd=0.2, pitch=-15, tilt=-12)),
+                          K(1.08, hand(1, out=-0.02, up=0.45, fwd=0.16, pitch=-25, yaw=30, tilt=10)),
+                          K(1.45, hand(1, out=-0.1, up=0.3, fwd=0.2, pitch=-20, tilt=-5))], d),
         'hand.R': looped([K(0, hand(-1, up=0.05, fwd=0.06, tilt=5)),
-                          K(0.6, hand(-1, out=-0.05, up=0.16, fwd=0.14, pitch=-15, yaw=20), 'back'),
-                          K(1.1, hand(-1, up=0.08, fwd=0.08))], d),
-    }, 'Explaining: nods on the beat, his left hand (viewer right) gestures, the other bobs.')
+                          K(0.75, hand(-1, out=-0.05, up=0.16, fwd=0.14, pitch=-15, yaw=20)),
+                          K(1.4, hand(-1, up=0.08, fwd=0.08))], d),
+    }, 'Explaining: nods on the beat, his left hand (viewer right) gestures, the other bobs. All eased.')
 
 
 def think():
@@ -258,18 +260,29 @@ def listen():
 
 
 def point(name, s):
-    """s = +1 points to the viewer's right (his left hand), -1 to the viewer's left."""
-    d = 1.6
+    """s = +1 points to the viewer's right (his left hand), -1 to the viewer's left.
+
+    A long, smooth loop so the repeat is hard to spot: he holds the point, reaches
+    a touch further once, then relaxes and glances back at the viewer with the
+    other mitten half-raised (explaining), and turns back to the window. Every
+    key eases (bezier, no overshoot) and the beats are spaced unevenly.
+    """
+    d = 4.8
     arm = 'hand.L' if s > 0 else 'hand.R'
     other = 'hand.R' if s > 0 else 'hand.L'
-    ext = lambda out: hand(s, out=out, up=0.32, fwd=-0.1, tilt=SIDEWAYS)
-    turn = lambda **k: body(ry=18 * s, rz=-4 * s, rx=-2, **k)
+    ext = lambda out, up, tilt=0.0, fwd=-0.1: hand(s, out=out, up=up, fwd=fwd, tilt=SIDEWAYS + tilt)
+    lean = lambda ry, rz, rx=-2.0, **k: body(ry=ry * s, rz=rz * s, rx=rx, **k)
+    rest = lambda up=0.0, out=-0.04, fwd=0.06, tilt=10.0: hand(-s, out=out, up=-0.04 + up, fwd=fwd, tilt=tilt)
     return clip(name, d, True, 'neutral', [], {
-        'body': looped([K(0, turn()), K(0.2, body(ry=20 * s, rz=-5 * s, rx=-2, y=0.012)), K(0.5, turn()),
-                        K(0.7, body(ry=20 * s, rz=-5 * s, rx=-2, y=0.012)), K(1.0, turn())], d),
-        arm: looped([K(0, ext(0.28)), K(0.2, ext(0.4), 'back'), K(0.4, ext(0.28)), K(0.7, ext(0.4), 'back'), K(0.9, ext(0.28))], d),
-        other: looped([K(0, hand(-s, out=-0.04, up=-0.04, fwd=0.06, tilt=10)), K(0.8, hand(-s, out=-0.04, up=-0.015, fwd=0.06, tilt=8))], d),
-    }, 'Points %s (%s window) with two pokes per loop.' % ('viewer right' if s > 0 else 'viewer left', 'board' if s > 0 else 'notes'))
+        'body': looped([K(0, lean(18, -4)), K(1.25, lean(21, -5, y=0.012, sy=1.01)), K(2.1, lean(16, -3)),
+                        K(3.0, lean(9, -1, rx=-3.5, y=0.006)), K(3.75, lean(12, -2)), K(4.3, lean(17, -3.5, y=0.008))], d),
+        arm: looped([K(0, ext(0.34, 0.31)), K(1.25, ext(0.41, 0.35, -4)), K(2.1, ext(0.36, 0.32)),
+                     K(3.0, ext(0.29, 0.25, 12, fwd=-0.05)), K(3.75, ext(0.31, 0.27, 6)), K(4.3, ext(0.35, 0.31, 2))], d),
+        other: looped([K(0, rest()), K(1.6, rest(up=0.02, tilt=8)), K(2.6, rest(up=0.13, out=-0.02, fwd=0.16, tilt=-12)),
+                       K(3.4, rest(up=0.15, out=-0.04, fwd=0.17, tilt=-16)), K(4.2, rest(up=0.01, tilt=9))], d),
+        'cap': looped([K(0, cap(rot=(0, 0, 2 * s))), K(1.25, cap(rot=(-2, 0, 4 * s))), K(3.0, cap(rot=(1, 0, -1 * s)))], d),
+    }, 'Points %s (%s window): holds, one smooth reach, glances back at the viewer explaining, turns back. 4.8 s, all eased.' % (
+        'viewer right' if s > 0 else 'viewer left', 'board' if s > 0 else 'notes'))
 
 
 def walk():

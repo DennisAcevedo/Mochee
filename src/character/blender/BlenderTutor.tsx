@@ -245,9 +245,11 @@ export function BlenderTutor({
     if (props3.book) props3.book.visible = reading
 
     // Cursor look: head-to-cursor in NDC, small, damped, quieter during clips.
+    // Off while reading or asleep (as in tutor-3d.js): the head eases back to centre.
+    const calm = reading || motion.playing === 'sleep'
     let yawT = 0
     let pitchT = 0
-    if (pointer.x !== null && pointer.y !== null && size.width && size.height) {
+    if (!calm && pointer.x !== null && pointer.y !== null && size.width && size.height) {
       const head = look.v.copy(anchors.tutor).project(camera)
       const cx = ((pointer.x - size.left) / size.width) * 2 - 1
       const cy = -(((pointer.y - size.top) / size.height) * 2 - 1)
