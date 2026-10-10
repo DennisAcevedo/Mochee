@@ -1,0 +1,394 @@
+{
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 3.0,
+      "loop": true,
+      "face": "neutral",
+      "fx": []
+    },
+    {
+      "name": "talk",
+      "duration": 1.6,
+      "loop": true,
+      "face": "neutral",
+      "fx": []
+    },
+    {
+      "name": "think",
+      "duration": 3.2,
+      "loop": true,
+      "face": "focused",
+      "fx": []
+    },
+    {
+      "name": "listen",
+      "duration": 2.4,
+      "loop": true,
+      "face": "neutral",
+      "fx": []
+    },
+    {
+      "name": "point_left",
+      "duration": 1.6,
+      "loop": true,
+      "face": "neutral",
+      "fx": []
+    },
+    {
+      "name": "point_right",
+      "duration": 1.6,
+      "loop": true,
+      "face": "neutral",
+      "fx": []
+    },
+    {
+      "name": "walk",
+      "duration": 0.8,
+      "loop": true,
+      "face": "neutral",
+      "fx": []
+    },
+    {
+      "name": "sleep",
+      "duration": 3.2,
+      "loop": true,
+      "face": "closed",
+      "fx": []
+    },
+    {
+      "name": "wave",
+      "duration": 1.4,
+      "loop": false,
+      "face": "happy",
+      "fx": []
+    },
+    {
+      "name": "hop",
+      "duration": 0.9,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.64,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "shrug",
+      "duration": 1.2,
+      "loop": false,
+      "face": "surprised",
+      "fx": []
+    },
+    {
+      "name": "celebrate",
+      "duration": 2.0,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.3,
+          "confetti"
+        ],
+        [
+          1.25,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "dance_bounce",
+      "duration": 2.4,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.45,
+          "sparkles"
+        ],
+        [
+          1.65,
+          "sparkles"
+        ],
+        [
+          2.25,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "dance_spin",
+      "duration": 2.0,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          1.0,
+          "ring"
+        ],
+        [
+          1.15,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "dance_robot",
+      "duration": 2.4,
+      "loop": false,
+      "face": "focused",
+      "fx": [
+        [
+          1.2,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "giggle",
+      "duration": 1.4,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.15,
+          "hearts"
+        ]
+      ]
+    },
+    {
+      "name": "highfive",
+      "duration": 1.2,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.42,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "catch",
+      "duration": 1.4,
+      "loop": false,
+      "face": "surprised",
+      "fx": [
+        [
+          0.45,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "yum",
+      "duration": 1.6,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.55,
+          "hearts"
+        ]
+      ]
+    },
+    {
+      "name": "levelup",
+      "duration": 2.6,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.15,
+          "ring"
+        ],
+        [
+          0.6,
+          "levelup"
+        ],
+        [
+          0.75,
+          "confetti"
+        ],
+        [
+          1.5,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "wake",
+      "duration": 1.6,
+      "loop": false,
+      "face": "surprised",
+      "fx": [
+        [
+          0.3,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "dragged",
+      "duration": 1.0,
+      "loop": true,
+      "face": "surprised",
+      "fx": []
+    },
+    {
+      "name": "tumble",
+      "duration": 0.6,
+      "loop": true,
+      "face": "closed",
+      "fx": []
+    },
+    {
+      "name": "recover",
+      "duration": 0.9,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.05,
+          "stars"
+        ],
+        [
+          0.76,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "surprise",
+      "duration": 0.7,
+      "loop": false,
+      "face": "surprised",
+      "fx": []
+    },
+    {
+      "name": "hint",
+      "duration": 1.1,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.28,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "equip",
+      "duration": 1.0,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.6,
+          "sparkles"
+        ]
+      ]
+    }
+  ],
+  "bones": [
+    "root",
+    "body",
+    "cap",
+    "tassel",
+    "hand.L",
+    "hand.R",
+    "foot.L",
+    "foot.R"
+  ],
+  "faceNodes": [
+    "eye.L",
+    "eye.R",
+    "happy.L",
+    "happy.R",
+    "brow.L",
+    "brow.R",
+    "smile",
+    "mouth",
+    "cheek.L",
+    "cheek.R"
+  ],
+  "threeNames": {
+    "root": "root",
+    "body": "body",
+    "cap": "cap",
+    "tassel": "tassel",
+    "hand.L": "handL",
+    "hand.R": "handR",
+    "foot.L": "footL",
+    "foot.R": "footR",
+    "eye.L": "eyeL",
+    "eye.R": "eyeR",
+    "happy.L": "happyL",
+    "happy.R": "happyR",
+    "brow.L": "browL",
+    "brow.R": "browR",
+    "smile": "smile",
+    "mouth": "mouth",
+    "cheek.L": "cheekL",
+    "cheek.R": "cheekR"
+  },
+  "height": 1.9968,
+  "bodyCenterY": 1.0,
+  "bodyRadius": 0.8,
+  "restPositions": {
+    "root": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "body": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "cap": [
+      0.099,
+      1.6341,
+      -0.0393
+    ],
+    "tassel": [
+      0.6494,
+      1.8544,
+      -0.0525
+    ],
+    "hand.L": [
+      0.95,
+      0.72,
+      0.28
+    ],
+    "hand.R": [
+      -0.95,
+      0.72,
+      0.28
+    ],
+    "foot.L": [
+      0.27,
+      0.085,
+      0.08
+    ],
+    "foot.R": [
+      -0.27,
+      0.085,
+      0.08
+    ]
+  },
+  "capMaterial": "cap",
+  "sneakerMaterial": "sneaker",
+  "fps": 60,
+  "triangles": 40684,
+  "notes": [
+    "Model units, floor at y = 0, faces +Z. .L = his left = viewer right (+X).",
+    "GLTFLoader strips \".\" from node names: look up \"handL\", \"eyeL\", ... (see threeNames).",
+    "happy.L/R sit over the eyes at scale 1: hide them by default and toggle .visible.",
+    "cap material = white x COLOR_0 (indigo->violet). To recolour: material.vertexColors = false, color.set(x), needsUpdate = true.",
+    "sneaker material = the feet's coral sole band (#ff6b5b); the upper is white. To recolour: color.set(x).",
+    "Blink: eye node scale.y 1 -> 0.1. Talk: mouth node scale.y."
+  ]
+}
