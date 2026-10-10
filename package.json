@@ -7,19 +7,28 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "test:anim": "node --test tests/character/*.test.ts",
+    "test:server": "node --test tests/server/*.test.ts"
   },
   "dependencies": {
+    "@fontsource/caveat": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@react-three/drei": "^10.6.1",
     "@react-three/fiber": "^9.3.0",
+    "@react-three/rapier": "^2.2.0",
     "gsap": "^3.13.0",
+    "pdfjs-dist": "^6.4.299",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router": "^7.18.4",
     "three": "^0.179.1",
+    "zod": "^4.6.5",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@types/three": "^0.179.0",
