@@ -71,7 +71,9 @@
 /* fight: the HUD over the arena */
 .battle { position: absolute; inset: 0; }
 .hud, .hudShake { position: absolute; left: 24px; top: 84px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 18px; background: rgba(255, 255, 255, 0.86); box-shadow: 0 10px 24px -16px rgba(61, 90, 214, 0.6); animation: hudInL 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.hudShake { animation: shakeHard 420ms ease-out var(--t-miss) both; }
+/* The slide-in stays first in the list, so switching to the shake class only
+   adds the shake (and switching back drops it): the slide-in never replays. */
+.hudShake { animation: hudInL 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both, shakeHard 420ms ease-out var(--t-miss) both; }
 .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a; }
 .hearts { display: flex; gap: 6px; }
 .heartBox { position: relative; display: block; width: 28px; height: 28px; }
@@ -83,7 +85,7 @@
 .halfR { clip-path: polygon(52% 0, 100% 0, 100% 100%, 52% 100%, 46% 74%, 58% 52%, 44% 30%); animation: crackR 620ms cubic-bezier(0.4, 0, 0.7, 1) var(--t-miss) both; }
 .streak { font-size: 13px; font-weight: 800; color: #4a4756; }
 .bossHud, .bossHudHit { position: absolute; right: 24px; top: 84px; width: min(340px, 40%); display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 18px; background: rgba(29, 27, 36, 0.88); color: #fff; box-shadow: 0 10px 24px -16px rgba(29, 27, 36, 0.8); animation: hudInR 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.bossHudHit { animation: shakeSoft 360ms ease-out var(--t-hit) both; }
+.bossHudHit { animation: hudInR 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both, shakeSoft 360ms ease-out var(--t-hit) both; }
 .bossTitle { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .bossName { font-size: 18px; font-weight: 900; letter-spacing: 0.06em; }
 .bossGuards { font-size: 12px; font-weight: 700; color: #c9c6d8; }
@@ -103,9 +105,10 @@
 .dz2 { right: 0; top: 8px; width: 14px; }
 .dz3 { left: 40px; top: 0; width: 12px; }
 .flashHit, .flashMiss, .flashKo { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
-.flashHit { background: #fff; animation: flash 220ms ease-out var(--t-hit) both; --flash: var(--flash-hit); }
-.flashMiss { background: radial-gradient(70% 70% at 50% 50%, rgba(234, 67, 53, 0) 40%, rgba(234, 67, 53, 0.9) 100%); animation: flash 420ms ease-out var(--t-miss) both; --flash: var(--flash-miss); }
-.flashKo { background: #fff; animation: flash 380ms ease-out var(--t-ko) both; --flash: var(--flash-ko); }
+/* forwards, not both: during the delay the base opacity (0) holds, so the screen is not washed out until the impact. */
+.flashHit { background: #fff; animation: flash 220ms ease-out var(--t-hit) forwards; --flash: var(--flash-hit); }
+.flashMiss { background: radial-gradient(70% 70% at 50% 50%, rgba(234, 67, 53, 0) 40%, rgba(234, 67, 53, 0.9) 100%); animation: flash 420ms ease-out var(--t-miss) forwards; --flash: var(--flash-miss); }
+.flashKo { background: #fff; animation: flash 380ms ease-out var(--t-ko) forwards; --flash: var(--flash-ko); }
 .koBanner { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: 96px; font-weight: 900; font-style: italic; letter-spacing: 0.02em; color: #fbbc04; -webkit-text-stroke: 4px #1d1b24; text-shadow: 0 8px 0 #1d1b24; pointer-events: none; animation: koPop 1100ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--t-ko) both; }
 .confetti { position: absolute; inset: 0; pointer-events: none; }
 .confetti span { position: absolute; top: -20px; border-radius: 3px; animation-name: confetti; animation-timing-function: ease-in; animation-fill-mode: both; }
@@ -118,6 +121,7 @@
 .opt { animation: optIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--card-delay, 0ms) + 120ms + var(--i, 0) * 45ms) both; }
 .opt:hover:not(:disabled) { transform: translateY(-2px); }
 .opt:active:not(:disabled) { transform: scale(0.97); }
+.opt:disabled { cursor: default; }
 .optPicked { border-color: #7c5cf2; background: #f3efff; transform: scale(0.97); cursor: default; }
 .optRight { border-color: #34a853; background: #e8f6ec; cursor: default; animation: optRight 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 .optWrong { border-color: #ea4335; background: #fff0ee; cursor: default; animation: optWrong 380ms ease-out both; }
@@ -131,7 +135,9 @@
 .feedbackText { flex: 1; font-size: 14px; font-weight: 700; line-height: 1.4; }
 .quote { font-weight: 600; color: #4a4756; }
 .page { flex: none; padding: 3px 9px; border-radius: 999px; background: #fff; color: #3d5ad6; font-size: 12px; font-weight: 800; }
-.nextBtn { flex: none; padding: 9px 16px; border: 0; border-radius: 12px; background: #1d1b24; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.nextBtn { flex: none; padding: 9px 16px; border: 0; border-radius: 12px; background: #1d1b24; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: opacity 160ms; }
+/* Next and Try again wait for him to get back up. */
+.nextBtn:disabled, .primary:disabled { opacity: 0.45; cursor: default; }
 
 /* end cards */
 .endWon, .endLost { position: absolute; left: 50%; bottom: 40px; width: min(560px, calc(100% - 32px)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px; border-radius: 26px; background: #fff; text-align: center; animation: cardIn 360ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
@@ -168,7 +174,8 @@
 /* Reduced motion: no shakes, slides, orbits or floating numbers; state still
    changes on the same beats (fades only). The 3D arena scales its own motion. */
 @media (prefers-reduced-motion: reduce) {
-  .tw1, .tw2, .tw3, .heart, .dizzy { animation: none; }
+  .tw1, .tw2, .tw3, .heart { animation: none; }
+  .dizzy { animation: fadeIn 200ms ease-out calc(var(--t-miss) + 700ms) both; transform: translateX(-50%); } /* no orbit, same entrance */
   .hud, .hudShake, .bossHud, .bossHudHit, .opt, .optRight, .optWrong { animation: none; }
   .question, .endWon, .endLost, .feedbackHit, .feedbackMiss { animation-name: fadeIn; transform: translateX(-50%); }
   .feedbackHit, .feedbackMiss { transform: none; }

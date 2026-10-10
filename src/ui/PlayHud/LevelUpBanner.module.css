@@ -6,7 +6,7 @@
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--gg-over-fight, 50); /* above a boss fight while one is up (src/boss/fight.ts) */
   display: grid;
   place-items: start center;
   padding-top: 14vh;

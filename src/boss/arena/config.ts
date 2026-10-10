@@ -8,8 +8,10 @@ import { FLOOR_Y } from '../../scene/layout3d'
 
 // The fight takes over the stage: the HUD's backdrop paints over the lesson
 // chrome, the 3D canvas is lifted above it, and the HUD sits on top.
-// Keep in sync with Boss.module.css (.backdrop 60, .fight 62).
-export const ARENA_Z = { backdrop: 60, canvas: 61, hud: 62 } as const
+// Keep in sync with Boss.module.css (.backdrop 60, .fight 62). `over` is for
+// the page overlays that must still show during a fight (the level-up banner,
+// toasts): fight.ts sets it as --gg-over-fight, which their z-index reads.
+export const ARENA_Z = { backdrop: 60, canvas: 61, hud: 62, over: 63 } as const
 
 export const ARENA = {
   // Gemini Guy's fight spot: he walks there through director.stepAside, so his
@@ -77,6 +79,13 @@ export const BEAT = {
   koBurst: 420, // after the final hit's impact the boss shakes this long, then bursts
   reveal: { hit: 560, miss: 640 }, // the explanation shows once the hit has landed
   taunt: 1200, // the boss's laugh after it wins
+  // Dances in a row after a KO, one per `every` ms (the longest dance is 2.4 s);
+  // a level-up clip in the way is re-checked every `retry` ms.
+  victory: { dances: 3, every: 2500, retry: 250 },
+  // Answers (and Next) wait until the beat has played out and he is back on his
+  // feet (a tumble and its recover outlast the beat): re-checked every `every`
+  // ms, and never held longer than `max` after the beat ends.
+  settle: { every: 100, max: 4000 },
   idle: { bob: 900, blink: 2800, blinkLen: 110, rev: 700, ready: 380 },
 } as const
 

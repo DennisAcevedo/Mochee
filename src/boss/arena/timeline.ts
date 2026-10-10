@@ -101,6 +101,12 @@ function bossBeatEnd(kind: BeatKind): number {
   return Number.POSITIVE_INFINITY // a KO'd boss stays gone
 }
 
+// Wall ms from a beat's start until both fighters are done with it: the boss
+// back on its idle loop and, after a lunge, him back from the knock. A KO never is.
+export function beatDone(kind: BeatKind): number {
+  return wallMs(kind, kind === 'miss' ? Math.max(bossBeatEnd(kind), BEAT.miss.impact + KNOCK_MS) : bossBeatEnd(kind))
+}
+
 // Distance (world x) the lunge travels to reach him.
 export const LUNGE = ARENA.boss.x - ARENA.guy.x - ARENA.boss.contact
 
@@ -221,6 +227,8 @@ export function newGuyPose(): GuyPose {
 
 // Distance of the dash toward the boss.
 export const DASH = 0.75
+// How long the lunge's knock-back holds him off his spot, ms after the impact.
+export const KNOCK_MS = 1400
 
 export function guyPose(beat: Beat | null, outcome: Outcome, outcomeAge: number, now: number, motion: number, out: GuyPose): GuyPose {
   // A boxer's bounce while he waits for the answer.
@@ -248,9 +256,9 @@ export function guyPose(beat: Beat | null, outcome: Outcome, outcomeAge: number,
     // Startled stretch as the boss charges, then knocked away from it (the 'boss' tumble flips him on top).
     out.sy *= 1 + 0.06 * hump(span(t, 160, impact))
     const u = t - impact
-    if (u >= 0 && u < 1400) {
-      const k = 1 - span(u, 1100, 1400)
-      out.dx = -0.55 * outCubic(span(u, 0, 220)) * (1 - inOutCubic(span(u, 900, 1400)))
+    if (u >= 0 && u < KNOCK_MS) {
+      const k = 1 - span(u, 1100, KNOCK_MS)
+      out.dx = -0.55 * outCubic(span(u, 0, 220)) * (1 - inOutCubic(span(u, 900, KNOCK_MS)))
       out.dy *= 1 - k
       out.pitch *= 1 - k
     }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { ROAM_LOG_CAP, tutorActor, exposeDev } from '../character/blender/actor'
 import { tutorRig, tutorStatus } from '../character/blender/BlenderTutor'
+import { useFight } from '../boss/fight'
 import { performAction, setExpression } from '../character/controller'
 import { isExperimentRunning, useAbilityRun } from '../growth'
 import { presenting, useWalkthrough } from '../lesson/runner'
@@ -81,6 +82,9 @@ function useRoam() {
 
     let mem: RoamState = initialRoam(clock())
     const id = window.setInterval(() => {
+      // A boss fight owns his spot (fight.ts steps him into his corner): no roaming or
+      // stepping aside from a maximized window until it ends, when this picks the aside back up.
+      if (useFight.getState().on) return
       const now = clock()
       const t = useTutorStore.getState()
       const w = useWalkthrough.getState()

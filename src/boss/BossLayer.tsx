@@ -170,6 +170,7 @@ function Battle() {
   const revealed = useFight((f) => f.revealed)
   const round = useFight((f) => f.round)
   const reduced = useFight((f) => f.reduced)
+  const ready = useFight((f) => f.ready)
   const { topic, phase, queue, hp, maxHp, hearts, picked, result, hitId, lastHit, streak } = s
   if (!topic) return null
   const a = archetypeFor(topic)
@@ -181,16 +182,19 @@ function Battle() {
   const miss = lastHit === 'miss' && done
   const ko = hit && hp === 0
   const pct = maxHp ? `${(100 * hp) / maxHp}%` : '0%'
+  const shownHp = hit && revealed !== hitId ? hp + 1 : hp // the count drops once the bolt has landed, with the bar
   const cardDelay = round <= 1 ? BEAT.enter.skid - 260 : 0
+  // The cards are never keyed by hit: a remount would skip the HP bar's
+  // transitions and replay the slide-in. The class adds the shake (Boss.module.css).
   return (
     <div className={css.battle} style={timingVars(reduced)}>
       {/* HUD cards */}
-      <div key={miss ? `hud-m${hitId}` : 'hud'} className={miss ? css.hudShake : css.hud} data-arena-top>
+      <div className={miss ? css.hudShake : css.hud} data-arena-top>
         <span className={css.mono}>YOU + GEMINI GUY</span>
         <Hearts n={hearts} max={3} crack={miss ? hitId : null} />
         <span className={css.streak}>{streak >= 2 ? `Streak ${streak} · keep it going` : 'Answer right to attack'}</span>
       </div>
-      <div key={hit ? `boss-h${hitId}` : 'boss'} className={hit ? css.bossHudHit : css.bossHud} data-arena-top>
+      <div className={hit ? css.bossHudHit : css.bossHud} data-arena-top>
         <span className={css.bossTitle}>
           <span className={css.bossName}>{a.name}</span>
           <span className={css.bossGuards}>guards {topic.title}</span>
@@ -211,7 +215,7 @@ function Battle() {
           <span className={css.hpTicks} />
         </span>
         <span className={css.bossGuards}>
-          {hp} / {maxHp} HP
+          {shownHp} / {maxHp} HP
         </span>
       </div>
 
@@ -269,7 +273,7 @@ function Battle() {
                   style={{ '--i': i } as CSSProperties}
                   data-testid={`boss-choice-${i}`}
                   aria-pressed={picked === i}
-                  disabled={phase !== 'ask'}
+                  disabled={phase !== 'ask' || !ready}
                   onClick={() => void s.answer(i)}
                 >
                   <span className={css.key}>{i + 1}</span>
@@ -289,7 +293,7 @@ function Battle() {
               </span>
               <span className={css.page}>p. {result.citation?.page ?? q.page}</span>
               {canNext && (
-                <button type="button" className={css.nextBtn} data-testid="boss-next" onClick={s.next}>
+                <button type="button" className={css.nextBtn} data-testid="boss-next" disabled={!ready} onClick={s.next}>
                   Next round
                 </button>
               )}
@@ -319,7 +323,7 @@ function Battle() {
           <h2 className={css.endTitle}>{a.name} held on</h2>
           <span className={css.cardText}>Review page {topic.firstPage} with him, then try again. The boss keeps the damage you dealt.</span>
           <span className={css.row}>
-            <button type="button" className={css.primary} data-testid="boss-next" onClick={s.retry}>
+            <button type="button" className={css.primary} data-testid="boss-next" disabled={!ready} onClick={s.retry}>
               Try again
             </button>
             <button type="button" className={css.secondary} onClick={s.backToTopics}>
@@ -336,7 +340,14 @@ export function BossLayer({ tutorId }: { tutorId?: string } = {}) {
   useEffect(() => {
     if (tutorId) useBoss.getState().setTutor(tutorId)
   }, [tutorId])
-  useEffect(() => bindFight(), [])
+  // Leaving the page ends any fight, so the next lesson page does not open on one.
+  useEffect(() => {
+    const unbind = bindFight()
+    return () => {
+      unbind()
+      useBoss.getState().close()
+    }
+  }, [])
   const phase = useBoss((s) => s.phase)
   const doc = useBoss((s) => s.doc)
   const topic = useBoss((s) => s.topic)
@@ -386,18 +397,19 @@ export function BossLayer({ tutorId }: { tutorId?: string } = {}) {
         }
         return
       }
+      // Answers and moving on wait until the beat has played out and he is on his feet.
+      const ready = useFight.getState().ready
       if (s.phase === 'ask' && /^[1-4]$/.test(e.key)) {
         const i = Number(e.key) - 1
-        if (s.queue[0] && i < s.queue[0].choices.length) {
+        if (ready && s.queue[0] && i < s.queue[0].choices.length) {
           e.preventDefault()
           void s.answer(i)
         }
         return
       }
       if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
-        // Wait for the hit to land (the explanation is up) before moving on.
-        if (s.phase === 'answered' && useFight.getState().revealed === s.hitId) s.next()
-        else if (s.phase === 'lost') s.retry()
+        if (s.phase === 'answered' && ready && useFight.getState().revealed === s.hitId) s.next()
+        else if (s.phase === 'lost' && ready) s.retry()
         else if (s.phase === 'won') s.backToTopics()
       }
     }

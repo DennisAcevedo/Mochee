@@ -206,9 +206,10 @@ export function ArenaFx({ arch }: { arch: Archetype }) {
       m.scale.setScalar(Math.max(1e-3, S.size * (1 - k) * (miss ? 1.2 : 1)))
     }
 
-    // ---- KO: a white ring, the pieces and the confetti.
+    // ---- KO: a white ring, the pieces and the confetti (reduced motion: the ring only, like the HUD's confetti).
     const gone = F.boss.gone && beat?.kind === 'ko'
     const age = gone ? F.boss.burstAge : -1
+    const fly = gone && !f.reduced
     const r2 = ring2.current
     if (r2) {
       r2.visible = gone && age < R.ms * 1.6
@@ -235,7 +236,7 @@ export function ArenaFx({ arch }: { arch: Archetype }) {
     for (let i = 0; i < pieces.current.length; i++) {
       const m = pieces.current[i]
       if (!m) continue
-      m.visible = gone && life < BURST.life
+      m.visible = fly && life < BURST.life
       if (!m.visible) continue
       const pc = sim.p[i]
       pc.vel.y -= BURST.gravity * dt
@@ -257,7 +258,7 @@ export function ArenaFx({ arch }: { arch: Archetype }) {
     const c = confetti.current
     if (c) {
       const t = age / 1000
-      c.visible = gone && t < BURST.confettiLife
+      c.visible = fly && t < BURST.confettiLife
       if (c.visible) {
         const drag = 1.6
         const g = BURST.confettiGravity
