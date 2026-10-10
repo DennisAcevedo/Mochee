@@ -1,4 +1,5 @@
 .bar {
+  container-type: inline-size;
   background: var(--surface);
   border-radius: var(--r-input-bar);
   padding: 12px 14px 12px 12px;
@@ -6,6 +7,15 @@
   align-items: center;
   gap: 18px;
   box-shadow: var(--shadow-bar);
+}
+
+/* A narrow bar (beside the walkthrough bar on a laptop screen, or a phone):
+   the status column goes, so the whole placeholder fits. The mic itself
+   still shows speaking and listening. */
+@container (max-width: 560px) {
+  .status {
+    display: none;
+  }
 }
 
 /* Mic */
@@ -131,6 +141,8 @@
 
 .input {
   flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis; /* never a hard cut mid-word */
   border: none;
   outline: none;
   background: transparent;

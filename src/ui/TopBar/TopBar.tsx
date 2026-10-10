@@ -2,34 +2,34 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { introRef } from '../../intro/targets'
 import { useCurrentTutor } from '../../state/currentTutor'
-import { useLayout } from '../../state/layout'
 import { selectSection, useTutorStore } from '../../state/store'
 import styles from './TopBar.module.css'
 
-// `extra` (the lesson's mode switch) sits on top of the right-hand group,
-// above the section progress, so the row stays clear of the centred play HUD.
+// The lesson header, in its own row above the stage: logo, the one-line
+// heading (course and current section, ellipsized rather than wrapped), and
+// on the right `extra` (the Study / Play pill) beside the section counter.
+// On narrow screens the right group wraps to a second row.
 export function TopBar({ extra }: { extra?: ReactNode }) {
-  const { topBarRight } = useLayout()
   const section = useTutorStore(selectSection)
   const tutor = useCurrentTutor()
   const outline = tutor.outline
 
   return (
-    <div ref={introRef('topBar')} className={styles.bar} style={{ right: topBarRight }}>
+    <header ref={introRef('topBar')} className={styles.bar} data-gg-part="header">
       <div className={styles.left}>
         <Link to="/" className={styles.logo} aria-label="Home">
           <div className={styles.logoDot} />
           Tutor
         </Link>
         <div className={styles.divider} />
-        <div className={styles.crumb}>
+        <h1 className={styles.crumb} data-gg-part="heading" title={`${tutor.name} · ${outline[section]?.title ?? ''}`}>
           {tutor.name} · <span className={styles.crumbStrong}>{outline[section]?.title}</span>
-        </div>
+        </h1>
       </div>
 
-      <div className={styles.right} data-stack={extra ? true : undefined}>
+      <div className={styles.right}>
         {extra}
-        <div className={styles.progress}>
+        <div className={styles.progress} data-gg-part="section">
           Section {section + 1} of {outline.length}
           <div className={styles.pips}>
             {outline.map((o, i) => (
@@ -42,6 +42,6 @@ export function TopBar({ extra }: { extra?: ReactNode }) {
           </div>
         </div>
       </div>
-    </div>
+    </header>
   )
 }

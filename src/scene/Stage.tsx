@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense, useEffect, useRef, type ReactNode } from 'react'
 import { ACESFilmicToneMapping, type PerspectiveCamera } from 'three'
 import { CAMERA, CHARACTER, RENDER } from '../animation/config'
+import { BossArena } from '../boss'
 import { Character } from '../character/Character'
 import { BlenderTutorSafe } from '../character/blender/BlenderTutorSafe'
 import { GGHooks } from '../debug/GGHooks'
@@ -28,15 +29,17 @@ interface Props {
   children?: ReactNode
 }
 
-// The rounded stage and whatever UI chrome is passed in as children (top bar,
-// caption, HUD).
+// The stage and whatever UI chrome is passed in as children (caption, HUD).
+// It is full-bleed: the stage element is only the frame the lesson shot is
+// composed in, while its sky and the canvas cover the whole window.
 //
 // The 3D scene is ONE fullscreen canvas (position: fixed) shared by the start
 // screen and the lesson. It sits inside the stage so it paints above the
-// stage backdrop and below the chrome. The start-screen gradient is a fixed
-// layer just under it that the intro fades away. While the start screen and
-// the intro run, the classic character plays the intro; once the lesson is
-// live, the white-box room, the Blender tutor and the effects take over.
+// stage's sky and below the chrome. The start-screen gradient is a fixed
+// layer just under it that the intro fades away. The Blender tutor is on
+// stage the whole time: asleep on the start screen, then the intro's wake and
+// spin (introDriven); the room and the effects join once the lesson is live.
+// The classic character only appears as his fallback if the GLB is missing.
 export function Stage({ children }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const setStageW = useTutorStore((s) => s.setStageW)
@@ -79,8 +82,8 @@ export function Stage({ children }: Props) {
           <CameraRig />
           <Lights />
           <GGHooks />
-          {/* The room and the Blender tutor mount hidden during the intro, so the
-              window fonts and the GLB are ready the moment the lesson goes live. */}
+          {/* The room mounts hidden during the intro, so the window fonts are
+              ready the moment the lesson goes live. */}
           <group visible={live}>
             <LessonRoom />
             <RoomEvolution />
@@ -90,15 +93,27 @@ export function Stage({ children }: Props) {
               A tap on him (no drag) is the tickle: PhysicsTutor owns his pointer. */}
           <Suspense fallback={null}>
             <PhysicsRoom>
-              <group name="tutor" visible={live}>
+              <group name="tutor">
                 <PhysicsTutor onTap={poke}>
-                  <BlenderTutorSafe visible={live} />
+                  <BlenderTutorSafe
+                    introDriven
+                    fallback={
+                      <Character
+                        size={CHARACTER.defaultSize}
+                        roam={live ? 0 : CHARACTER.defaultRoam}
+                        rleft={live ? 0 : L.regionLeft}
+                        rright={live ? 1 : regionRight}
+                        look={lookOf(tutor)}
+                        introDriven
+                      />
+                    }
+                  />
                 </PhysicsTutor>
               </group>
               {live && <Toys />}
             </PhysicsRoom>
           </Suspense>
-          {live ? (
+          {live && (
             <>
               <CapTint />
               <PartyLights />
@@ -106,16 +121,8 @@ export function Stage({ children }: Props) {
               <FxLayer />
               <AbilityProps />
               <ReturnExperiment />
+              <BossArena />
             </>
-          ) : (
-            <Character
-              size={CHARACTER.defaultSize}
-              roam={CHARACTER.defaultRoam}
-              rleft={L.regionLeft}
-              rright={regionRight}
-              look={lookOf(tutor)}
-              introDriven
-            />
           )}
         </Canvas>
       </div>

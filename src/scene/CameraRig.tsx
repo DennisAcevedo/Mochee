@@ -5,8 +5,8 @@ import { intro } from '../animation/introState'
 import { introTargets } from '../intro/targets'
 import { useDirector } from '../state/director'
 import { useTutorStore } from '../state/store'
-import { theme } from '../theme'
-import { LESSON_CAMERA } from './layout3d'
+import { useWindows } from '../state/windows'
+import { cameraPan, LESSON_CAMERA } from './layout3d'
 import { usePlayBody } from './physics'
 import { sceneFrame, sceneRig } from './sceneRig'
 
@@ -43,12 +43,12 @@ function measure(el: HTMLElement | undefined, out: Rect, fallback: Rect) {
   return Object.assign(out, fallback)
 }
 
-let lastClip = ''
 let lastOpacity = ''
 
 // Runs before the character tick (negative priority, which R3F treats as
 // "before" without taking over rendering). Projects the fullscreen canvas as
-// if it were the current frame rect, moves the camera, and clips the canvas.
+// if it were the current frame rect (the shot lands in the frame, the scene
+// carries on past it) and moves the camera.
 export function CameraRig() {
   useFrame((state, delta) => {
     const cam = state.camera as PerspectiveCamera
@@ -71,8 +71,7 @@ export function CameraRig() {
     const dt = Math.min(delta, LESSON_EASE.maxDt)
     lesson.t = live ? MathUtils.damp(lesson.t, 1, LESSON_EASE.blend, dt) : 0
     if (lesson.t > 0.999) lesson.t = 1
-    const focus = useDirector.getState().focus
-    const want = focus === 'notes' ? -LESSON_CAMERA.focusShift : focus === 'board' ? LESSON_CAMERA.focusShift : 0
+    const want = cameraPan(useDirector.getState().focus, useWindows.getState().maximized)
     // The pan holds still while he is held, so the drag plane under the pointer stays put.
     if (usePlayBody.getState().state !== 'held') lesson.shift = live ? MathUtils.damp(lesson.shift, want, LESSON_EASE.focus, dt) : 0
     const k = lesson.t
@@ -91,12 +90,9 @@ export function CameraRig() {
 
     const wrap = introTargets.scene
     if (wrap) {
-      const k = sceneRig.clipT
-      const clip =
-        k <= 0
-          ? 'none'
-          : `inset(${lerp(0, b.y, k)}px ${lerp(0, vw - b.x - b.w, k)}px ${lerp(0, vh - b.y - b.h, k)}px ${lerp(0, b.x, k)}px round ${lerp(0, theme.radii.stage, k)}px)`
-      if (clip !== lastClip) wrap.style.clipPath = lastClip = clip
+      // Full-bleed stage: the canvas is never clipped to the frame, so the scene
+      // runs on to the window's edges (this also drops a clip a hot reload kept).
+      if (wrap.style.clipPath) wrap.style.clipPath = ''
       const opacity = String(sceneRig.canvasOpacity)
       if (opacity !== lastOpacity) wrap.style.opacity = lastOpacity = opacity
     }

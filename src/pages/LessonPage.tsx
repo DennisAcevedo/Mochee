@@ -1,11 +1,13 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from 'react'
 import { Navigate, useParams } from 'react-router'
-import styles from '../App.module.css'
+import { BossLayer } from '../boss'
 import { preloadBlenderTutor } from '../character/blender/BlenderTutor'
 import { MasteryInvite, refreshDocuments } from '../growth'
 import { IntroDirector } from '../intro/IntroDirector'
+import { PackDirector } from '../lesson/PackDirector'
 import { StageDirector } from '../lesson/StageDirector'
 import { LevelWatcher } from '../play/LevelWatcher'
+import { LESSON_CAMERA } from '../scene/layout3d'
 import { Stage } from '../scene/Stage'
 import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
@@ -15,8 +17,10 @@ import { useTutorStore } from '../state/store'
 import { Caption } from '../ui/Caption/Caption'
 import { Drawers } from '../ui/Drawers/Drawers'
 import { useDocs } from '../ui/Drawers/docsStore'
+import { PANEL } from '../ui/Drawers/Panel'
 import { InputBar } from '../ui/InputBar/InputBar'
 import { ModeSwitch } from '../ui/ModeSwitch/ModeSwitch'
+import { LevelUpBanner } from '../ui/PlayHud/LevelUpBanner'
 import { PlayHud } from '../ui/PlayHud/PlayHud'
 import { SkipButton } from '../ui/Start/SkipButton'
 import { StartScreen } from '../ui/Start/StartScreen'
@@ -24,6 +28,16 @@ import { Toast } from '../ui/Toast/Toast'
 import { TopBar } from '../ui/TopBar/TopBar'
 import { WalkthroughBar } from '../ui/Walkthrough/WalkthroughBar'
 import lesson from './LessonPage.module.css'
+
+// Stage frame sizing. The frame is letterboxed at the 3D camera's aspect into
+// the space the header and the dock leave; maxWidth only stops it growing
+// silly on very wide screens. It draws nothing (the scene is full-bleed): it
+// is where the lesson shot lands, so both windows and the tutor fit between
+// the bars at any window size, and the scene carries on past it to the edges.
+const FRAME = {
+  aspect: LESSON_CAMERA.aspect,
+  maxWidth: 1760,
+} as const
 
 // /tutor/:id: start screen, intro, lesson.
 export function LessonPage() {
@@ -41,35 +55,94 @@ function fallbackGreeting(tutor: Tutor) {
   return `Oh! Hi, I'm awake. Today is ${topic}, starting with ${first}.`
 }
 
-// The lesson: the 3D room (notes + board windows, the Blender tutor, effects)
-// fills the stage; the play HUD floats over the ceiling band, the caption
-// over the floor, and the walkthrough bar docks above the ask box. Once live,
-// the Study / Play switch joins the header and the Learning (left) and Quest
-// (right) drawers fold out from the sides.
+// Phones (the drawers' sheet breakpoint): the stage is too small to carry the
+// HUD and caption inside it, so they flow below it instead.
+const narrowQuery = typeof window === 'undefined' ? null : window.matchMedia(PANEL.sheetQuery)
+const subscribeNarrow = (cb: () => void) => {
+  narrowQuery?.addEventListener('change', cb)
+  return () => narrowQuery?.removeEventListener('change', cb)
+}
+const useNarrow = () => useSyncExternalStore(subscribeNarrow, () => narrowQuery?.matches ?? false)
+
+// Fits the frame to its row at the camera's aspect, and publishes where the
+// stage sits as CSS variables on the page (the drawers dock their handles
+// beside it; the header and dock match its width).
+function useStageFrame(page: RefObject<HTMLDivElement | null>, row: RefObject<HTMLDivElement | null>, frame: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const p = page.current
+    const r = row.current
+    const f = frame.current
+    if (!p || !r || !f) return
+    let raf = 0
+    const fit = () => {
+      raf = 0
+      if (!narrowQuery?.matches) {
+        const cs = getComputedStyle(r)
+        const w = r.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+        const h = r.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+        const fw = Math.max(0, Math.floor(Math.min(w, h * FRAME.aspect, FRAME.maxWidth)))
+        f.style.setProperty('--frame-w', `${fw}px`)
+        f.style.setProperty('--frame-h', `${fw / FRAME.aspect}px`)
+      }
+      const b = f.getBoundingClientRect()
+      p.style.setProperty('--stage-left', `${b.left}px`)
+      p.style.setProperty('--stage-top', `${b.top}px`)
+      p.style.setProperty('--stage-w', `${b.width}px`)
+    }
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(fit)
+    }
+    fit()
+    const ro = new ResizeObserver(schedule)
+    ro.observe(p)
+    ro.observe(r)
+    ro.observe(f)
+    window.addEventListener('resize', schedule)
+    narrowQuery?.addEventListener('change', schedule)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', schedule)
+      narrowQuery?.removeEventListener('change', schedule)
+      cancelAnimationFrame(raf)
+    }
+  }, [page, row, frame])
+}
+
+// The lesson, top to bottom: the header row; the stage, a 16:9 frame
+// letterboxed into the space left over, with the play HUD inside its top and
+// the caption inside its bottom (both scale with it); then the dock (the
+// walkthrough bar and the ask box). The scene itself fills the whole window
+// behind all of them. The Learning drawer's handle sits beside the stage on
+// the left. On phones the HUD and caption move below the stage and the
+// drawer opens from a dock at the end of the page.
 function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefined }) {
   const touchStudied = useLibrary((s) => s.touchStudied)
   const phase = useTutorStore((s) => s.phase)
   const live = phase === 'live'
+  const narrow = useNarrow()
   const greeting = steps?.[0]?.say ?? fallbackGreeting(tutor)
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
+  const pageRef = useRef<HTMLDivElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  useStageFrame(pageRef, rowRef, frameRef)
 
   useEffect(() => {
     if (phase === 'intro') touchStudied(tutor.id)
   }, [phase, tutor.id, touchStudied])
 
-  // Fetch the GLB while the start screen and the intro play. The old lesson
-  // panel is gone (notes and board live in the room), so nothing reserves its
-  // width; the drawers start folded to their handles so both windows show.
+  // Fetch the GLB while the start screen and the intro play. The drawer
+  // starts folded to its handle so both windows show.
   useEffect(() => {
     preloadBlenderTutor()
     useTutorStore.setState({ panelOpen: false })
-    useDrawers.setState({ learningOpen: false, questOpen: false })
+    useDrawers.setState({ learningOpen: false })
     useMode.setState({ mode: 'study' }) // a mastery celebration or play mode must not carry into the next lesson
   }, [])
 
-  // A finished upload puts the new document's book and posters in the room now
-  // (the room otherwise re-reads the list on a slow poll).
+  // A finished upload puts the new document's book and posters on the stage
+  // now (the stage otherwise re-reads the list on a slow poll).
   useEffect(
     () =>
       useDocs.subscribe((s, prev) => {
@@ -78,36 +151,63 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     [],
   )
 
+  // The level-up banner is page-level (fixed, centred), so the HUD's own copy is off.
+  const hud = live && (
+    <div className={lesson.hud}>
+      <PlayHud banner={false} />
+    </div>
+  )
+  const caption = live && (
+    <div className={lesson.caption} data-gg-part="caption">
+      <Caption className={lesson.bubble} />
+    </div>
+  )
+
   return (
     <CurrentTutorContext.Provider value={tutor}>
-      <div className={styles.page}>
-        <div className={styles.main}>
-          <Stage>
-            <TopBar extra={live ? <ModeSwitch /> : null} />
-            {live && (
-              <div className={lesson.hud}>
-                <PlayHud />
-              </div>
-            )}
-            {live && <Caption className={lesson.caption} />}
-            {live && (
-              <div className={lesson.invite}>
-                <MasteryInvite />
-              </div>
-            )}
-            {live && <Drawers />}
-          </Stage>
-          <div className={lesson.dock} data-live={live || undefined}>
-            <WalkthroughBar className={lesson.walk} />
+      <div ref={pageRef} className={lesson.page} data-live={live || undefined}>
+        <div className={lesson.header}>
+          <TopBar extra={live ? <ModeSwitch /> : null} />
+        </div>
+        <div ref={rowRef} className={lesson.row}>
+          <div ref={frameRef} className={lesson.frame} data-gg-part="stage">
+            <Stage>
+              {!narrow && (hud || caption) && (
+                <div className={lesson.overlay}>
+                  {hud}
+                  {caption}
+                </div>
+              )}
+              {live && (
+                <div className={lesson.invite}>
+                  <MasteryInvite />
+                </div>
+              )}
+            </Stage>
+          </div>
+        </div>
+        {narrow && (hud || caption) && (
+          <div className={lesson.below}>
+            {hud}
+            {caption}
+          </div>
+        )}
+        <div className={lesson.dock} data-live={live || undefined}>
+          <WalkthroughBar className={lesson.walk} />
+          <div className={lesson.ask} data-gg-part="ask">
             <InputBar />
           </div>
         </div>
+        {live && <Drawers />}
+        {live && <LevelUpBanner />}
         <StartScreen />
         <SkipButton />
         <Toast />
         <IntroDirector session={session} />
         <StageDirector />
         <LevelWatcher />
+        <PackDirector />
+        <BossLayer tutorId={tutor.id} />
       </div>
     </CurrentTutorContext.Provider>
   )
