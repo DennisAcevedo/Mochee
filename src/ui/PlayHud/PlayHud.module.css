@@ -727,4 +727,21 @@
     justify-content: center;
     flex-wrap: wrap;
   }
+
+  /* Dance ends the row near the screen's right edge, so its centred menu ran
+     off it: open leftward from the chevron instead. */
+  .actions > .danceWrap > .menu {
+    left: auto;
+    right: 0;
+    transform: none;
+    transform-origin: top right;
+    animation-name: menuInEdge;
+  }
+}
+
+@keyframes menuInEdge {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.92);
+  }
 }
