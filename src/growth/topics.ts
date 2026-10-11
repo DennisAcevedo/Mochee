@@ -8,8 +8,6 @@ import { GROWTH } from './config'
 // every fetch tolerates 404s, bad JSON and network errors by keeping what it
 // had. The room (books, posters) and ability matching read this store.
 
-export const BUILTIN_DOCUMENT_TITLE = 'CS111 Lecture 4'
-
 // The built-in lesson's topic (mockLesson / shared/lessonNotes: FCFS, P1 24 / P2 3 / P3 3).
 export const BUILTIN_TOPIC: { id: string; title: string; keywords: string[] } = {
   id: 'cs111-fcfs',

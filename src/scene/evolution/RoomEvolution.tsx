@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { DoubleSide, LatheGeometry, Vector2 } from 'three'
 import { GROWTH } from '../../growth/config'
-import { allDocuments, BUILTIN_DOCUMENT_TITLE, useRoomDocs } from '../../growth/topics'
+import { allDocuments, useRoomDocs } from '../../growth/topics'
 import { useGrowth, type TopicMastery } from '../../state/growth'
 import { useMode } from '../../state/mode'
 import { PALETTE } from '../layout3d'
@@ -193,7 +193,7 @@ function Evolution() {
   }, [])
 
   const books = useMemo<Book[]>(
-    () => [{ key: 'book:builtin', title: BUILTIN_DOCUMENT_TITLE }, ...allDocuments({ documents, local }).map((d) => ({ key: `book:${d.id}`, title: d.title }))],
+    () => allDocuments({ documents, local }).map((d) => ({ key: `book:${d.id}`, title: d.title })),
     [documents, local],
   )
   const mastered = useMemo(
