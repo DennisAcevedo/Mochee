@@ -3,6 +3,7 @@ import { introRef } from '../../intro/targets'
 import { selectListening, selectSpeaking, useTutorStore } from '../../state/store'
 import styles from './InputBar.module.css'
 import { MicButton } from './MicButton'
+import { TalkModeMenu } from './TalkModeMenu'
 import { useHub } from '../../hub/hubStore'
 import { useDrawers } from '../../state/drawers'
 import { useHandsFree } from './useHandsFree'
@@ -61,10 +62,7 @@ export function InputBar({ compact = false }: { compact?: boolean }) {
   return (
     <div ref={introRef('inputBar')} className={styles.bar} data-compact={compact || undefined}>
       <div className={styles.voiceControls}>
-        <select className={styles.talkMode} aria-label="Talk mode" title="Hands-free: speak, then pause briefly to send. Tap the mic to pause listening." value={handsFree.enabled ? 'hands-free' : 'manual'} onChange={(e) => handsFree.choose(e.target.value === 'hands-free')}>
-          <option value="manual">Tap to talk</option>
-          <option value="hands-free">Hands-free</option>
-        </select>
+        <TalkModeMenu handsFree={handsFree.enabled} onChoose={handsFree.choose} />
         <MicButton onClick={handsFree.enabled ? handsFree.togglePause : undefined} label={handsFree.enabled ? (handsFree.paused ? 'Resume hands-free listening' : 'Pause hands-free listening') : undefined} />
       </div>
 
