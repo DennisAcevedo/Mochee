@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { useDocs } from '../ui/Drawers/docsStore'
 
 // Which Study hub view the Learning drawer shows. 'home' is the card grid.
-export type HubView = 'home' | 'upload' | 'quiz' | 'chat' | 'tutor' | 'record' | 'mini'
+export type HubView = 'home' | 'upload' | 'quiz' | 'tutor' | 'record'
 
 interface HubState {
   view: HubView

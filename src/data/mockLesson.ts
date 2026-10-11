@@ -11,6 +11,7 @@ export interface TranscriptLine {
   who: 'tutor' | 'student'
   time: string
   text: string
+  marked?: string // the same line with its **key terms** marked, when it had any
   live?: boolean
   greeting?: boolean // the opening line the intro types in
 }

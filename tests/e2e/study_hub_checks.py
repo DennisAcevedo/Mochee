@@ -3,7 +3,7 @@
     python tests/e2e/study_hub_checks.py [--base http://localhost:5176] [--out tmp/round3/accept]
 
 Covers every hub card (upload, quiz, chat, Start Tutor Session -> pack -> lesson,
-Record a Lecture via a short WAV, Mini Apps), the class switch and Beat the Boss.
+Record a Lecture via a short WAV), the class switch and Beat the Boss.
 /api/tts is always routed to a 503.
 """
 import argparse
@@ -75,8 +75,8 @@ def hub_section(page: Page, check, base: str, shot=None) -> None:
     _open_learning(page)
     study = page.evaluate("() => window.__ggStudy || null")
     tutor_id = (study or {}).get("tutorId") or "cs111"
-    cards = {t: _tid(page, t).count() for t in ("hub-boss", "hub-card-upload", "hub-card-quiz", "hub-card-chat", "hub-card-tutor", "hub-card-record", "hub-card-mini")}
-    check("hub: Learning drawer home shows the boss hero and six cards", all(cards.values()), cards)
+    cards = {t: _tid(page, t).count() for t in ("hub-boss", "hub-card-upload", "hub-card-quiz", "hub-card-tutor", "hub-card-record")}
+    check("hub: Learning drawer home shows the boss card and four tool rows", all(cards.values()), cards)
     shot(page, "r3_01_hub")
 
     # Upload Materials into the current class.
@@ -88,38 +88,10 @@ def hub_section(page: Page, check, base: str, shot=None) -> None:
           {"id": (new_doc or {}).get("id"), "tutorId": (new_doc or {}).get("tutorId"), "topics": len((new_doc or {}).get("topics") or [])})
     _home(page)
 
-    # Create Quiz and Chat cards open their panes.
+    # Create Quiz opens its pane.
     _tid(page, "hub-card-quiz").click()
     quiz_ok = _poll(lambda: page.evaluate("() => window.__ggStudy?.view") == "quiz", 3)
-    _home(page)
-    _tid(page, "hub-card-chat").click()
-    chat_ok = _poll(lambda: page.evaluate("() => window.__ggStudy?.view") == "chat", 3)
-    check("hub: Create Quiz and Chat cards open their views", quiz_ok and chat_ok, {"quiz": quiz_ok, "chat": chat_ok})
-    _home(page)
-
-    # Mini Apps.
-    _tid(page, "hub-card-mini").click()
-    _tid(page, "mini-flash").click()
-    flip = page.get_by_role("button", name=re.compile(r"show the key terms", re.I)).first
-    flipped = False
-    if flip.count():
-        flip.dispatch_event("click")  # the card sits under the drawer's scroll shadow; a real click is intercepted
-        flipped = bool(_poll(lambda: page.get_by_role("button", name=re.compile(r"show the topic", re.I)).count(), 3))
-    _tid(page, "mini-timer").click()
-    # Only the timer's own box: the lesson page has its own Start / Pause buttons.
-    panel = page.locator('[role="timer"]').first.locator("xpath=..")
-    start = panel.get_by_role("button", name=re.compile(r"^(start|resume)$", re.I)).first
-    timer_ok = False
-    if start.count():
-        start.dispatch_event("click")
-        pause = panel.get_by_role("button", name=re.compile(r"^pause$", re.I)).first
-        timer_ok = bool(_poll(lambda: pause.count() and pause.is_visible(), 3))
-        if timer_ok:
-            pause.dispatch_event("click")
-    _tid(page, "mini-terms").click()
-    terms = page.locator('[role="tabpanel"] li').count()
-    check("mini apps: flashcard flips, timer starts and pauses, key terms listed", flipped and timer_ok and terms > 0,
-          {"flipped": flipped, "timer": timer_ok, "terms": terms})
+    check("hub: Create Quiz opens its view", quiz_ok, {"quiz": quiz_ok})
     _home(page)
 
     # Record a Lecture via the file input.

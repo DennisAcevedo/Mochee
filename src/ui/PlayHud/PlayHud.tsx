@@ -7,14 +7,15 @@ import { usePlay } from '../../play/playStore'
 import { PALETTE } from '../../scene/layout3d'
 import { useProgress } from '../../state/progress'
 import { ReopenChip } from '../Closeable/Closeable'
+import { EmoteWheel } from '../EmoteWheel/EmoteWheel'
 import { Shop } from '../Shop/Shop'
 import { CoinIcon } from './CoinIcon'
 import { useCoinToasts } from './hooks'
 import { UnlockBanner } from './UnlockBanner'
 import styles from './PlayHud.module.css'
 
-// The play HUD: the Shop pill (the shop holds every play action and is where
-// coins are spent), the tickle hint and the "Unlocked" banner. The balance
+// The play HUD: the Emotes pill (a wheel of the animations he already has)
+// and the Shop pill (every play action, and where coins are spent), the tickle hint and the "Unlocked" banner. The balance
 // lives in the header's CoinPill in both modes. Playing pays no coins,
 // learning does.
 
@@ -65,6 +66,7 @@ interface Props {
 export function PlayHud({ banner = true, className }: Props) {
   const hintSeen = usePlay((s) => s.tickleHintSeen)
   const [shop, setShop] = useState(false)
+  const [wheel, setWheel] = useState(false)
 
   return (
     <div
@@ -76,7 +78,10 @@ export function PlayHud({ banner = true, className }: Props) {
         if (e.target instanceof Element && e.target.closest('button')) usePlay.getState().seeTickleHint()
       }}
     >
-      <ReopenChip label="Shop" icon="shop" onOpen={() => setShop(true)} />
+      <div className={styles.pills}>
+        <ReopenChip label="Emotes" icon="emotes" onOpen={() => setWheel(true)} />
+        <ReopenChip label="Shop" icon="shop" onOpen={() => setShop(true)} />
+      </div>
 
       {!hintSeen && (
         <button type="button" className={styles.hint} onClick={() => poke()} aria-label="Tickle Gemini Guy">
@@ -85,6 +90,7 @@ export function PlayHud({ banner = true, className }: Props) {
       )}
 
       {shop && <Shop onClose={() => setShop(false)} />}
+      {wheel && <EmoteWheel onClose={() => setWheel(false)} />}
 
       {banner && <UnlockBanner />}
     </div>

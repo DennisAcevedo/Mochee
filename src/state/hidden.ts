@@ -12,8 +12,9 @@ interface HiddenState {
   show: (id: PanelId) => void
 }
 
+// The transcript starts closed (its chip in the corner reopens it).
 export const useHidden = create<HiddenState>((set) => ({
-  hidden: {},
+  hidden: { transcript: true },
   hide: (id) => set((s) => ({ hidden: { ...s.hidden, [id]: true } })),
   show: (id) =>
     set((s) => {

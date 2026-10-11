@@ -14,7 +14,7 @@ import { Stage } from '../scene/Stage'
 import { bringLessonControlsForward, bringTranscriptForward, registerLessonControls, registerPanel } from '../scene/windows/windowStack'
 import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
-import { useIsHidden } from '../state/hidden'
+import { useHidden, useIsHidden } from '../state/hidden'
 import { useMode } from '../state/mode'
 import { useWindows } from '../state/windows'
 import { useLibrary, useTutor, type LessonStep, type Tutor } from '../state/library'
@@ -140,6 +140,8 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // The red light closes the browser window with no chip of its own: this one brings it back.
   const browserClosed = useWindows((s) => s.closed)
   const transcriptHidden = useIsHidden('transcript')
+  // Every tutor opens with the transcript closed, even if it was open on the last one.
+  useEffect(() => useHidden.getState().hide('transcript'), [tutor.id])
   // Focus: a maximized browser window takes the stage. The cards fold into a
   // rail on the left (a button peeks one back out) and the dock's talk
   // control shrinks to the mic, so the window can be as big as it gets.
@@ -201,11 +203,10 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         </div>
       )
     ))
-  const browserChip = live && browserClosed && (
-    <div className={lesson.browserChip}>
-      <ReopenChip label="Browser" icon="browser" onOpen={() => useWindows.getState().restore('notes')} />
-    </div>
-  )
+  // The ways back for a closed browser and closed captions: small chips in a
+  // row just above the talk bar, lined up with its left edge.
+  const browserChip = live && browserClosed && <ReopenChip label="Browser" icon="browser" small onOpen={() => useWindows.getState().restore('notes')} />
+  const captionChip = live && captionHidden && !folded('caption') && <ReopenChip id="caption" label="Captions" icon="caption" small />
   // The conversation so far, down the right side of the stage; the learner can
   // drag it about. Closed, its chip goes to the screen's top-right corner, not
   // wherever the card was dragged.
@@ -223,9 +224,9 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
       )}
     </div>
   )
-  const caption = live && !folded('caption') && (
-    <div className={`${lesson.caption} ${browserChip ? lesson.captionAside : ''} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
-      {captionHidden ? <ReopenChip id="caption" label="Captions" icon="caption" /> : <Caption className={lesson.bubble} closeable />}
+  const caption = live && !folded('caption') && !captionHidden && (
+    <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
+      <Caption className={lesson.bubble} closeable />
     </div>
   )
 
@@ -247,12 +248,11 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <div ref={rowRef} className={lesson.row}>
           <div ref={frameRef} className={lesson.frame} data-gg-part="stage">
             <Stage>
-              {!narrow && (hud || caption || browserChip || transcript || focus) && (
+              {!narrow && (hud || caption || transcript || focus) && (
                 <div className={lesson.overlay}>
                   {hud}
                   {transcript}
                   {caption}
-                  {browserChip}
                   {focus && (
                     <div className={lesson.rail}>
                       <FocusRail study={study} peek={peek} onPeek={setPeek} />
@@ -268,15 +268,20 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             </Stage>
           </div>
         </div>
-        {narrow && (hud || caption || browserChip || transcript) && (
+        {narrow && (hud || caption || transcript) && (
           <div className={lesson.below}>
             {hud}
             {caption}
             {transcript}
-            {browserChip}
           </div>
         )}
         <div ref={introRef('dock')} className={lesson.dock} data-live={live || undefined}>
+          {(browserChip || captionChip) && (
+            <div className={lesson.dockChips}>
+              {browserChip}
+              {captionChip}
+            </div>
+          )}
           <div className={lesson.ask} data-gg-part="ask">
             <InputBar compact={focus} />
           </div>

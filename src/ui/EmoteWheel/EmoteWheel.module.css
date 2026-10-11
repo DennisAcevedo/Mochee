@@ -1,0 +1,226 @@
+/* Emote wheel: the design's cream card with the bubble ring and the name
+   beside it. Sizes and fonts are the design's own (Fredoka, JetBrains Mono). */
+.overlay {
+  --ink: #1f1d2b;
+  --paper: #fffdf8;
+  --sand: #f2eee6;
+  --muted: #6b6878;
+  position: fixed;
+  inset: 0;
+  z-index: 49; /* under the "Unlocked" banner, like the shop */
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(10, 9, 18, 0.45);
+  backdrop-filter: blur(3px);
+  font-family: 'Fredoka', sans-serif;
+  color: var(--ink);
+  animation: fadeIn 0.2s ease both;
+}
+
+.card {
+  position: relative;
+  width: 1000px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 56px;
+  padding: 36px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 24px;
+  box-shadow: 5px 6px 0 var(--ink);
+  animation: pop 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #f28b7a;
+  box-shadow: 0 4px 0 var(--ink);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.wheel {
+  flex: none;
+  position: relative;
+}
+.pointer {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  margin-left: -14px;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 20px solid var(--ink);
+  z-index: 2;
+}
+.guide {
+  position: absolute;
+  inset: 20px;
+  border: 2.5px dashed #cfc9bd;
+  border-radius: 50%;
+}
+.ring {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.55s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+.item {
+  position: absolute;
+  padding: 4px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.05;
+  text-align: center;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--ink);
+  transition:
+    transform 0.55s cubic-bezier(0.3, 1.3, 0.5, 1),
+    box-shadow 0.3s;
+}
+.item[data-sel] {
+  box-shadow: 0 5px 0 var(--ink);
+}
+
+/* The middle: a big Play button for the pick (the design's character spot). */
+.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--sand);
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+.playDisc {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  padding-left: 6px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 5px 0 var(--ink);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s,
+    background 0.3s;
+}
+.center:active .playDisc {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.center[data-nope] .playDisc {
+  animation: nope 0.38s ease;
+}
+.playLabel {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 240px;
+}
+.count {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+}
+.name {
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1;
+}
+.btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.btn {
+  width: 52px;
+  height: 52px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 4px 0 var(--ink);
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:active,
+.close:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.item:focus-visible,
+.center:focus-visible,
+.btn:focus-visible,
+.close:focus-visible {
+  outline: 2.5px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+@keyframes nope {
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .card,
+  .center[data-nope] .playDisc {
+    animation: none;
+  }
+  .ring,
+  .item {
+    transition: none;
+  }
+}

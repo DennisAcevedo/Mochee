@@ -1,12 +1,12 @@
 import { useRef, useState, type CSSProperties, type DragEvent } from 'react'
 import { notesTabs } from '../../../shared/lessonNotes'
 import { DEFAULT_DOC_KIND, DOCS_LIMITS, formatLabel, UPLOAD_ACCEPT, UPLOAD_FORMATS, type DocKind, type DocumentInfo } from '../../../shared/docsTypes'
-import { StudyHub } from '../../hub/StudyHub'
+import { ClassSwitcher, StudyHub } from '../../hub/StudyHub'
 import { PALETTE } from '../../scene/layout3d'
 import { useDrawers } from '../../state/drawers'
 import { errorText } from './docsClient'
 import { useDocs, useDocsAutoRefresh } from './docsStore'
-import { BookIcon, UploadIcon } from './icons'
+import { UploadIcon } from './icons'
 import s from './Learning.module.css'
 import { BuiltInPage, DocumentPage } from './PageViewer'
 import { Panel } from './Panel'
@@ -37,7 +37,7 @@ export function LearningDrawer() {
   const selected = documents.find((d) => d.id === documentId) ?? null
 
   return (
-    <Panel id="learning" title="Learning" accent={PALETTE.violet} icon={<BookIcon />}>
+    <Panel id="learning" title="Learning" accent="#A78BFA" icon={<LearningMark />} headerExtra={<ClassSwitcher />}>
       {/* The Study hub is the home view; Upload Materials opens the original material pane. */}
       <StudyHub
         upload={
@@ -59,6 +59,16 @@ export function LearningDrawer() {
         }
       />
     </Panel>
+  )
+}
+
+// The header's tilted logo tile: a notebook.
+function LearningMark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round">
+      <rect x="5" y="4" width="14" height="16" rx="3" />
+      <path d="M5 12h14" />
+    </svg>
   )
 }
 

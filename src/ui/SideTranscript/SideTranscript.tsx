@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import '@fontsource/fredoka/600.css'
+import '@fontsource/fredoka/700.css'
+import '@fontsource/jetbrains-mono/500.css'
+import '@fontsource/nunito/600.css'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import type { TranscriptLine } from '../../data/mockLesson'
+import { ACCENT_ORDER } from '../../lesson/accents'
+import { parseMarks, stripMarks } from '../../lesson/markup'
+import { PALETTE } from '../../scene/layout3d'
 import { useTutorStore } from '../../state/store'
 import { CloseButton } from '../Closeable/Closeable'
 import styles from './SideTranscript.module.css'
@@ -53,11 +61,42 @@ interface Props {
   panelRef?: (el: HTMLElement | null) => void // the card element (the lesson page stacks it with the browser and the controls)
 }
 
+type Filter = 'all' | 'terms' | 'asked'
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'terms', label: 'Key terms' },
+  { id: 'asked', label: 'Asked' },
+]
+
+const keep = (l: TranscriptLine, filter: Filter, q: string) =>
+  (filter === 'all' || (filter === 'terms' ? !!l.marked : l.who === 'student')) && (!q || stripMarks(l.text).toLowerCase().includes(q))
+
+// A tutor line with its **key terms** as tinted pills, in the caption's colour order.
+function Rich({ line }: { line: TranscriptLine }) {
+  if (!line.marked) return <>{line.text}</>
+  let accent = 0
+  return (
+    <>
+      {parseMarks(line.marked).map((span, i) => {
+        if (!span.bold) return <span key={i}>{span.text}</span>
+        const color = PALETTE[ACCENT_ORDER[accent++ % ACCENT_ORDER.length]]
+        return (
+          <mark key={i} className={styles.term} style={{ '--accent': color } as CSSProperties}>
+            {span.text}
+          </mark>
+        )
+      })}
+    </>
+  )
+}
+
 export function SideTranscript({ className, closeable = false, panelRef }: Props) {
   const lines = useTutorStore((s) => s.lines)
   const scroll = useRef<HTMLDivElement>(null)
   const pinned = useRef(true) // following the newest line
   const { offset, handlers } = useDrag()
+  const [filter, setFilter] = useState<Filter>('all')
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     const el = scroll.current
@@ -69,7 +108,9 @@ export function SideTranscript({ className, closeable = false, panelRef }: Props
     if (el) pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
   }
 
-  const shown = lines.filter((l) => l.text.trim())
+  const said = lines.filter((l) => l.text.trim())
+  const q = query.trim().toLowerCase()
+  const shown = said.filter((l) => keep(l, filter, q))
   return (
     <section
       ref={panelRef}
@@ -78,32 +119,48 @@ export function SideTranscript({ className, closeable = false, panelRef }: Props
       aria-label="Transcript"
     >
       {closeable && <CloseButton id="transcript" label="transcript" />}
-      <header className={styles.head} title="Drag to move" {...handlers}>
-        <span className={styles.dot} aria-hidden="true" />
-        Transcript
-        {shown.length > 0 && <span className={styles.count}>{shown.length}</span>}
-      </header>
+      <div className={styles.top}>
+        <header className={styles.head} title="Drag to move" {...handlers}>
+          Transcript
+          <span className={styles.count}>{said.length}</span>
+        </header>
+        <label className={styles.search}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="M16 16l4.5 4.5" />
+          </svg>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search this lecture" aria-label="Search this lecture" />
+        </label>
+        <div className={styles.filters} role="radiogroup" aria-label="Show">
+          {FILTERS.map((f) => (
+            <button key={f.id} type="button" role="radio" aria-checked={filter === f.id} className={styles.filter} onClick={() => setFilter(f.id)}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div ref={scroll} className={styles.scroll} onScroll={onScroll} aria-live="polite">
-        {shown.length === 0 ? (
+        {said.length === 0 ? (
           <p className={styles.empty}>What you and Gemini Guy say shows up here.</p>
+        ) : shown.length === 0 ? (
+          <p className={styles.empty}>Nothing here matches.</p>
         ) : (
-          shown.map((l, i) =>
-            l.who === 'tutor' ? (
-              <div key={i} className={styles.tutor} data-live={l.live || undefined}>
-                <div className={styles.meta}>
-                  <b>Gemini Guy</b> · {l.time}
+          shown.map((l, i) => (
+            <div key={i} className={styles.line} data-who={l.who} data-live={l.live || undefined}>
+              <span className={styles.badge} aria-hidden="true">
+                {l.who === 'tutor' ? 'GG' : 'ME'}
+              </span>
+              <div className={styles.body}>
+                <div className={styles.time}>
+                  <span className={styles.sr}>{l.who === 'tutor' ? 'Gemini Guy' : 'You'}, </span>
+                  {l.time}
                 </div>
-                <p className={styles.tutorText}>{l.text}</p>
+                <p className={styles.text}>
+                  <Rich line={l} />
+                </p>
               </div>
-            ) : (
-              <div key={i} className={styles.student}>
-                <div className={styles.meta}>
-                  <b>You</b> · {l.time}
-                </div>
-                <p className={styles.bubble}>{l.text}</p>
-              </div>
-            ),
-          )
+            </div>
+          ))
         )}
       </div>
     </section>

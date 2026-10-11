@@ -93,6 +93,24 @@
   border-radius: 50%;
   background: #4aa8be;
 }
+.chip[data-small] {
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px 0 4px;
+  border-width: 2px;
+  border-radius: 17px;
+  font-size: 13px;
+  box-shadow: 2.5px 2.5px 0 var(--ink);
+}
+.chip[data-small] .chipIcon {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+.chip[data-small] .chipIcon svg {
+  width: 14px;
+  height: 14px;
+}
 .chipIcon svg {
   width: 20px;
   height: 20px;

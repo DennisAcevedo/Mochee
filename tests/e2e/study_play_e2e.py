@@ -63,9 +63,6 @@ CONFIG = {
     "upload_timeout_s": 90,
     "chat_timeout_s": 45,
     "quiz_timeout_s": 90,
-    "ask_grounded": "What is the convoy effect?",
-    "ask_offtopic": "Who won the 2018 World Cup?",
-    "ask_demo": "What does FCFS stand for?",
     "console_allow": [r"speechSynthesis", r"AudioContext was not allowed", r"Download the React DevTools"],
 }
 
@@ -368,7 +365,7 @@ def run(base: str, out: Path, headed: bool) -> int:
         page.evaluate("() => { const w = window.__gg.walkthrough.getState(); if (!w.started) w.start(); w.pause() }")
         # The upload is not tapped (a re-sent binary body is not byte-exact): its status
         # comes off the page's response log, the document off the app and GET /api/documents.
-        tap = Tap(page, ["**/api/tutor/chat", "**/api/quiz", "**/api/quiz/submit"], CONFIG["quiz_timeout_s"])
+        tap = Tap(page, ["**/api/quiz", "**/api/quiz/submit"], CONFIG["quiz_timeout_s"])
         page.get_by_role("button", name=re.compile(r"^open learning", re.I)).click()
         hub(page, "upload")
         n = len(r.responses)
@@ -387,40 +384,6 @@ def run(base: str, out: Path, headed: bool) -> int:
             r.check("document listed with topic chips", row.count() and row.is_visible() and chips >= 1, {"chips": chips})
             r.check("room gets the new document's book", poll(lambda: has_object(page, f"evo-book-{doc['id']}"), 6), doc["id"])
             r.shot(page, "sp_10_upload")
-
-            # Grounded chat about the selected document, from the hub's Chat card.
-            hub(page, "chat")
-            box = page.get_by_role("textbox", name=re.compile(r"your question", re.I))
-
-            def ask(q: str):
-                n = len(tap.calls)
-                box.fill(q)
-                box.press("Enter")
-                c = tap.next(page, n, lambda c: c["path"].endswith("/api/tutor/chat"), CONFIG["chat_timeout_s"]) or {}
-                return c.get("status"), c.get("json") or {}
-
-            status, ans = ask(CONFIG["ask_grounded"])
-            cites = ans.get("citations") or []
-            r.check("chat: convoy question -> 200 grounded answer with citations",
-                    status == 200 and not ans.get("abstained") and len(cites) >= 1, {"status": status, "answer": (ans.get("answer") or "")[:90], "cites": len(cites)})
-            chip = page.get_by_role("button", name=re.compile(r"^p\.\s*\d+")).first
-            if r.check("citation chip 'p. N' rendered", poll(lambda: chip.count() and chip.is_visible(), 5)) and cites:
-                chip.click()
-                mark = page.locator("mark").first
-                quote = re.sub(r"\s+", " ", cites[0]["quote"]).strip()
-                shown = poll(lambda: mark.count() and mark.is_visible() and re.sub(r"\s+", " ", mark.inner_text()).strip(), 8)
-                view = page.evaluate("() => window.__ggStudy?.view ?? null")
-                r.check("chip opens the hub's reader with the quote highlighted", view == "upload" and shown and (shown in quote or quote in shown),
-                        {"view": view, "mark": shown, "quote": quote})
-                r.shot(page, "sp_11_citation")
-                hub(page, "chat")
-
-            status, ans = ask(CONFIG["ask_offtopic"])
-            r.check("chat: off-topic question -> abstained", status == 200 and ans.get("abstained") is True, {"status": status, "answer": (ans.get("answer") or "")[:90]})
-            bubble = page.locator('[data-tone="abstained"]').last
-            r.check("abstain rendered in the abstain style", poll(lambda: bubble.count() and bubble.is_visible(), 5)
-                    and bubble.get_by_text(re.compile(r"not in this document", re.I)).count() > 0)
-            r.shot(page, "sp_12_abstain")
 
             # Quiz on the document: question -> submit -> result with a citation; a replayed submit is idempotent.
             hub(page, "quiz")
@@ -443,22 +406,6 @@ def run(base: str, out: Path, headed: bool) -> int:
                 again = page.request.post(base + "/api/quiz/submit", data=body)
                 same = again.status == 200 and again.json() == result
                 r.check("quiz: same attemptId resubmitted -> same result", same, {"status": again.status, "attemptId": (body or {}).get("attemptId")})
-
-            # 8. The demo label, on a mocked demo-mode answer (the live server has a key).
-            hub(page, "chat")
-            # The cue says point_right: everything he points at is the window on his left, so he
-            # plays point_left there (talk while no window is focused), never point_right.
-            demo = {"answer": "FCFS means **first come, first served**.", "citations": cites[:1], "cue": "point_right",
-                    "confidence": "medium", "nextQuestion": None, "abstained": False, "source": "demo"}
-            page.route("**/api/tutor/chat", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(demo)), times=1)
-            t0 = gg(page, "performance.now()")
-            ask(CONFIG["ask_demo"])
-            label = page.get_by_text(re.compile(r"^demo answer$", re.I)).last
-            r.check("chat shows the 'Demo answer' label (mocked response)", poll(lambda: label.count() and label.is_visible(), 5))
-            want = "talk" if gg(page, "g.director.getState().focus") == "none" else "point_left"
-            played = lambda: [x["clip"] for x in gg(page, "g.loops.filter(x => x.t >= a)", t0)]
-            r.check(f"a point_right cue plays {want}, never point_right", poll(lambda: want in played(), 5) and "point_right" not in played(), played())
-            r.shot(page, "sp_14_demo")
 
         # No errors anywhere.
         bad = [f"{st} {u}" for u, st in r.responses if st >= 400 and not u.endswith("favicon.ico")]

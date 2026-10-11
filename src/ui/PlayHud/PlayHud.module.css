@@ -5,6 +5,12 @@
    (the lesson page sets it from the stage width, the way the mock uses
    container units). Without --u it falls back to plain pixels. */
 
+/* The Emotes and Shop pills, side by side. */
+.pills {
+  display: flex;
+  gap: 12px;
+}
+
 .hud {
   --ink: #1d1b24;
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);

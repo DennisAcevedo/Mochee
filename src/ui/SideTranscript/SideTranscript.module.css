@@ -1,20 +1,28 @@
-/* The side transcript: a white card like the step bar and the caption, its
-   lines scrolling inside. Gemini Guy's lines run down the left; the learner's
-   sit right in violet bubbles. */
+/* The side transcript, "chunky toy": a cream card with a thick ink outline
+   and a hard offset shadow. On top: the title (drag handle) with its count,
+   a search box and the All / Key terms / Asked filters; below an ink rule,
+   the lines, each with a GG or ME badge, its time and the text, key terms
+   as tinted pills. */
 .panel {
+  --ink: #1f1d2b;
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 14px 6px 10px 16px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 0 0 1px rgba(29, 27, 36, 0.06),
-    0 18px 40px -22px rgba(29, 27, 36, 0.45);
-  font-family: 'Figtree', var(--font-ui, system-ui), sans-serif;
-  color: var(--ink, #1d1b24);
+  border: 2.5px solid var(--ink);
+  border-radius: 24px;
+  background: #fffdf8;
+  box-shadow: 5px 6px 0 var(--ink);
+  font-family: 'Nunito', 'Figtree', sans-serif;
+  color: var(--ink);
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 2.5px solid var(--ink);
 }
 
 .head {
@@ -23,35 +31,83 @@
   user-select: none;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  padding: 0 10px 10px 0;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font: 700 20px 'Fredoka', sans-serif;
 }
-
 .head:active {
   cursor: grabbing;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #12a4b4;
-  box-shadow: 0 0 0 3px rgba(18, 164, 180, 0.18);
+.count {
+  min-width: 28px;
+  padding: 2px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fcc934;
+  font: 600 13px 'Fredoka', sans-serif;
+  text-align: center;
 }
 
-.count {
-  margin-left: auto;
-  min-width: 22px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #f1eff6;
-  color: #6e6b78;
-  font-size: 11px;
-  font-weight: 800;
-  text-align: center;
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 600 14px 'Nunito', sans-serif;
+  color: var(--ink);
+}
+.search input::placeholder {
+  color: #8f8b9c;
+}
+.search:focus-within {
+  outline: 2.5px solid #a78bfa;
+  outline-offset: 2px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.filter {
+  height: 34px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+  padding: 0 4px;
+  font: 600 13px 'Fredoka', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    transform 80ms,
+    box-shadow 80ms;
+}
+.filter[aria-checked='true'] {
+  background: #fcc934;
+}
+.filter:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.filter:focus-visible {
+  outline: 2.5px solid #a78bfa;
+  outline-offset: 2px;
 }
 
 .scroll {
@@ -60,71 +116,82 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-right: 10px;
+  gap: 16px;
+  padding: 14px 10px 14px 14px;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #d9d6e3 transparent;
+  scrollbar-color: #c9c4d6 transparent;
 }
 
 .empty {
   margin: auto 0;
-  padding: 0 6px 0 0;
-  color: #8a8794;
+  padding: 0 10px;
   font-size: 13px;
   line-height: 1.45;
   text-align: center;
+  color: #8f8b9c;
 }
 
-.meta {
-  font-size: 10.5px;
-  color: #8a8794;
-  letter-spacing: 0.01em;
-}
-
-.meta b {
-  color: #4a4754;
-  font-weight: 800;
-}
-
-.tutor,
-.student {
+.line {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.student {
-  align-items: flex-end;
+.badge {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  margin-top: 2px;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  background: #4aa8be;
+  font: 700 9px 'Fredoka', sans-serif;
+}
+.line[data-who='student'] .badge {
+  background: #a98bfa;
 }
 
-.tutorText {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.45;
-  color: #4a4754;
-  text-wrap: pretty;
+.body {
+  flex: 1;
+  min-width: 0;
 }
 
-/* The line he is saying now. */
-.tutor[data-live] .tutorText {
-  color: var(--ink, #1d1b24);
+.time {
+  font: 500 11px 'JetBrains Mono', monospace;
+  color: #8f8b9c;
+}
+
+.text {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* The line he is saying right now. */
+.line[data-live] .time {
+  color: #4aa8be;
+}
+
+/* A key term: a tint of its accent, with darker accent text. */
+.term {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 18%, #fff);
+  color: color-mix(in srgb, var(--accent) 72%, #1d1b24);
+  font-family: 'Fredoka', sans-serif;
   font-weight: 600;
 }
 
-.tutor[data-live] .meta b {
-  color: #12a4b4;
-}
-
-.bubble {
-  margin: 0;
-  max-width: 88%;
-  padding: 7px 12px;
-  border-radius: 16px 16px 4px 16px;
-  background: #7c5cf2;
-  color: #fff;
-  font-size: 13.5px;
-  line-height: 1.4;
-  font-weight: 600;
-  text-wrap: pretty;
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

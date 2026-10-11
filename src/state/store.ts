@@ -25,7 +25,7 @@ export interface TutorState {
   introPose: Pose | null // the intro's pose override (sleep, wake, wave); null hands back to the lesson
   roomShown: boolean // the intro has revealed the room and the Blender tutor (true from then on, through live)
 
-  tutorSays: (text: string, extra?: Partial<Pick<TutorState, 'mode' | 'answer'>>) => void
+  tutorSays: (text: string, extra?: Partial<Pick<TutorState, 'mode' | 'answer'>>, marked?: string) => void
   ask: (text: string, reply: string) => void
   setMode: (mode: Mode) => void
   pick: (index: number) => void
@@ -91,12 +91,12 @@ export const useTutorStore = create<TutorState>((set, get) => ({
   session: DEFAULT_SESSION,
   stageW: 1000,
 
-  tutorSays: (text, extra = {}) =>
+  tutorSays: (text, extra = {}, marked) =>
     set((s) => ({
       ...extra,
       mic: 'speaking',
       awaitingReply: false,
-      lines: [...clearLive(s.lines), { who: 'tutor', time: now(), text, live: true }],
+      lines: [...clearLive(s.lines), { who: 'tutor', time: now(), text, live: true, ...(marked && marked !== text ? { marked } : {}) }],
     })),
 
   ask: (text, reply) => {

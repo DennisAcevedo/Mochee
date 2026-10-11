@@ -161,36 +161,14 @@ body:has(.transcriptChip) .header {
   pointer-events: auto; /* the overlay passes clicks to the canvas; the rail takes its own */
 }
 
-/* The closed browser window's way back: bottom left of the stage, beside the caption. */
-.browserChip {
-  position: absolute;
-  left: 2.4%;
-  bottom: 2.4%;
-  z-index: 2;
-  pointer-events: auto;
-}
-
-.below .browserChip {
-  position: static;
-}
-
 /* Caption, inside the bottom of the stage, below the tutor's feet. */
 .caption {
   position: absolute;
   left: 50%;
   bottom: 2.4%;
-  width: 68%;
+  width: 46%;
   transform: translateX(-50%);
   pointer-events: none;
-}
-
-/* With the Browser chip down in the corner, the caption (or its chip) starts
-   after it instead of centring under it. */
-.captionAside {
-  left: calc(2.4% + 200px);
-  right: 2.4%;
-  width: auto;
-  transform: none;
 }
 
 /* Caption's own wrapper, placed by .caption instead of by itself. */
@@ -232,6 +210,15 @@ body:has(.transcriptChip) .header {
 
 .dock > * {
   pointer-events: auto;
+}
+
+/* Chips for a closed browser and closed captions, in a row just above the
+   talk bar and lined up with its left edge (the bar is half the dock wide). */
+.dockChips {
+  width: max(50%, min(100%, 420px));
+  margin: 0 auto 8px;
+  display: flex;
+  gap: 10px;
 }
 
 .ask > div {

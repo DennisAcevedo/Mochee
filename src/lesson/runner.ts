@@ -153,12 +153,12 @@ function owe(index: number) {
   gate?.owe(what, byStudent)
 }
 
-// Says a line: transcript (plain), caption (with **bold**), voice. onEnd runs
+// Says a line: transcript (plain, plus the marked copy for its key terms), caption (with **bold**), voice. onEnd runs
 // when the voice or the reading timer finishes, never after a cancel.
 export function sayLine(text: string, onEnd?: () => void, extra?: { mode?: Mode; answer?: number | null }, trace?: LatencyTrace) {
   const plain = stripMarks(text)
   expectLine = plain
-  useTutorStore.getState().tutorSays(plain, extra)
+  useTutorStore.getState().tutorSays(plain, extra, text)
   expectLine = null
   useDirector.getState().setCaption(text)
   speak(text, () => {
