@@ -5,27 +5,32 @@ import { usePlayBody } from '../scene/physics/playBody'
 import { useMode } from '../state/mode'
 import { LESSON_RETURN } from './config'
 import { createLessonMode } from './lessonMode'
+import { cancelTutorAnswer } from '../lesson/askFlow'
+import { cancelRecognition } from '../lesson/speech'
+import { useTutorStore } from '../state/store'
+import { useDirector } from '../state/director'
+import { cancelDocumentSpeech } from '../ui/Drawers/tutorCues'
 
 // Wires lessonMode.ts to the stores: the stage mode drives it, the walkthrough
 // is what it pauses and resumes, the physics body tells it when he is home.
 // Mounted once on the lesson page (UnlockWatcher calls it).
 export function useLessonMode() {
   useEffect(() => {
-    // The walkthrough as the student last saw it in Study. zustand sets the new mode before
-    // it calls any listener, so a change made while Play is coming on (another guard pausing
-    // it, src/scene/hoops/lessonQuiet.ts) is not mistaken for the student's own pause.
-    let left = useWalkthrough.getState()
-    const offRun = useWalkthrough.subscribe((s) => {
-      if (useMode.getState().mode === 'study') left = s
-    })
     const ctl = createLessonMode({
       run: () => useWalkthrough.getState(),
-      leaving: () => left,
       presenting,
       pause: () => useWalkthrough.getState().pause(),
       resume: () => useWalkthrough.getState().resume(),
       replay: replayStep,
-      hush,
+      hush: () => {
+        cancelTutorAnswer()
+        cancelDocumentSpeech()
+        cancelRecognition()
+        hush()
+        useTutorStore.setState({ mic: 'idle' })
+        useDirector.getState().setCaption(null)
+        useWalkthrough.getState().setLoopOverride(null)
+      },
       shut: shutLesson,
       toStudy: () => useMode.getState().setMode('study'),
       // His body centre against where the director stands him (tutorStatus, written every frame).
@@ -47,7 +52,6 @@ export function useLessonMode() {
     })
     return () => {
       off()
-      offRun()
       ctl.dispose()
     }
   }, [])

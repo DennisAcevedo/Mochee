@@ -57,10 +57,8 @@ function setup(run: Partial<Fake['run']> = {}) {
     if (f.run.held || f.run.phase === 'waiting' || f.run.phase === 'speaking') return
     apply(f.run.lineDone ? f.run.index + 1 : f.run.index, byStudent)
   }
-  let left: LessonRunView | null = null // set to fake another mode listener that ran first
   const ctl = createLessonMode({
     run: () => f.run,
-    leaving: () => left ?? f.run,
     presenting,
     pause: () => {
       log.push('pause')
@@ -106,7 +104,6 @@ function setup(run: Partial<Fake['run']> = {}) {
   }
   // Another listener on the mode change (src/scene/hoops/lessonQuiet.ts) pauses the lesson before ours runs.
   const otherGuardPausesFirst = () => {
-    left = { ...f.run }
     f.run.playing = false
     f.run.phase = 'idle'
   }
@@ -121,13 +118,13 @@ describe('play mode shuts the lesson (rule a)', () => {
     assert.equal(f.run.playing, false)
     assert.equal(f.run.phase, 'idle')
     assert.ok(f.gate, 'the runner gate is shut')
-    assert.deepEqual(ctl.view(), { shut: true, owed: 'play', returning: false })
+    assert.deepEqual(ctl.view(), { shut: true, owed: null, returning: false })
   })
 
-  it('a chat answer in flight (lesson held) is not cut off', () => {
+  it('a chat answer in flight is cut off even when the lesson is held', () => {
     const { log, setMode } = setup({ held: true, phase: 'idle' })
     setMode('play')
-    assert.deepEqual(log, ['pause'])
+    assert.deepEqual(log, ['hush', 'pause'])
   })
 
   it('nothing un-pauses it in play: hoops, the boss end, the auto-start', () => {
@@ -139,12 +136,22 @@ describe('play mode shuts the lesson (rule a)', () => {
     assert.deepEqual(f.said, [])
     assert.equal(f.run.playing, false)
     assert.equal(f.mode, 'play', 'a non-student request never pulls him out of play')
-    assert.equal(ctl.view().owed, 'play')
+    assert.equal(ctl.view().owed, null)
   })
 })
 
 describe('back to study (rule b)', () => {
-  it('resumes from the start of the current line only once he is home', () => {
+  it('immediately cuts a play greeting or answer before waiting for the return', () => {
+    const { f, log, setMode, wait } = setup({ playing: false, phase: 'idle', held: true })
+    setMode('play')
+    log.length = 0
+    setMode('study')
+    assert.deepEqual(log, ['hush'])
+    assert.deepEqual(f.said, [])
+    wait(1000)
+    assert.deepEqual(f.said, [], 'a paused lesson does not restart on its own')
+  })
+  it('opens the gate once he is home but leaves the lesson paused', () => {
     const { f, ctl, setMode, wait } = setup()
     setMode('play')
     f.gap = 1.6 // thrown across the room
@@ -154,24 +161,24 @@ describe('back to study (rule b)', () => {
     assert.deepEqual(f.said, [], 'nothing while the world fades and he glides back')
     assert.ok(f.gate, 'still shut while he is away')
     wait(1200, (t) => 1.6 * Math.exp((-3 * t) / 1000))
-    assert.deepEqual(f.said, ['line:2'], 'step 2 again, from its start')
+    assert.deepEqual(f.said, [], 'returning never resumes the old script')
     assert.equal(f.gate, null)
-    assert.equal(f.run.playing, true)
+    assert.equal(f.run.playing, false)
     assert.deepEqual(ctl.view(), { shut: false, owed: null, returning: false })
   })
 
-  it('a line that was already over moves on to the next step', () => {
+  it('a finished line does not start the next step on return', () => {
     const { f, setMode, wait } = setup({ phase: 'gap', lineDone: true })
     setMode('play')
     setMode('study')
     wait(500)
-    assert.deepEqual(f.said, ['line:3'])
+    assert.deepEqual(f.said, [])
   })
 
   it('waits at least the cross-fade even when he never left his spot', () => {
-    const { f, setMode, wait } = setup()
+    const { f, setMode, wait, student } = setup()
     setMode('play')
-    setMode('study')
+    student.play()
     wait(TUNING.minMs - TUNING.pollMs)
     assert.deepEqual(f.said, [])
     wait(TUNING.pollMs * 2)
@@ -179,10 +186,10 @@ describe('back to study (rule b)', () => {
   })
 
   it('does not wait while he is held or flying, then settles on a parked offset', () => {
-    const { f, setMode, wait } = setup()
+    const { f, setMode, wait, student } = setup()
     setMode('play')
     f.gap = null
-    setMode('study')
+    student.play()
     wait(2000)
     assert.deepEqual(f.said, [], 'off his feet: keep waiting')
     wait(500, () => 0.4) // landed, standing 0.4 m off his spot and staying there
@@ -190,22 +197,22 @@ describe('back to study (rule b)', () => {
   })
 
   it('gives up waiting after maxMs', () => {
-    const { f, setMode, wait } = setup()
+    const { f, setMode, wait, student } = setup()
     setMode('play')
     f.gap = null
-    setMode('study')
+    student.play()
     wait(TUNING.maxMs + TUNING.pollMs)
     assert.deepEqual(f.said, ['line:2'])
   })
 
-  it('another guard pausing it first on the way into play does not lose what is owed', () => {
+  it('another guard pausing it first still leaves the return quiet', () => {
     const { f, ctl, setMode, wait, otherGuardPausesFirst } = setup()
     otherGuardPausesFirst()
     setMode('play')
-    assert.equal(ctl.view().owed, 'play')
+    assert.equal(ctl.view().owed, null)
     setMode('study')
     wait(500)
-    assert.deepEqual(f.said, ['line:2'])
+    assert.deepEqual(f.said, [])
   })
 
   it('stays paused when the student had paused it', () => {
@@ -235,7 +242,7 @@ describe('back to study (rule b)', () => {
     setMode('study')
     wait(200, () => 2)
     setMode('play')
-    assert.deepEqual(ctl.view(), { shut: true, owed: 'play', returning: false })
+    assert.deepEqual(ctl.view(), { shut: true, owed: null, returning: false })
     wait(2000, () => 0)
     assert.deepEqual(f.said, [])
   })
@@ -264,13 +271,13 @@ describe("the student's own controls (rule c)", () => {
     assert.equal(f.run.playing, false)
   })
 
-  it('Back while it was playing keeps auto-play on', () => {
+  it('Back after leaving a playing lesson says one step without auto-play', () => {
     const { f, setMode, wait, student } = setup()
     setMode('play')
     student.back()
     wait(500)
     assert.deepEqual(f.said, ['line:1'])
-    assert.equal(f.run.playing, true)
+    assert.equal(f.run.playing, false)
   })
 
   it('with the gate open (study) the controls speak at once', () => {

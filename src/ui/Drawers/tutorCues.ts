@@ -17,6 +17,15 @@ const CUES = {
 
 let turn = 0
 let thinking = false // the think loop is ours, for a pending chat question
+let roomGeneration = 0
+export const documentSpeechGeneration = () => roomGeneration
+
+export function cancelDocumentSpeech() {
+  roomGeneration++
+  turn++ // invalidate delayed gestures and the safety timer of the old answer
+  thinking = false
+  useDirector.getState().setLoop('idle')
+}
 
 function finish(my: number) {
   if (my !== turn) return

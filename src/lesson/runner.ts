@@ -14,6 +14,8 @@ import { prefetchSpeech, setVoiceEnabled, speak, speakingText, stopSpeaking } fr
 import { packNotesTabs, useLessonPack } from './packSession'
 import { answerQuickCheck, currentQuestion, isLastQuestion, nextQuestion, quickCheckRecap, restartQuickCheck, useQuickCheck } from './quickCheck'
 import { RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
+import { roomVisits } from '../play/roomVisits'
+import { useMode } from '../state/mode'
 
 // Plays the guided lesson (walkthrough.ts) through the director and the tutor
 // store: walk to the step's spot, set the stage, gesture, then say the line
@@ -90,9 +92,8 @@ function later(ms: number, fn: () => void) {
   timers.add(t)
 }
 
-// Cancelling records a pending quiz answer (which can master the topic).
-// Callers that go on to speak check the play-mode gate again afterwards; a
-// gate shut during the cancel keeps whatever the student's press asked for owed.
+// Cancelling records a pending quiz answer. Callers check the room gate
+// again afterwards; a room change requires another explicit playback request.
 function cancelAll() {
   const open = gate === null
   timers.forEach(clearTimeout)
@@ -112,9 +113,8 @@ function micIdle() {
 // While the stage is in play (src/play/lessonMode.ts holds the gate), no step
 // is said: a request to play or to say a step only moves the lesson to that
 // step and tells the gate what it owes ('play' = auto-play on, 'step' = say
-// this step once). The gate settles it once he is back on his spot in Study,
-// and brings him back to Study when the request came from the student's own
-// lesson controls.
+// this step once). Only requests from the student's own lesson controls are
+// kept: they bring him back to Study and play once he is back on his spot.
 
 export type Owed = 'play' | 'step'
 export interface LessonGate {
@@ -637,24 +637,35 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
 // Hooks the lesson up to the tutor store: voices lines the lesson didn't say
 // itself, reacts to quick-check answers, and (optionally) starts the lesson
 // once the intro hands over. Returns the disconnect (also stops the lesson).
-export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}): () => void {
+export function connectLesson({ autoStart = true, tutorId }: { autoStart?: boolean; tutorId?: string } = {}): () => void {
   // The Quick check's picks come here while the lesson is connected (registered at runtime:
   // store.ts and this module import each other).
   setPickHandler(pickQuickCheck)
   let autoTimer: ReturnType<typeof setTimeout> | undefined
+  let disposed = false
+  let firstVisit: boolean | undefined
   const maybeAutoStart = () => {
     if (useTutorStore.getState().phase === 'intro') prefetchSpeech(RESOLVED_STEPS[0].say)
-    if (!autoStart || autoTimer || useWalkthrough.getState().started) return
-    if (useTutorStore.getState().phase !== 'live') return
+    if (!autoStart || autoTimer || useTutorStore.getState().phase !== 'live' || useMode.getState().mode !== 'study') return
+    firstVisit ??= roomVisits.enter(tutorId ?? 'session', 'study')
+    if (!firstVisit) return
+    if (useWalkthrough.getState().started) return
     autoTimer = setTimeout(() => {
       autoTimer = undefined
-      // Not the student's own press: in play mode it waits for Study instead of pulling him there.
-      if (!useWalkthrough.getState().started && useTutorStore.getState().phase === 'live') begin()
+      if (gate) return maybeAutoStart() // first Study entry may still be gliding home
+      if (!useWalkthrough.getState().started && useTutorStore.getState().phase === 'live' && useMode.getState().mode === 'study') begin()
     }, RUNNER.autoStartMs)
   }
 
   const unsub = useTutorStore.subscribe((s, prev) => {
-    if (s.phase !== prev.phase) maybeAutoStart()
+    if (s.phase !== prev.phase) {
+      if (s.phase !== 'live') {
+        clearTimeout(autoTimer)
+        autoTimer = undefined
+        firstVisit = undefined
+      }
+      maybeAutoStart()
+    }
     // A section finished: the header's "Section N of M" moved on. Paid once per section per
     // run (rewardOnce), so stepping back and forward over it pays nothing more.
     const from = selectSection(prev)
@@ -664,11 +675,21 @@ export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}
     if (!last || last.who !== 'tutor' || last.greeting || !last.text || last.text === expectLine) return
     onOtherLine(last.text, prev.mic)
   })
-  maybeAutoStart()
+  const unsubMode = useMode.subscribe((s, prev) => {
+    if (s.mode === prev.mode) return
+    clearTimeout(autoTimer)
+    autoTimer = undefined
+    firstVisit = undefined
+    if (s.mode === 'study') maybeAutoStart()
+  })
+  // StrictMode's throwaway mount must not consume the first visit.
+  queueMicrotask(() => { if (!disposed) maybeAutoStart() })
 
   return () => {
+    disposed = true
     setPickHandler(null)
     unsub()
+    unsubMode()
     clearTimeout(autoTimer)
     useWalkthrough.getState().stop()
   }

@@ -37,6 +37,17 @@ let seq = 0
 let finishing = false
 let pendingAnswer: AbortController | null = null
 
+// Invalidate both a request still loading and a streamed answer whose first
+// sentence already played. Late chunks must not speak in a different room.
+export function cancelTutorAnswer() {
+  seq++
+  pendingAnswer?.abort()
+  pendingAnswer = null
+  useAskStatus.setState({ pending: false })
+  useTutorStore.setState({ awaitingReply: false })
+  useWalkthrough.setState({ held: false })
+}
+
 const BOARD_TEXT: Record<BoardPart, string> = {
   heading: lectureBoard.heading,
   p1: 'Gantt: P1 runs 0 to 24 ms',
@@ -201,7 +212,7 @@ export function askTutor(question: string, fallback: string) {
     trace.mark('answerReady')
     useAskStatus.setState({ pending: false, source: 'gemini', model: null })
     stage(start)
-    sayLineStreamed(start.first, rest, afterAnswer, () => my === seq, trace)
+    sayLineStreamed(start.first, rest, afterAnswer, () => my === seq && !abort.signal.aborted, trace)
   }
   void askGeminiStream({ question, ...request, history: recentHistory(), mode }, onStart, abort.signal).then((result) => {
     if (pendingAnswer === abort) pendingAnswer = null

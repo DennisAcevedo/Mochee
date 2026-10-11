@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useMode } from '../state/mode'
 import { useTutorStore } from '../state/store'
 import { fetchLessonPack } from '../ui/Drawers/docsClient'
 import { useDocs } from '../ui/Drawers/docsStore'
@@ -26,15 +27,17 @@ interface Props {
 const newestFirst = (a: { createdAt: string }, b: { createdAt: string }) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
 
 export function PackDirector({ tutorId, name, builtIn, lessonDoc }: Props) {
+  const automaticLoad = useRef(false)
   useEffect(() => {
     const unsub = useLessonPack.subscribe((s, prev) => {
       if (s.pack === prev.pack && s.section === prev.section && s.empty === prev.empty) return
       const run = useWalkthrough.getState()
+      const continuePlaying = run.playing && useMode.getState().mode === 'study'
       run.stop()
       const steps = s.pack ? packToWalkthrough(s.pack, s.section) : s.empty !== null ? emptyWalkthrough(s.empty) : null
       useWalkthrough.setState({ steps: steps ? resolvePackSteps(steps) : RESOLVED_STEPS })
       // Before the intro hands over, the runner's auto-start begins these steps instead.
-      if (s.pack && useTutorStore.getState().phase === 'live') useWalkthrough.getState().start()
+      if (s.pack && useTutorStore.getState().phase === 'live' && (!automaticLoad.current || continuePlaying)) useWalkthrough.getState().start()
     })
     return () => {
       unsub()
@@ -64,7 +67,10 @@ export function PackDirector({ tutorId, name, builtIn, lessonDoc }: Props) {
         return false
       }
       // A pack the student picked in the meantime (hub Start Tutor Session) wins.
-      if (!useLessonPack.getState().pack) useLessonPack.getState().start(res.data, 0)
+      if (!useLessonPack.getState().pack) {
+        automaticLoad.current = true
+        try { useLessonPack.getState().start(res.data, 0) } finally { automaticLoad.current = false }
+      }
       return true
     }
 

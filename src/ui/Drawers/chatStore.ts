@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { DOCS_LIMITS, type GroundedAnswer } from '../../../shared/docsTypes'
 import { askDocument, type DocsErrorCode } from './docsClient'
-import { performAnswer } from './tutorCues'
+import { documentSpeechGeneration, performAnswer } from './tutorCues'
 import { startLatency } from '../../lesson/latency'
 
 // Grounded chat history per uploaded document, kept while the page is open so
@@ -35,6 +35,7 @@ export const useChat = create<ChatState>((set, get) => ({
     const question = raw.trim().slice(0, DOCS_LIMITS.maxQuestionChars)
     if (!question || get().pending[documentId]) return
     const trace = startLatency('document')
+    const speechGeneration = documentSpeechGeneration()
     const push = (turn: Omit<ChatTurn, 'id'>) =>
       set((s) => ({ logs: { ...s.logs, [documentId]: [...(s.logs[documentId] ?? []), { ...turn, id: nextId++ }].slice(-CHAT.keepTurns) } }))
     push({ who: 'student', text: question })
@@ -48,6 +49,7 @@ export const useChat = create<ChatState>((set, get) => ({
       return
     }
     push({ who: 'tutor', text: res.data.answer, answer: res.data })
-    performAnswer(res.data, trace)
+    if (speechGeneration === documentSpeechGeneration()) performAnswer(res.data, trace)
+    else trace.finish('cancelled') // keep the written answer, but don't speak it in the new room
   },
 }))

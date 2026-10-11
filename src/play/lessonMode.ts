@@ -8,16 +8,14 @@ import type { StageMode } from '../state/mode.ts'
 // Rules:
 // (a) Play shuts the lesson: entering stops his line at once
 //     and pauses the walkthrough, and while shut the runner says no step.
-//     Whatever asks the lesson to play meanwhile (a toy or the boss handing
-//     it back, the auto-start) only leaves it owed. A chat answer the student
-//     asked for may still finish: the hush skips a held lesson. Going back
-//     to Play before he is home keeps it shut and cuts any step line that
+//     Automatic resume requests are ignored. A chat answer the student
+//     asked for is also cancelled on a room change. Switching
+//     back to Play before he arrives keeps it shut and cuts any step line that
 //     got through anyway.
 // (b) Back in Study the lesson opens again once he has glided back onto his
 //     spot (body on his feet, the gap to the spot small or no longer
-//     shrinking, the world cross-fade over), and only then picks up what it
-//     owes: from the start of the current step's line, and only if it was
-//     playing when the student left or someone asked for it since.
+//     shrinking, the world cross-fade over). Returning stays quiet unless
+//     the student explicitly used a lesson control to request playback.
 // (c) The student's own lesson controls (Start, Play, Next, Back, a step,
 //     Restart) pressed while shut bring him back to Study; (b) does the rest.
 
@@ -39,9 +37,6 @@ export interface LessonRunView {
 
 export interface LessonModeDeps {
   run: () => LessonRunView
-  // The walkthrough as the student last saw it in Study: another listener on
-  // the mode change may already have paused it when ours runs.
-  leaving: () => LessonRunView
   presenting: (phase: RunPhase) => boolean // runner.ts presenting(): a step is walking in, being said, or in its gap
   pause: () => void // the walkthrough's pause()
   resume: () => void // the walkthrough's resume()
@@ -69,8 +64,9 @@ export function createLessonMode(deps: LessonModeDeps): LessonMode {
 
   const gate: LessonGate = {
     owe: (what, byStudent) => {
+      if (!byStudent) return
       owed = what === 'play' || owed === 'play' ? 'play' : 'step'
-      if (byStudent) deps.toStudy()
+      deps.toStudy()
     },
   }
 
@@ -81,23 +77,21 @@ export function createLessonMode(deps: LessonModeDeps): LessonMode {
 
   function enter() {
     cancelReturn()
+    owed = null
     if (shut) {
-      // Back to Play before the way home finished: already shut. A step line that got through anyway is
-      // cut the moment the mode changes, and stays owed.
+      // Back to Play before arriving: already shut. A step line that got through is
+      // cut the moment the mode changes.
       const r = deps.run()
+      deps.hush()
       if (deps.presenting(r.phase)) {
-        if (!r.lineDone) owed ??= 'step'
-        deps.hush()
         deps.pause()
       }
       return
     }
-    const was = deps.leaving()
-    owed = was.started && was.playing && was.phase !== 'done' ? 'play' : null
     // Shut first: a hush can finish a quiz answer that switches the mode again.
     shut = true
     deps.shut(gate)
-    if (!deps.run().held) deps.hush()
+    deps.hush()
     deps.pause()
   }
 
@@ -114,6 +108,9 @@ export function createLessonMode(deps: LessonModeDeps): LessonMode {
 
   function leave() {
     if (!shut || stopReturn) return
+    // Play greetings and chat do not use the lesson's presenting phase.
+    // Cut them before waiting for the return movement, too.
+    deps.hush()
     const since = deps.now()
     let last: number | null = null
     stopReturn = deps.every(t.pollMs, () => {
