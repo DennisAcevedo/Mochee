@@ -3,17 +3,17 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import { Matrix3, Quaternion, Vector3, type Group, type Object3D } from 'three'
 import { tutorStatus } from '../../character/blender/BlenderTutor'
-import { MOTION, TUTOR_ASSETS } from '../../character/blender/config'
+import { MOTION, TUTOR_ASSETS, WALK } from '../../character/blender/config'
 import { manifestUrl } from '../../character/blender/manifest'
 import { collectRigNodes } from '../../character/blender/rigNodes'
 import { laneZ } from '../../lesson/roam'
-import { useWalkthrough } from '../../lesson/runner'
+import { presenting, useWalkthrough } from '../../lesson/runner'
 import { useDirector, type LoopClip, type OneShotClip } from '../../state/director'
 import { useMode } from '../../state/mode'
 import { useProgress } from '../../state/progress'
 import { SPOTS } from '../layout3d'
 import { PHYSICS, ROOM_BOX } from '../physics/config'
-import { spinFromVelocity } from '../physics/grab'
+import { clampLength, spinFromVelocity } from '../physics/grab'
 import { playHandlers, usePlayBody } from '../physics/playBody'
 import { Basketball } from './Basketball'
 import { HOOPS, MOVE_CLIPS, type MoveKind } from './config'
@@ -21,26 +21,33 @@ import { DunkHoop, DunkHoopState } from './DunkHoop'
 import { useHoops } from './hoopsStore'
 import { driveAt, nextEventTime, parseBallClips, startPos, type BallClip, type BallClips, type BallEvent } from './moves'
 import { approachX, faceYaw, isMake, pickOutcome, planShot, sampleShot, solveApex, vec, type HoopGeom, type Outcome, type ShotOptions, type ShotPlan, type Vec3 } from './shot'
-import { afterStep, outranks, walkTarget } from './staging'
+import { afterStep, fetchStop, lessonTakesStage, outranks, walkTarget } from './staging'
+import { disarmStudentShot } from './studentShot'
 
 // The Play tab's ball moves, drawn: "Shoot hoops", dribble, kick, juggle and
 // dunk (src/scene/hoops/actions.ts asks for one through useHoops).
 //
 // A move borrows the physics ball (src/scene/physics/Toys.tsx): it turns the
 // body kinematic and hides its mesh, and this component draws the same
-// basketball instead, so only one ball ever shows. The ball hops into his
-// hands, rides the hand / foot the clip's "ball" block names
+// basketball instead, so only one ball ever shows. He first walks along the
+// lane to wherever the ball lies (fetch), then the ball hops into his hands,
+// rides the hand / foot the clip's "ball" block names
 // (public/models/tutor.manifest.json, read through moves.ts) and, at the
 // release or the kick, flies: the jump shot along shot.ts's arc through (or
 // off) the hoop's rim and out of the net, the rest straight back to physics.
 // At the hand-off the body turns dynamic with the drawn ball's velocity and
 // the drawn ball keeps going for two frames while physics catches up.
 //
-// Before a shot he steps toward the hoop if it is out of range and turns to
-// face it (the director's roamTo / faceTo), and after it he turns back and
-// celebrates or shrugs. The move keeps the stage (lesson paused, HUD busy)
-// until that reaction has played out (staging.ts). Mounted inside the physics
-// world after the tutor, so it reads his bones after this frame's mixer update.
+// A shot from out of range carries the ball toward the hoop first (carry) and
+// turns to face it (the director's roamTo / faceTo); after it he turns back and
+// celebrates or shrugs. The move keeps the stage (HUD busy) until that reaction
+// has played out (staging.ts). The move never resumes the lesson: in Play the
+// runner's gate keeps it silent and it picks up back in Study (src/play/
+// lessonMode.ts). If the lesson takes the stage mid-move anyway, the move
+// yields at once: a ball on him drops to physics where it is, one in flight
+// finishes its path, and no reaction plays.
+// Mounted inside the physics world after the tutor, so it reads his bones
+// after this frame's mixer update.
 
 const KINEMATIC = 2 as RigidBodyType // RigidBodyType.KinematicPositionBased
 const DYNAMIC = 0 as RigidBodyType // RigidBodyType.Dynamic
@@ -50,6 +57,8 @@ const H = PHYSICS.hoop
 const S = HOOPS.shot
 const TAU = Math.PI * 2
 const UP = new Vector3(0, 1, 0)
+// The gap the fetch walk keeps between his centre line and the ball's centre: his capsule, the ball, a margin.
+const FETCH_CLEAR = PHYSICS.tutor.radius + B.radius + HOOPS.fetch.margin
 
 const HOOP_GEOM: HoopGeom = { rim: vec(H.rim[0], H.rim[1], H.rim[2]), rimRadius: H.rimRadius, tube: H.tube, netDepth: H.net.depth }
 const SHOT_OPTS: ShotOptions = {
@@ -96,7 +105,10 @@ function attached(o: Object3D, scene: Object3D): boolean {
   return false
 }
 
-type Phase = 'idle' | 'ready' | 'gather' | 'clip' | 'flight' | 'handoff' | 'done' | 'react'
+type Phase = 'idle' | 'fetch' | 'ready' | 'gather' | 'carry' | 'clip' | 'flight' | 'handoff' | 'done' | 'react'
+
+// Phases with the ball still on him (or about to be): a grab of him or the ball ends the move there.
+const ON_HIM: ReadonlySet<Phase> = new Set(['fetch', 'ready', 'gather', 'carry', 'clip'])
 
 // One move's scratch state; preallocated so the frame loop never allocates.
 class Move {
@@ -113,9 +125,15 @@ class Move {
   readonly v = new Vector3()
   readonly last = new Vector3()
   readonly q = new Quaternion()
-  // Where he stands and faces first (motion coords: the director's frame, before his landing offset).
+  // Where he stands and faces next (motion coords: the director's frame, before his landing offset).
   readonly spot = { x: 0, z: 0 }
   face: number | null = null
+  ox = 0 // his landing offset (play mode leaves him where a fling dropped him): world = motion + offset
+  oz = 0
+  ballX = 0 // the ball's world x / z the fetch walk aims at
+  ballZ = 0
+  carryX: number | null = null // an out-of-range shot carries the ball here first (motion x)
+  budget = 0 // seconds the fetch / carry walk may take
   // The hop into his hands.
   readonly from = new Vector3()
   readonly launch = new Vector3()
@@ -144,11 +162,12 @@ class Move {
   levelMark = 0 // the last useProgress.levelUpId seen (the move's start: bumps before it are not its own)
   levelOwed = false // the move's XP levelled him up and LevelWatcher's 'levelup' has not started yet
   levelOn = false // a 'levelup' clip is playing
-  pausedLesson = false // the move paused the walkthrough (it resumes when the move ends)...
-  unwatch: (() => void) | null = null // ...unless the student plays or pauses it meanwhile
+  unwatch: (() => void) | null = null // the walkthrough watch (the lesson taking the stage back)
+  yield = false // the lesson took the stage: yield on the next frame...
+  yielded = false // ...and, with the ball already in flight, end without a reaction once physics has it
 
   reset(kind: MoveKind, clip: BallClip, rig: Rig): void {
-    Object.assign(this, { kind, clip, rig, t: 0, held: false, backspin: false, face: null, asked: false, started: false })
+    Object.assign(this, { kind, clip, rig, t: 0, held: false, backspin: false, face: null, asked: false, started: false, carryX: null, yield: false, yielded: false })
     Object.assign(this, { cycles: 0, lastTime: 0, endAt: null, plan: null, flightT: 0, rimDone: false, scoreDone: false, frames: 0, react: null })
     Object.assign(this, { reactAsked: false, reactSeen: false, reactDropped: false, reactMark: 0, levelOwed: false, levelOn: false })
   }
@@ -189,7 +208,8 @@ export function BallProp() {
     return out.set(node.position.x + f.offset.x, node.position.y + f.offset.y, node.position.z + f.offset.z).applyMatrix4(s.rig!.root.matrixWorld)
   }
 
-  // Hand the stage back: the lesson the move paused picks up again, then the HUD unlocks.
+  // Hand the stage back: the HUD unlocks. Never resumes the lesson (that made lines start
+  // mid-play): it picks up back in Study (src/play/lessonMode.ts).
   const finish = () => {
     if (s.shown) playHandlers.ball?.show(true)
     s.shown = false
@@ -197,25 +217,50 @@ export function BallProp() {
     s.rig = null
     s.unwatch?.()
     s.unwatch = null
-    const w = useWalkthrough.getState()
-    if (s.pausedLesson && !w.playing) w.resume()
-    s.pausedLesson = false
     useHoops.getState().finish()
   }
 
-  // Give up: the ball drops where it is, he turns back, his loop comes back.
+  // The loop a ball loop hands back to, unless something else (the lesson) set his loop meanwhile.
+  const restoreLoop = () => {
+    const d = useDirector.getState()
+    if (s.clip?.loop && s.asked && d.loop === s.clipName) d.setLoop(s.prevLoop)
+  }
+
+  // End the move here: a ball on him drops to physics where it is, moving the way it was, he
+  // turns back, his loop comes back.
   const abort = () => {
     const ball = playHandlers.ball
     const body = ball?.body()
     if (s.shown && ball && body && !ball.busy()) {
+      if (!Number.isFinite(s.v.x + s.v.y + s.v.z)) s.v.set(0, 0, 0)
+      clampLength(s.v, PHYSICS.tutor.maxFlingSpeed)
       body.setBodyType(DYNAMIC, true)
       body.setTranslation(s.p, true)
-      body.setLinvel(tmp.a.set(0, 0, 0), true)
+      body.setRotation(s.q, true)
+      body.setLinvel(s.v, true)
+      body.setAngvel(spinFromVelocity(s.v, B.spinPerSpeed, PHYSICS.tutor.maxSpin * 2, tmp.b), true)
     }
-    const d = useDirector.getState()
-    d.faceTo(null)
-    if (s.clip?.loop && s.asked) d.setLoop(s.prevLoop)
+    useDirector.getState().faceTo(null)
+    restoreLoop()
     finish()
+  }
+
+  // The lesson took the stage mid-move (staging.ts lessonTakesStage). True when the move is over.
+  const yieldStage = (): boolean => {
+    s.yield = false
+    s.react = null
+    if (s.phase === 'flight' || s.phase === 'handoff') {
+      useDirector.getState().faceTo(null)
+      s.yielded = true // the ball finishes its path to physics, then the move ends without a reaction
+      return false
+    }
+    if (s.phase === 'done' || s.phase === 'react') {
+      useDirector.getState().faceTo(null)
+      finish()
+      return true
+    }
+    abort()
+    return true
   }
 
   // Unmounted mid-move: tidy up the same way.
@@ -241,49 +286,92 @@ export function BallProp() {
     s.reset(kind, clip, rig)
     s.levelMark = useProgress.getState().levelUpId
     s.levelOn = tutorStatus.anim?.oneShot === 'levelup' // one already playing is not the move's
-    // The move takes the floor: a running lesson pauses (so it can't walk him off mid-shot) and picks up
-    // after, unless the student plays or pauses it meanwhile (their call wins over ours).
+    // The move takes the floor: a lesson still playing pauses, a held one too (so the answer's release
+    // can't pick it up under the move). In Play the runner's gate has already paused it; this is the
+    // backstop. Should the lesson take the stage back mid-move, the move yields.
     const w = useWalkthrough.getState()
-    s.pausedLesson = w.started && w.playing && w.phase !== 'done' && !w.held
-    if (s.pausedLesson) {
-      w.pause()
-      s.unwatch = useWalkthrough.subscribe((now, prev) => {
-        if (now.playing !== prev.playing) s.pausedLesson = false
-      })
-    }
+    if (w.started && w.playing && w.phase !== 'done') w.pause()
+    s.unwatch = useWalkthrough.subscribe((now, prev) => {
+      if (lessonTakesStage({ playing: prev.playing, presenting: presenting(prev.phase) }, { playing: now.playing, presenting: presenting(now.phase) })) s.yield = true
+    })
     const d = useDirector.getState()
     // The loop a ball loop hands back to. Not a walk: asked mid-walk, d.loop is still the paused lesson's
     // walk (StageDirector drops it a render later), and he would walk in place after the dribble.
     s.prevLoop = d.loop.startsWith('play_') || d.loop === 'walk' ? 'idle' : d.loop
 
-    // His landing offset (play mode leaves him where a fling dropped him): world = motion + offset.
     rig.root.updateWorldMatrix(true, false)
     const here = tmp.a.setFromMatrixPosition(rig.root.matrixWorld)
-    const ox = here.x - tutorStatus.x
-    const oz = here.z - tutorStatus.z
-    // Where he will stand: a walk already under way (the lesson crossing between spots) still lands.
+    s.ox = here.x - tutorStatus.x
+    s.oz = here.z - tutorStatus.z
+    // Where he is headed: a walk already under way (the lesson crossing between spots) still lands.
     const spot = walkTarget(d, SPOTS)
     s.spot.x = spot.x
     s.spot.z = spot.z
-    if (kind === 'shoot') {
-      // Out of range: step along the lane toward the hoop first (not while stepped aside: that wins
-      // over roaming, so he could never get there). Then face it.
-      const rim = vec(H.rim[0] - ox, H.rim[1], H.rim[2] - oz)
-      const zOf = (x: number) => laneZ(x, SPOTS)
-      if (d.asideX === null && Math.hypot(rim.x - s.spot.x, rim.z - s.spot.z) > S.maxRange) {
-        const x = approachX(s.spot.x, rim, S.approach, S.laneMaxX - ox, zOf)
-        if (Math.abs(x - s.spot.x) > 1e-3) {
-          s.spot.x = x
-          s.spot.z = zOf(x)
-          d.roamTo(x)
-        }
+    d.faceTo(null)
+    const at = ball.body()!.translation()
+    walkToBall(at.x, at.z)
+    s.phase = 'fetch'
+  }
+
+  // Walk along the lane to the ball at world (`bx`, `bz`): short of it on his side, where his body
+  // clears it (staging.ts fetchStop: he is kinematic in Play and would shove it away), within the
+  // landing range. Not when the walk he is on already ends close enough, or while stepped aside
+  // (that wins over roaming).
+  const walkToBall = (bx: number, bz: number) => {
+    s.ballX = bx
+    s.ballZ = bz
+    const F = HOOPS.fetch
+    const d = useDirector.getState()
+    if (d.asideX === null) {
+      const xMax = PHYSICS.tutor.landing.xMax
+      const opts = { standOff: F.standOff, slack: F.slack, clear: FETCH_CLEAR, step: F.step, xMin: -xMax - s.ox, xMax: xMax - s.ox }
+      const x = fetchStop({ x: tutorStatus.x, z: tutorStatus.z }, s.spot, { x: bx - s.ox, z: bz - s.oz }, opts, (x) => laneZ(x, SPOTS))
+      if (x !== null) {
+        s.spot.x = x
+        s.spot.z = laneZ(x, SPOTS)
+        d.roamTo(x)
       }
-      s.face = faceYaw(vec(s.spot.x + ox, 0, s.spot.z + oz), HOOP_GEOM.rim, S.faceMax)
-    } else if (kind === 'kick') {
-      s.face = s.spot.x + ox <= 0 ? HOOPS.kick.face : -HOOPS.kick.face // side-on (face still showing), toward the far side of the room
+    }
+    s.budget = Math.min(s.t + walkSeconds(), F.maxSeconds)
+  }
+  const walkSeconds = () => Math.hypot(s.spot.x - tutorStatus.x, s.spot.z - tutorStatus.z) / WALK.maxSpeed + HOOPS.fetch.spare
+  const standing = () => tutorStatus.phase === 'still' && Math.hypot(tutorStatus.x - s.spot.x, tutorStatus.z - s.spot.z) < HOOPS.arriveEps
+  const turned = () => Math.abs(angleDiff(tutorStatus.yaw, s.face ?? 0)) < HOOPS.settleYaw
+
+  // At the ball: decide where he plays it from and which way he faces.
+  const arrive = () => {
+    const d = useDirector.getState()
+    s.carryX = null
+    s.face = null
+    if (s.kind === 'shoot') {
+      // Out of range: he will carry the ball along the lane toward the hoop first (not while stepped
+      // aside: that wins over roaming, so he could never get there). Facing the hoop comes after.
+      const rim = vec(H.rim[0] - s.ox, H.rim[1], H.rim[2] - s.oz)
+      if (d.asideX === null && Math.hypot(rim.x - s.spot.x, rim.z - s.spot.z) > S.maxRange) {
+        const x = approachX(s.spot.x, rim, S.approach, S.laneMaxX - s.ox, (x) => laneZ(x, SPOTS))
+        if (Math.abs(x - s.spot.x) > 1e-3) s.carryX = x
+      }
+      if (s.carryX === null) s.face = faceYaw(vec(s.spot.x + s.ox, 0, s.spot.z + s.oz), HOOP_GEOM.rim, S.faceMax)
+    } else if (s.kind === 'kick') {
+      s.face = s.spot.x + s.ox <= 0 ? HOOPS.kick.face : -HOOPS.kick.face // side-on (face still showing), toward the far side of the room
     }
     d.faceTo(s.face)
     s.phase = 'ready'
+    s.t = 0
+  }
+
+  // Ball in hand, out of range: walk it toward the hoop, then turn to face it.
+  const beginCarry = (x: number) => {
+    const d = useDirector.getState()
+    s.carryX = null
+    s.spot.x = x
+    s.spot.z = laneZ(x, SPOTS)
+    s.face = faceYaw(vec(x + s.ox, 0, s.spot.z + s.oz), HOOP_GEOM.rim, S.faceMax)
+    d.roamTo(x)
+    d.faceTo(s.face)
+    s.phase = 'carry'
+    s.t = 0
+    s.budget = Math.min(walkSeconds(), HOOPS.fetch.maxSeconds) + HOOPS.timeouts.approach
   }
 
   // Take the ball: the body goes kinematic and hidden, the drawn ball hops from it to where the clip starts it.
@@ -298,6 +386,7 @@ export function BallProp() {
     const apex = Math.min(Math.max(s.from.y, s.aim.y) + lift, ROOM_BOX.ceilY - B.radius - 0.1)
     const arc = solveApex(s.from, s.aim, apex, G)
     if (!arc) return abort()
+    disarmStudentShot() // his move now, not a student's throw
     body.setBodyType(KINEMATIC, true)
     ball.show(false)
     s.shown = true
@@ -333,7 +422,7 @@ export function BallProp() {
     body.setRotation(s.q, true)
     body.setLinvel(s.v, true)
     body.setAngvel(spinFromVelocity(s.v, B.spinPerSpeed, PHYSICS.tutor.maxSpin * 2, tmp.b), true)
-    if (s.clip!.loop) useDirector.getState().setLoop(s.prevLoop)
+    restoreLoop()
     if (s.kind !== 'shoot') {
       useProgress.getState().award('trick')
       s.react = HOOPS.react.trick
@@ -432,18 +521,19 @@ export function BallProp() {
     // Lost him, the ball, or play mode: stop where we are. Once the ball has left him it finishes on its own,
     // and once physics has it back (done, react) a student grabbing it no longer cuts his reaction.
     const ball = playHandlers.ball
-    const onHim = s.phase === 'ready' || s.phase === 'gather' || s.phase === 'clip'
     const ours = s.phase !== 'done' && s.phase !== 'react'
     if (
       (ours && (!ball || ball.busy())) ||
       useMode.getState().mode === 'study' ||
       !s.rig ||
       !attached(s.rig.root, scene) ||
-      (onHim && usePlayBody.getState().state !== 'idle')
+      (ON_HIM.has(s.phase) && usePlayBody.getState().state !== 'idle')
     ) {
       abort()
       return draw()
     }
+    // The lesson took the stage back mid-move: yield now rather than fight its walk or line.
+    if (s.yield && yieldStage()) return draw()
 
     s.rig.root.updateWorldMatrix(true, false)
     s.t += dt
@@ -461,10 +551,21 @@ export function BallProp() {
     s.levelOn = levelOn
 
     switch (s.phase) {
+      case 'fetch': {
+        // Walking to the ball; it may still be rolling: re-aim when it has moved on.
+        const body = ball?.body()
+        if (!body) {
+          abort()
+          break
+        }
+        const at = body.translation()
+        if (Math.hypot(at.x - s.ballX, at.z - s.ballZ) > HOOPS.fetch.retarget) walkToBall(at.x, at.z)
+        if (s.t > 0.1 && standing()) arrive()
+        else if (s.t > s.budget) abort()
+        break
+      }
       case 'ready': {
-        const turned = Math.abs(angleDiff(tutorStatus.yaw, s.face ?? 0)) < HOOPS.settleYaw
-        const there = Math.hypot(tutorStatus.x - s.spot.x, tutorStatus.z - s.spot.z) < HOOPS.arriveEps
-        if (s.t > 0.1 && tutorStatus.phase === 'still' && turned && there && !blocked()) beginGather()
+        if (s.t > 0.1 && standing() && turned() && !blocked()) beginGather()
         else if (s.t > HOOPS.timeouts.approach) abort()
         break
       }
@@ -476,12 +577,28 @@ export function BallProp() {
         // Aim where his hands are now, not where they were: blend the drift in along the way.
         s.p.addScaledVector(startPoint(tmp.a).sub(s.aim), s.gatherT > 0 ? tt / s.gatherT : 1)
         // A one-shot starts a beat early so his hands come in as the ball arrives; a loop starts on arrival.
+        // Not when he carries it toward the hoop first: the clip waits for the carry.
         const lead = s.clip!.loop ? 0 : Math.min(0.1, s.gatherT)
-        if (!s.asked && s.t >= s.gatherT - lead && !blocked()) requestClip()
+        if (s.carryX === null && !s.asked && s.t >= s.gatherT - lead && !blocked()) requestClip()
         if (s.t >= s.gatherT) {
+          if (s.carryX !== null) beginCarry(s.carryX)
+          else {
+            s.phase = 'clip'
+            s.t = 0
+          }
+        }
+        break
+      }
+      case 'carry': {
+        // The ball rides in his hands while he walks it in, then he turns to the hoop and shoots.
+        s.held = true
+        startPoint(s.p)
+        if (dt > 0) s.v.subVectors(s.p, s.last).divideScalar(dt)
+        if (s.t > 0.1 && standing() && turned() && !blocked()) {
+          requestClip()
           s.phase = 'clip'
           s.t = 0
-        }
+        } else if (s.t > s.budget) abort()
         break
       }
       case 'clip': {
@@ -532,6 +649,11 @@ export function BallProp() {
         if (++s.frames >= HOOPS.handoffFrames) {
           playHandlers.ball?.show(true)
           s.shown = false
+          // Yielded to the lesson mid-flight: physics has the ball, the move is over (no turn-back or reaction).
+          if (s.yielded) {
+            finish()
+            return draw()
+          }
           s.phase = 'done'
           s.t = 0
         }

@@ -84,16 +84,16 @@ export const PHYSICS = {
   },
 
   hoop: {
-    // Rim centre: high on the right side wall, above the board window from the lesson camera.
+    // Rim centre: high on the right side wall, the free side of the stage.
     rim: [ROOM.width / 2 - 0.62, 2.05, -2.6] as [number, number, number],
     rimRadius: 0.45,
     tube: 0.035,
     rimColor: PALETTE.coral,
-    rimBalls: 14, // the rim collider is a ring of small balls (Rapier has no torus)
+    rimBalls: 14, // the rim collider is a ring of small balls (Rapier has no torus)...
+    rimBallRadius: 0.035 * 1.4, // ...a little fatter than the drawn tube, so the gaps between them stay narrow
     board: { width: 1.25, height: 0.85, thick: 0.06, above: 0.32, color: '#ffffff', edge: PALETTE.indigo },
     net: { depth: 0.36, bottomScale: 0.62, color: PALETTE.violet, opacity: 0.55 },
-    sensor: { below: 0.06, halfHeight: 0.05, inset: 0.12 }, // thin disc just under the rim plane
-    cooldownMs: 1800,
+    aimBelow: 0.06, // shootBall() aims this far under the rim plane, at the rim's centre
     shot: { apexBelowCeil: 0.3, minRise: 1.1, minApexGap: 0.3, launchGap: 0.18, lead: 0.12 }, // shootBall(): pops off his head (gap above the cap), apex under the ceiling, aims `lead` past the rim centre so the arc clears the near rim
   },
 
@@ -121,6 +121,13 @@ export const PHYSICS = {
   windows: [WINDOW].map((w) => ({ position: w.position, yaw: w.yaw, half: [w.width / 2, w.height / 2, 0.05] as [number, number, number] })),
 
   respawnMargin: 1.2, // a body this far outside the room is put back
+} as const
+
+// The backboard's box against the right wall (centre, half extents): the hoop's collider and
+// the student-shot watch (src/scene/hoops/studentShot.ts) share it.
+export const HOOP_BOARD = {
+  center: [ROOM_BOX.halfW - PHYSICS.hoop.board.thick / 2, PHYSICS.hoop.rim[1] + PHYSICS.hoop.board.above, PHYSICS.hoop.rim[2]] as [number, number, number],
+  half: [PHYSICS.hoop.board.thick / 2, PHYSICS.hoop.board.height / 2, PHYSICS.hoop.board.width / 2] as [number, number, number],
 } as const
 
 // Clips used while playing, read defensively from the director contract: the

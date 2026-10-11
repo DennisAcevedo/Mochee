@@ -148,7 +148,8 @@ export interface ProgressState {
   levelUpId: number // bumps on every level-up, so the UI can celebrate once per bump
   levelFrom: number // level before the latest level-up, for the banner's unlock list
   lastAward: XpAward | null
-  award: (reason: XpReason) => void
+  // `xp` overrides the reason's XP_REWARD (a student's own basket pays HOOPS.basket.xp as 'hoops').
+  award: (reason: XpReason, xp?: number) => void
   resetProgress: () => void
 }
 
@@ -160,9 +161,9 @@ export const useProgress = create<ProgressState>()(
       levelUpId: 0,
       levelFrom: 1,
       lastAward: null,
-      award: (reason) =>
+      award: (reason, amount) =>
         set((s) => {
-          const gained = XP_REWARD[reason]
+          const gained = amount !== undefined && Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : XP_REWARD[reason]
           const xp = s.xp + gained
           const level = levelForXp(xp)
           const lastAward = { id: (s.lastAward?.id ?? 0) + 1, reason, xp: gained }

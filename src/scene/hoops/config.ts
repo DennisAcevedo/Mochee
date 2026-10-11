@@ -20,9 +20,40 @@ export const MOVE_CLIPS = {
 export const HOOPS = {
   modelG: 9.8, // model units / s^2: the authored dribble and juggle arcs (author_play.py)
 
-  // Before a move the ball hops from wherever it lies into his hands (or onto his kick spot):
+  // A move starts with him walking along the lane to the ball, stopping at least `standOff` short
+  // of it (world x) and wherever his body clears it: in Play he is a kinematic capsule that would
+  // shove it away, so the walk keeps his radius + the ball's + `margin` from its centre
+  // (staging.ts fetchStop, searched in `step`s along x). No walk when the one he is on already ends
+  // within `slack` of that. Never past the landing range (PHYSICS.tutor.landing.xMax). A ball that
+  // rolls more than `retarget` from where he is headed re-aims the walk. He gets the walk's length
+  // at full speed plus `spare` seconds to arrive, and `maxSeconds` at most however often the ball
+  // rolls on. An out-of-range shot then carries the ball to shot.approach the same way.
+  fetch: { standOff: 0.35, slack: 0.15, margin: 0.08, step: 0.02, retarget: 0.3, spare: 2.5, maxSeconds: 8 },
+
+  // Then the ball hops from where it lies into his hands (or onto his kick spot):
   // an arc peaking this far above the higher end, plus a share of the distance, at most `maxLift`.
   gather: { lift: 0.3, liftPerUnit: 0.12, maxLift: 1.1 },
+
+  // The student's own shots (basket.ts, studentShot.ts). A make earns `xp` (the "+N" toast).
+  // Detector: rim / board contact slack, how far over the opening counts as reaching the hoop,
+  // the margin for having left it, seconds on the rim before a ball is called out and nudged off
+  // at `nudge` u/s, when an unreached throw is over (at rest, or `maxSeconds`).
+  // Magnet: dragging the ball with the pointer near the hoop slides it to the hoop's depth, over the
+  // rim (`above` its plane, before the grab's lift), fully within `inner` of the pointer's ray, easing
+  // out to `outer` (world units), so a student can drop it in. Engaged, the drag spring stiffens to
+  // `rate` (1/s; the grab's own is 16) so the ball is there the moment it looks it, and letting go
+  // drops it from there keeping `keep` of the throw (src/scene/physics/grab.ts).
+  basket: {
+    xp: 20,
+    touch: 0.02,
+    over: 0.45,
+    leave: 0.12,
+    rattle: 3,
+    nudge: 1.2,
+    rest: { speed: 0.3, seconds: 0.5 },
+    maxSeconds: 6,
+    magnet: { above: 0.15, inner: 0.35, outer: 0.9, rate: 45, keep: 0 },
+  },
 
   shot: {
     maxRange: 4.4, // horizontal distance to the rim he shoots from; farther and he steps in first...

@@ -3,8 +3,9 @@ import { ANIM_STATES } from '../../character/blender/config.ts'
 import { laneZ } from '../../lesson/roam.ts'
 import type { Clip, OneShotClip, Spot } from '../../state/director.ts'
 
-// Where a ball move starts, and how it hands the stage back afterwards
-// (BallProp.tsx). Pure: tests/character/hoops.test.ts runs it in node.
+// Where a ball move starts, how it hands the stage back afterwards, and when
+// it yields to the lesson (BallProp.tsx). Pure: tests/character/hoops.test.ts
+// and hoopsLesson.test.ts run it in node.
 
 type Spots = Record<Spot, { x: number; z: number }>
 
@@ -15,6 +16,47 @@ type Spots = Record<Spot, { x: number; z: number }>
 export function walkTarget(d: { spot: Spot; roamX: number | null; asideX: number | null }, spots: Spots): { x: number; z: number } {
   const free = d.asideX ?? d.roamX
   return free === null ? { x: spots[d.spot].x, z: spots[d.spot].z } : { x: free, z: laneZ(free, spots) }
+}
+
+// ---- Fetching the ball. In Play his body is a kinematic capsule that shoves whatever it walks
+// into, so he stops where it clears the ball: on his side of it, at least `standOff` short along
+// x, and far enough that the straight walk there (motion.ts heads straight at its target) keeps
+// `clear` (his radius + the ball's + a margin) between his centre line and the ball's centre. If
+// he already stands nearer than that, the walk only may not take him any closer. Motion
+// coordinates (the director's, before his landing offset); `lane(x)` is the lane's depth at x.
+type XZ = { x: number; z: number }
+
+export interface FetchOpts {
+  standOff: number // the least he stops short of the ball, along x
+  slack: number // a walk already ending this much further out still counts as close enough
+  clear: number // centre-to-centre gap the walk keeps from the ball (horizontal)
+  step: number // search step for the stop, along x
+  xMin: number // the landing range he may stand in
+  xMax: number
+}
+
+// Horizontal distance from `p` to the segment a -> b.
+export function segmentDistance(a: XZ, b: XZ, p: XZ): number {
+  const dx = b.x - a.x
+  const dz = b.z - a.z
+  const len2 = dx * dx + dz * dz
+  const t = len2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / len2)) : 0
+  return Math.hypot(a.x + dx * t - p.x, a.z + dz * t - p.z)
+}
+
+// Where he stops for the ball (motion x), or null when the walk he is on (`at` -> `dest`) already
+// ends close enough and clear of it.
+export function fetchStop(at: XZ, dest: XZ, ball: XZ, o: FetchOpts, lane: (x: number) => number): number | null {
+  const keep = Math.min(o.clear, Math.hypot(at.x - ball.x, at.z - ball.z)) - 1e-6
+  const clearTo = (x: number, z: number) => segmentDistance(at, { x, z }, ball) >= keep
+  const side = ball.x >= at.x ? 1 : -1
+  let x = ball.x
+  for (let sx = o.standOff; sx <= o.standOff + o.clear + 1; sx += o.step) {
+    x = Math.min(Math.max(ball.x - side * sx, o.xMin), o.xMax)
+    if (clearTo(x, lane(x))) break
+  }
+  const close = Math.abs(ball.x - dest.x) <= Math.abs(ball.x - x) + o.slack
+  return close && clearTo(dest.x, dest.z) ? null : x
 }
 
 // The beat after a move. He turns back to the camera and reacts (celebrate,
@@ -62,4 +104,21 @@ export function afterStep(s: AfterState, timeouts: { react: number; after: numbe
   // Whatever plays now (the reaction, or a level-up that cut in) plays out first.
   if (s.oneShot || s.queued || !s.still) return 'wait'
   return 'finish'
+}
+
+// ---- The lesson around play. The walkthrough as these rules see it: `presenting` is
+// runner.ts's presenting(phase) (walking him to a spot, saying a line, the gap between).
+export interface LessonView {
+  playing: boolean
+  presenting: boolean
+}
+
+// The lesson took the stage mid-move: it started presenting where it wasn't. That already
+// walked him off or started a line (resume() runs the step at once), so a ball move yields
+// right away instead of fighting it: a ball still on him drops to physics where it is, one
+// already in flight finishes its path, and no reaction plays (BallProp.tsx). In Play the
+// runner's gate (src/play/lessonMode.ts) keeps the lesson from presenting at all and its own
+// controls take the student back to Study, which ends a move at once; this is the backstop.
+export function lessonTakesStage(prev: LessonView, now: LessonView): boolean {
+  return now.presenting && !prev.presenting
 }
