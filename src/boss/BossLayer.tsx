@@ -6,7 +6,7 @@ import { bindFight, fightDom, isFightPhase, useFight } from './fight'
 import { useBossMastery } from './mastery'
 import { SourcePage } from './SourcePage'
 import { errorText } from '../ui/Drawers/docsClient'
-import { COIN_REWARD } from '../state/progress'
+import { BOSS_DIFFICULTIES, bossMatch, PLAYER_DAMAGE, PLAYER_HP } from './balance'
 import { CoinIcon } from '../ui/PlayHud/CoinIcon'
 import css from './Boss.module.css'
 
@@ -16,8 +16,6 @@ import css from './Boss.module.css'
 // real Mochee fights a 3D boss (arena/BossArena.tsx, driven by fight.ts).
 // Keys: 1-4 pick, Enter continues, Esc closes.
 
-const HEART =
-  'M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.1 1.8-1.9 3.3-3.1 5.4-3.1 3.6 0 5.7 3.8 4.2 7.3C19.5 16.4 12 21 12 21z'
 const CONFETTI = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#7c5cf2']
 
 // Beat timings as CSS variables, so the HUD lands on the same frames as the arena.
@@ -42,40 +40,11 @@ function Spark({ className, fill }: { className: string; fill: string }) {
   )
 }
 
-function BossReward({ className }: { className: string }) {
+function BossReward({ className, coins, estimate = false }: { className: string; coins: number; estimate?: boolean }) {
   return (
     <span className={className} data-testid="boss-reward">
       <CoinIcon />
-      +{COIN_REWARD.bossWin} coins
-    </span>
-  )
-}
-
-// Hearts: the one just lost cracks in two and drops at the lunge's impact.
-function Hearts({ n, max, crack }: { n: number; max: number; crack: number | null }) {
-  return (
-    <span className={css.hearts} data-testid="boss-hearts" aria-label={`${n} of ${max} hearts left`} data-hearts={n}>
-      {Array.from({ length: max }, (_, i) => {
-        const lost = i >= n
-        const breaking = lost && i === n && crack !== null
-        return (
-          <span key={breaking ? `b${crack}` : `h${i}`} className={css.heartBox}>
-            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" className={breaking ? css.heartEmptyLate : lost ? css.heartEmpty : css.heart}>
-              <path d={HEART} fill={lost ? '#e3e0ea' : '#ff6b5b'} />
-            </svg>
-            {breaking && (
-              <>
-                <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" className={css.halfL}>
-                  <path d={HEART} fill="#ff6b5b" />
-                </svg>
-                <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" className={css.halfR}>
-                  <path d={HEART} fill="#ff6b5b" />
-                </svg>
-              </>
-            )}
-          </span>
-        )
-      })}
+      {estimate ? 'Up to ' : '+'}{coins} coins
     </span>
   )
 }
@@ -142,10 +111,13 @@ function Picker() {
   return (
     <div className={css.card}>
       <h2 className={css.cardTitle}>Choose a boss</h2>
+      <p className={css.cardText}>Easy → Medium → Hard. You start with {PLAYER_HP} HP and deal {PLAYER_DAMAGE} damage per correct answer. Shorter question sets scale down boss HP and coins.</p>
       {doc.topics.length === 0 && <p className={css.cardText}>No topics were found in {doc.title} yet.</p>}
       <div className={css.grid}>
-        {doc.topics.map((t) => {
+        {[...doc.topics].sort((a, b) => BOSS_DIFFICULTIES[archetypeFor(a).difficulty].rank - BOSS_DIFFICULTIES[archetypeFor(b).difficulty].rank).map((t) => {
           const a = archetypeFor(t)
+          const tier = BOSS_DIFFICULTIES[a.difficulty]
+          const match = bossMatch(a.difficulty)
           return (
             <button
               key={t.id}
@@ -159,11 +131,14 @@ function Picker() {
                 {a.name}
               </span>
               <span className={css.pickTag}>guards {t.title}</span>
+              <span className={css.difficulty} data-difficulty={a.difficulty}>{tier.label}</span>
+              <span className={css.pickTag}>Up to {match.maxHp} HP · {match.damage} damage</span>
+              <span className={css.pickMeta}>{match.questions} correct answers · survive {Math.ceil(PLAYER_HP / match.damage) - 1} mistakes</span>
               <span className={css.pickMeta}>
                 p. {t.firstPage}
                 {mastered[t.id] ? ' · mastered' : ''}
               </span>
-              <BossReward className={css.pickReward} />
+              <BossReward className={css.pickReward} coins={match.coins} estimate />
             </button>
           )
         })}
@@ -184,7 +159,7 @@ function Battle() {
   const round = useFight((f) => f.round)
   const reduced = useFight((f) => f.reduced)
   const ready = useFight((f) => f.ready)
-  const { topic, phase, queue, hp, maxHp, hearts, picked, result, hitId, lastHit, streak } = s
+  const { topic, phase, queue, hp, maxHp, playerHp, picked, result, hitId, lastHit, streak } = s
   const battleRef = useRef<HTMLDivElement>(null)
   const questionRef = useRef<HTMLElement>(null)
   const q = queue[0]
@@ -206,12 +181,12 @@ function Battle() {
   const a = archetypeFor(topic)
   const done = phase === 'answered' || phase === 'won' || phase === 'lost'
   const shown = phase === 'answered' && !!result && revealed === hitId
-  const canNext = phase === 'answered' && hp > 0 && hearts > 0
+  const canNext = phase === 'answered' && hp > 0 && playerHp > 0
   const hit = lastHit === 'hit' && done
   const miss = lastHit === 'miss' && done
   const ko = hit && hp === 0
   const pct = maxHp ? `${(100 * hp) / maxHp}%` : '0%'
-  const shownHp = hit && revealed !== hitId ? hp + 1 : hp // the count drops once the bolt has landed, with the bar
+  const shownHp = hit && revealed !== hitId ? Math.min(maxHp, hp + PLAYER_DAMAGE) : hp
   const cardDelay = round <= 1 ? BEAT.enter.skid - 260 : 0
   // The cards are never keyed by hit: a remount would skip the HP bar's
   // transitions and replay the slide-in. The class adds the shake (Boss.module.css).
@@ -220,12 +195,16 @@ function Battle() {
       {/* HUD cards */}
       <div className={miss ? css.hudShake : css.hud} data-arena-top>
         <span className={css.mono}>YOU + MOCHEE</span>
-        <Hearts n={hearts} max={3} crack={miss ? hitId : null} />
+        <span className={css.playerHealth} role="meter" aria-label="Your health" aria-valuemin={0} aria-valuemax={PLAYER_HP} aria-valuenow={playerHp} data-testid="boss-player-hp" data-hp={playerHp} data-damage={s.bossDamage}>
+          <span style={{ width: `${playerHp}%` }} />
+        </span>
+        <span className={css.streak}>{playerHp} / {PLAYER_HP} HP{miss ? ` · −${s.bossDamage} on a miss` : ''}</span>
         <span className={css.streak}>{streak >= 2 ? `Streak ${streak} · keep it going` : 'Answer right to attack'}</span>
       </div>
       <div className={hit ? css.bossHudHit : css.bossHud} data-arena-top>
         <span className={css.bossTitle}>
           <span className={css.bossName}>{a.name}</span>
+          <span className={css.difficulty} data-difficulty={s.difficulty}>{BOSS_DIFFICULTIES[s.difficulty].label}</span>
           <span className={css.bossGuards}>guards {topic.title}</span>
         </span>
         <span
@@ -237,16 +216,16 @@ function Battle() {
           className={css.hp}
           data-testid="boss-hp"
           data-hp={hp}
-          style={{ '--segs': Math.max(1, maxHp) } as CSSProperties}
+          style={{ '--segs': Math.max(1, s.questionCount) } as CSSProperties}
         >
           <span className={css.hpGhost} style={{ width: pct }} />
           <span className={css.hpFill} style={{ width: pct }} />
           <span className={css.hpTicks} />
         </span>
         <span className={css.bossGuards}>
-          {shownHp} / {maxHp} HP
+          {shownHp} / {maxHp} HP · {s.bossDamage} damage per miss
         </span>
-        <BossReward className={css.fightReward} />
+        <BossReward className={css.fightReward} coins={s.reward} />
       </div>
 
       {/* Over the fighters (positions written by the arena every frame) */}
@@ -257,7 +236,7 @@ function Battle() {
       )}
       {hit && (
         <span key={`d${hitId}`} className={css.dmg} aria-hidden="true">
-          -1
+          −{PLAYER_DAMAGE}
         </span>
       )}
       {(miss || phase === 'lost') && (
@@ -288,7 +267,7 @@ function Battle() {
           style={{ '--card-delay': `${cardDelay}ms` } as CSSProperties}
         >
           <span className={css.mono}>
-            ROUND {Math.max(1, Math.min(maxHp, maxHp - queue.length + 1))} · PAGE {q.page}
+            QUESTION {Math.max(1, s.questionCount - queue.length + 1)} / {s.questionCount} · PAGE {q.page}
           </span>
           <h2 id="boss-q" className={css.qText}>
             {q.prompt}
@@ -340,7 +319,7 @@ function Battle() {
           <span className={css.endTagWon}>BOSS BEATEN</span>
           <h2 className={css.endTitle}>{a.name} is down!</h2>
           <span className={css.cardText}>{topic.title} mastered</span>
-          <BossReward className={css.wonReward} />
+          <BossReward className={css.wonReward} coins={s.reward} />
           <span className={css.row}>
             <button type="button" className={css.primary} data-testid="boss-next" onClick={s.backToTopics}>
               Next boss
@@ -353,7 +332,7 @@ function Battle() {
       )}
       {phase === 'lost' && (
         <section className={css.endLost} data-testid="boss-lost" data-arena-bottom>
-          <span className={css.endTagLost}>OUT OF HEARTS</span>
+          <span className={css.endTagLost}>OUT OF HP</span>
           <h2 className={css.endTitle}>{a.name} held on</h2>
           <span className={css.cardText}>Review page {topic.firstPage} with him, then try again. The boss keeps the damage you dealt.</span>
           <span className={css.row}>

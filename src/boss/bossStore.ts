@@ -1,18 +1,19 @@
 import { create } from 'zustand'
 import type { DocumentInfo, QuizQuestion, QuizResult, TopicInfo } from '../../shared/docsTypes'
 import { fetchQuiz, listDocuments, submitQuiz, type DocsErrorCode } from '../ui/Drawers/docsClient'
-import { COIN_REWARD, useProgress } from '../state/progress'
+import { useProgress } from '../state/progress'
+import { archetypeFor } from './archetypes'
+import { bossMatch, PLAYER_DAMAGE, PLAYER_HP, type BossDifficulty } from './balance'
 import { useBossMastery } from './mastery'
 import { onBossHit, onBossStrike } from './cues'
 
 // Beat the Boss: pick a document -> pick a topic -> fight that topic's boss.
-// Boss HP = number of questions; each right answer deals 1. Three hearts; a
-// wrong answer costs one and the missed question goes to the back of the line.
+// Each right answer deals 20 HP. Tier controls fight length and damage on a
+// miss; missed questions return to the queue. A retry preserves boss damage.
 // Answers are checked on the server: the client sees the correct index only
 // in the QuizResult that comes back from submitQuiz.
 
 export const BOSS = {
-  hearts: 3,
   wonDelayMs: 1300,
   lostDelayMs: 1800,
 } as const
@@ -41,7 +42,11 @@ export interface BossState {
   queue: QuizQuestion[] // questions still to beat; [0] is on screen
   maxHp: number
   hp: number
-  hearts: number
+  playerHp: number
+  difficulty: BossDifficulty
+  bossDamage: number
+  reward: number
+  questionCount: number
   streak: number
   picked: number | null
   result: QuizResult | null
@@ -66,7 +71,7 @@ const clearTimers = () => timers.splice(0).forEach((t) => window.clearTimeout(t)
 const attemptId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `a-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-const FIGHT_RESET = { queue: [], maxHp: 0, hp: 0, hearts: BOSS.hearts, streak: 0, picked: null, result: null, lastHit: null } as const
+const FIGHT_RESET = { queue: [], maxHp: 0, hp: 0, playerHp: PLAYER_HP, difficulty: 'easy', bossDamage: 20, reward: 0, questionCount: 0, streak: 0, picked: null, result: null, lastHit: null } as const
 
 export const useBoss = create<BossState>((set, get) => ({
   phase: 'closed',
@@ -117,9 +122,11 @@ export const useBoss = create<BossState>((set, get) => ({
     if (my !== session) return
     if (!res.ok) return set({ phase: 'error', error: res.error })
     const questions = res.data.questions.filter((q) => q.topicId === topic.id || !q.topicId)
-    const use = questions.length ? questions : res.data.questions
+    const use = questions.filter((q, i) => questions.findIndex((other) => other.id === q.id) === i)
     if (use.length === 0) return set({ phase: 'error', error: 'not-found' })
-    set({ phase: 'ask', queue: use, maxHp: use.length, hp: use.length })
+    const match = bossMatch(archetypeFor(topic).difficulty, use.length)
+    set({ phase: 'ask', queue: use.slice(0, match.questions), questionCount: match.questions,
+      maxHp: match.maxHp, hp: match.maxHp, difficulty: match.difficulty, bossDamage: match.damage, reward: match.coins })
   },
 
   answer: async (choice) => {
@@ -134,7 +141,7 @@ export const useBoss = create<BossState>((set, get) => ({
     const result = res.data
     const hitId = get().hitId + 1
     if (result.correct) {
-      const hp = Math.max(0, get().hp - 1)
+      const hp = Math.max(0, get().hp - PLAYER_DAMAGE)
       set({ phase: 'answered', result, hp, streak: get().streak + 1, hitId, lastHit: 'hit', error: null })
       onBossHit()
       if (hp === 0) {
@@ -142,21 +149,21 @@ export const useBoss = create<BossState>((set, get) => ({
           if (my !== session) return
           const topic = get().topic
           if (topic) useBossMastery.getState().master(topic.id)
-          useProgress.getState().award('bossWin', COIN_REWARD.bossWin)
+          useProgress.getState().award('bossWin', get().reward)
           set({ phase: 'won' })
         })
       }
     } else {
-      const hearts = Math.max(0, get().hearts - 1)
-      set({ phase: 'answered', result, hearts, streak: 0, hitId, lastHit: 'miss', error: null })
+      const playerHp = Math.max(0, get().playerHp - get().bossDamage)
+      set({ phase: 'answered', result, playerHp, streak: 0, hitId, lastHit: 'miss', error: null })
       onBossStrike()
-      if (hearts === 0) later(BOSS.lostDelayMs, () => my === session && set({ phase: 'lost' }))
+      if (playerHp === 0) later(BOSS.lostDelayMs, () => my === session && set({ phase: 'lost' }))
     }
   },
 
   next: () => {
     const s = get()
-    if (s.phase !== 'answered' || s.hp === 0 || s.hearts === 0) return
+    if (s.phase !== 'answered' || s.hp === 0 || s.playerHp === 0) return
     const [cur, ...rest] = s.queue
     // A missed question comes back later; a beaten one is gone.
     const queue = s.lastHit === 'miss' && cur ? [...rest, cur] : rest
@@ -164,13 +171,13 @@ export const useBoss = create<BossState>((set, get) => ({
     set({ phase: 'ask', queue, picked: null, result: null, lastHit: null })
   },
 
-  // Out of hearts: same boss, full hearts. The boss keeps the damage dealt.
+  // Same boss and reward, full player HP. The boss keeps the damage dealt.
   retry: () => {
     const s = get()
     if (s.phase !== 'lost') return
     const [cur, ...rest] = s.queue
     const queue = cur && s.lastHit === 'miss' ? [...rest, cur] : s.queue
-    set({ phase: 'ask', queue, hearts: BOSS.hearts, streak: 0, picked: null, result: null, lastHit: null })
+    set({ phase: 'ask', queue, playerHp: PLAYER_HP, streak: 0, picked: null, result: null, lastHit: null })
   },
 
   backToTopics: () => {

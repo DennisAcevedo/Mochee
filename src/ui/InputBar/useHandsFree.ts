@@ -4,6 +4,7 @@ import { useMode } from '../../state/mode'
 import { useWalkthrough } from '../../lesson/runner'
 import { cancelRecognition } from '../../lesson/speech'
 import { handsFreeConstructor, listenHandsFree } from '../../lesson/handsFree'
+import { useBoss } from '../../boss/bossStore'
 
 export function useHandsFree(teaching: boolean) {
   const [enabled, setEnabled] = useState(false)
@@ -16,7 +17,8 @@ export function useHandsFree(teaching: boolean) {
   const pending = useTutorStore((s) => s.awaitingReply)
   const study = useMode((s) => s.mode === 'study')
   const playing = useWalkthrough((s) => s.playing)
-  const blocked = paused || teaching || typing || !visible || phase !== 'live' || speaking || pending || !study || playing
+  const bossOpen = useBoss((s) => s.phase !== 'closed')
+  const blocked = paused || teaching || typing || !visible || phase !== 'live' || speaking || pending || !study || playing || bossOpen
 
   useEffect(() => {
     const changed = () => setVisible(!document.hidden)

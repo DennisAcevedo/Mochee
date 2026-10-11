@@ -155,7 +155,8 @@ def boss_section(page: Page, check, base: str, shot=None) -> None:
     topic.first.click()
     _poll(lambda: _tid(page, "boss-choice-0").count(), 30)
     shot(page, "r3_04_boss")
-    hearts0 = int(_tid(page, "boss-hearts").get_attribute("data-hearts") or -1)
+    hearts0 = int(_tid(page, "boss-player-hp").get_attribute("data-hp") or -1)
+    damage = int(_tid(page, "boss-player-hp").get_attribute("data-damage") or -1)
     got: dict = {"right": None, "wrong": None}
     try:
         # Answer one right and one wrong on purpose: a separate probe submit asks the
@@ -168,20 +169,20 @@ def boss_section(page: Page, check, base: str, shot=None) -> None:
             answer = int(probe["correctChoice"])
             n = _tid(page, "boss-choice-0").locator("xpath=..").locator('[data-testid^="boss-choice-"]').count()
             pick = answer if key == "right" else (answer + 1) % max(n, 2)
-            before = int(_tid(page, "boss-hearts").get_attribute("data-hearts") or -1)
+            before = int(_tid(page, "boss-player-hp").get_attribute("data-hp") or -1)
             _tid(page, f"boss-choice-{pick}").click()
             res = _tid(page, "boss-result")
             _poll(lambda: res.count(), 20)
-            after = int(_tid(page, "boss-hearts").get_attribute("data-hearts") or -1)
+            after = int(_tid(page, "boss-player-hp").get_attribute("data-hp") or -1)
             got[key] = {"hearts_before": before, "hearts_after": after, "correct": res.get_attribute("data-correct") == "true"}
             if _tid(page, "boss-next").count():
                 _tid(page, "boss-next").first.click()
         wrong = got["wrong"] or {}
         right = got["right"] or {}
         cause = page.evaluate(TUMBLE_JS)
-        check("boss: a wrong answer costs one heart", wrong.get("correct") is False and wrong["hearts_after"] == wrong["hearts_before"] - 1, {"start": hearts0, **got})
+        check("boss: a wrong answer deals the displayed damage", wrong.get("correct") is False and wrong["hearts_after"] == max(0, wrong["hearts_before"] - damage), {"start": hearts0, **got})
         check("boss: wrong answer knocks him into a 'boss' tumble", cause == "boss", cause)
-        check("boss: a right answer keeps the hearts", right.get("correct") is True and right["hearts_after"] == right["hearts_before"], got["right"])
+        check("boss: a right answer keeps player HP", right.get("correct") is True and right["hearts_after"] == right["hearts_before"], got["right"])
         shot(page, "r3_05_boss_after")
     finally:
         # Always close, so a failure here cannot leave the overlay over the hub checks.
