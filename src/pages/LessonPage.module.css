@@ -33,6 +33,13 @@
   justify-content: center;
 }
 
+/* The closed transcript's chip sits in the screen's top-right corner: the
+   header's right end steps in by however much of the chip overlaps it. */
+body:has(.transcriptChip) .header {
+  box-sizing: border-box;
+  padding-right: max(0px, calc(176px - (100vw - var(--row-w)) / 2));
+}
+
 /* The stage row: the frame is centred in it at the size LessonPage fits. */
 .row {
   flex: 1 1 0;
@@ -116,6 +123,14 @@
 
 .side > * {
   pointer-events: auto;
+}
+
+/* The closed transcript's chip: pinned to the screen's top-right corner. */
+.transcriptChip {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 40;
 }
 
 .sidePanel {

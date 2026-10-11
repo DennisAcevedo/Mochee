@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { Navigate, useParams } from 'react-router'
 import { BossLayer } from '../boss'
 import { preloadBlenderTutor } from '../character/blender/BlenderTutor'
@@ -203,10 +204,21 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
       <ReopenChip label="Browser" icon="browser" onOpen={() => useWindows.getState().restore('notes')} />
     </div>
   )
-  // The conversation so far, down the right side of the stage (closed: a chip in its corner).
+  // The conversation so far, down the right side of the stage; the learner can
+  // drag it about. Closed, its chip goes to the screen's top-right corner, not
+  // wherever the card was dragged.
   const transcript = live && !folded('transcript') && (
     <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" style={{ '--enter-delay': '300ms' } as CSSProperties}>
-      {transcriptHidden ? <ReopenChip id="transcript" label="Transcript" icon="transcript" /> : <SideTranscript className={lesson.sidePanel} closeable />}
+      {transcriptHidden ? (
+        createPortal(
+          <div className={lesson.transcriptChip}>
+            <ReopenChip id="transcript" label="Transcript" icon="transcript" />
+          </div>,
+          document.body,
+        )
+      ) : (
+        <SideTranscript className={lesson.sidePanel} closeable />
+      )}
     </div>
   )
   const caption = live && !folded('caption') && (
