@@ -22,8 +22,7 @@
   position: relative;
   width: 1000px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
-  overflow: auto;
+  overflow: visible; /* the outer bubbles and the picked one's pop reach past the wheel's box: never a scrollbar */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,6 +206,18 @@
   }
   75% {
     transform: translateX(5px);
+  }
+}
+
+/* Short or narrow windows: shrink the whole card to stay in frame instead of scrolling. */
+@media (max-height: 640px), (max-width: 860px) {
+  .card {
+    zoom: 0.8;
+  }
+}
+@media (max-height: 500px) {
+  .card {
+    zoom: 0.62;
   }
 }
 
