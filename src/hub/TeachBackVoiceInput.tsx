@@ -3,7 +3,6 @@ import { TEACH_BACK_LIMITS } from '../../shared/teachBack'
 import { errorText, transcribeTeachBack } from '../ui/Drawers/docsClient'
 import { startTeachBackRecording, type TeachBackRecording } from './teachBackRecording'
 import { useTeachBack } from './teachBackStore'
-import h from './Hub.module.css'
 import s from './TeachBack.module.css'
 
 export type VoicePhase = 'idle' | 'starting' | 'recording' | 'transcribing'
@@ -90,13 +89,13 @@ export function TeachBackVoiceInput({ topicId, active, disabled, onPhase, before
         <span>{phase === 'recording' ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} / 2:00` : 'Speak naturally. Take your time.'}</span>
       </div>
       <div className={s.meter} aria-hidden="true">{[.4, .7, 1, .6, .9, .5, .75].map((size, i) => <i key={i} style={{ height: `${6 + level * size * 34}px` }} />)}</div>
-      {phase === 'idle' && <button type="button" className={s.micButton} disabled={disabled || !active} onClick={() => void start()}>
+      {phase === 'idle' && <button type="button" className={s.primary} disabled={disabled || !active} onClick={() => void start()}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8" /></svg>
         {draft ? 'Keep explaining' : 'Start speaking'}
       </button>}
       {phase === 'recording' && <>
-        <button type="button" className={h.primary} onClick={() => finish(true)}>Finish &amp; get feedback</button>
-        <button type="button" className={h.ghost} onClick={() => finish(false)}>Pause &amp; review transcript</button>
+        <button type="button" className={s.primary} onClick={() => finish(true)}>Finish &amp; get feedback</button>
+        <button type="button" className={s.secondary} onClick={() => finish(false)}>Pause &amp; review transcript</button>
       </>}
       {phase !== 'idle' && <button type="button" className={s.citation} onClick={cancel}>Cancel this take</button>}
       {preview && <p className={s.liveTranscript} aria-label="Live transcript">{preview}</p>}
@@ -106,9 +105,9 @@ export function TeachBackVoiceInput({ topicId, active, disabled, onPhase, before
           onChange={(e) => useTeachBack.getState().edit(topicId, e.target.value)} />
         <span>{draft.length}/3,000 characters</span>
       </details>}
-      {phase === 'idle' && draft.trim().length >= TEACH_BACK_LIMITS.minChars && <button type="button" className={h.primary} disabled={disabled} onClick={() => { beforeListen(); void useTeachBack.getState().grade(topicId) }}>Grade my explanation</button>}
-      {error && <p className={h.error} role="alert">{error}</p>}
-      {retry && <button type="button" className={h.ghost} disabled={disabled} onClick={() => {
+      {phase === 'idle' && draft.trim().length >= TEACH_BACK_LIMITS.minChars && <button type="button" className={s.primary} disabled={disabled} onClick={() => { beforeListen(); void useTeachBack.getState().grade(topicId) }}>Grade my explanation</button>}
+      {error && <p className={s.error} role="alert">{error}</p>}
+      {retry && <button type="button" className={s.secondary} disabled={disabled} onClick={() => {
         const blob = savedAudio.current
         if (!blob) return
         const controller = new AbortController(); operation.current = controller

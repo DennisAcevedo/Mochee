@@ -15,7 +15,6 @@ import { useTeachBackNarration } from './useTeachBackNarration'
 import { teachBackSpeech } from './teachBackSpeech'
 import { cancelRecognition, stopSpeaking } from '../lesson/speech'
 import { useTutorStore } from '../state/store'
-import h from './Hub.module.css'
 import s from './TeachBack.module.css'
 
 const STATUS = { correct: 'Got it', partial: 'Build on this', missing: 'Add this idea', incorrect: 'Rethink this' }
@@ -82,12 +81,12 @@ export function TeachBackPane() {
     if (reveal && body) body.scrollTop += reveal.getBoundingClientRect().top - body.getBoundingClientRect().top - 14
   }, [practice?.phase, topic?.id, inputMode])
 
-  if (docsStatus === 'loading' || docsStatus === 'idle') return <p className={h.empty} role="status">Finding your study material…</p>
+  if (docsStatus === 'loading' || docsStatus === 'idle') return <p className={s.empty} role="status">Finding your study material…</p>
   if (!document) return (
-    <div className={h.empty}>
+    <div className={s.empty}>
       <b>Your turn to be the teacher.</b>
       <p>{docsError ? errorText(docsError) : 'Upload some notes, slides or a paper, then explain a topic to Mochee.'}</p>
-      <button type="button" className={h.primary} onClick={() => docsError ? void useDocs.getState().refresh() : useHub.getState().go('upload')}>
+      <button type="button" className={s.primary} onClick={() => docsError ? void useDocs.getState().refresh() : useHub.getState().go('upload')}>
         {docsError ? 'Try again' : 'Upload material'}
       </button>
     </div>
@@ -106,31 +105,54 @@ export function TeachBackPane() {
         <button type="button" aria-pressed={inputMode === 'voice'} disabled={busy || audioBusy} onClick={() => { narration.stop(); useTeachBack.getState().setInputMode('voice') }}>Speak</button>
         <button type="button" aria-pressed={inputMode === 'text'} disabled={busy || audioBusy} onClick={() => { narration.stop(); useTeachBack.getState().setInputMode('text') }}>Type instead</button>
       </div>
-      <label className={s.voiceToggle}><input type="checkbox" checked={spokenFeedback} onChange={(e) => useTeachBack.getState().setSpokenFeedback(e.target.checked)} /> Mochee speaks</label>
+      <label className={s.voiceToggle}>
+        <input type="checkbox" checked={spokenFeedback} onChange={(e) => useTeachBack.getState().setSpokenFeedback(e.target.checked)} />
+        <span className={s.check} aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg></span>
+        Mochee speaks
+      </label>
 
       <div className={s.pickers}>
-        <label htmlFor="teach-back-material">Your material</label>
-        <select id="teach-back-material" value={document.id} disabled={busy || audioBusy} onChange={(e) => {
-          const next = documents.find((d) => d.id === e.target.value)
-          if (next?.topics[0]) useTeachBack.getState().select(next.topics[0].id)
-        }}>
-          {documents.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-        </select>
-        <label htmlFor="teach-back-topic">Topic to teach</label>
-        <select id="teach-back-topic" value={topic?.id ?? ''} disabled={busy || audioBusy || !topic} onChange={(e) => useTeachBack.getState().select(e.target.value)}>
-          {!topic && <option value="">No topics found</option>}
-          {document.topics.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-        </select>
+        <div className={s.field}>
+          <label htmlFor="teach-back-material">Your material</label>
+          <span className={s.select}>
+            <select id="teach-back-material" value={document.id} disabled={busy || audioBusy} onChange={(e) => {
+              const next = documents.find((d) => d.id === e.target.value)
+              if (next?.topics[0]) useTeachBack.getState().select(next.topics[0].id)
+            }}>
+              {documents.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
+            </select>
+            <Chevron />
+          </span>
+        </div>
+        <div className={s.field}>
+          <label htmlFor="teach-back-topic">Topic to teach</label>
+          <span className={s.select}>
+            <select id="teach-back-topic" value={topic?.id ?? ''} disabled={busy || audioBusy || !topic} onChange={(e) => useTeachBack.getState().select(e.target.value)}>
+              {!topic && <option value="">No topics found</option>}
+              {document.topics.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </select>
+            <Chevron />
+          </span>
+        </div>
       </div>
 
       {!practice?.challenge && (
         <div className={s.getReady}>
-          <p>Try from memory first. Explain the main idea, how it works, and a small example.</p>
-          <button type="button" className={h.primary} disabled={!topic || busy} onClick={() => {
+          <div className={s.tip}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z" /></svg>
+            <p>Try from memory first. Explain the main idea, how it works, and a small example.</p>
+          </div>
+          <button type="button" className={s.primary} disabled={!topic || busy} onClick={() => {
             if (!topic) return
             useTeachBack.getState().select(topic.id)
             void useTeachBack.getState().start(document.id, topic.id)
-          }}>{practice?.phase === 'preparing' ? 'Mochee is getting ready…' : practice?.error ? 'Try again' : 'Let me teach'}</button>
+          }}>
+            {/* A mic for a spoken take, a pencil for a typed one. */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {inputMode === 'voice' ? <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></> : <path d="M4 20h4L19 9l-4-4L4 16z" />}
+            </svg>
+            {practice?.phase === 'preparing' ? 'Mochee is getting ready…' : practice?.error ? 'Try again' : 'Let me teach'}
+          </button>
         </div>
       )}
 
@@ -154,7 +176,7 @@ export function TeachBackPane() {
                 <span>{draftLength < TEACH_BACK_LIMITS.minChars ? `At least ${TEACH_BACK_LIMITS.minChars} characters. A few sentences is great.` : 'Simple language is welcome. Focus on the ideas.'}</span>
                 <span>{practice.draft.length}/{TEACH_BACK_LIMITS.maxChars}</span>
               </div>
-              <button type="submit" className={h.primary} disabled={busy || draftLength < TEACH_BACK_LIMITS.minChars}>
+              <button type="submit" className={s.primary} disabled={busy || draftLength < TEACH_BACK_LIMITS.minChars}>
                 {practice.phase === 'grading' ? 'Mochee is reading your explanation…' : practice.result ? 'Check my improved explanation' : 'How did I do?'}
               </button>
             </form>
@@ -172,17 +194,29 @@ export function TeachBackPane() {
               <FeedbackGroup title="What you got right" items={reviewing.items.filter((i) => i.status === 'correct')} documentId={document.id} />
               <FeedbackGroup title="What to work on" items={reviewing.items.filter((i) => i.status !== 'correct')} documentId={document.id} />
               <div className={s.nextQuestion}><b>One more thought</b><p>{reviewing.nextQuestion}</p></div>
-              <button type="button" className={h.primary} onClick={() => { narration.stop(); useTeachBack.getState().revise(topic.id) }}>
+              <button type="button" className={s.primary} onClick={() => { narration.stop(); useTeachBack.getState().revise(topic.id) }}>
                 {reviewing.score === 100 ? 'Try another explanation' : 'Improve my explanation'}
               </button>
             </div>
           )}
         </>
       )}
-      {practice?.error && <p className={h.error} role="alert">{errorText(practice.error)}</p>}
+      {practice?.error && <p className={s.error} role="alert">{errorText(practice.error)}</p>}
       {busy && <p className={s.progress} role="status">{practice.phase === 'preparing' ? 'Reading the topic in your material…' : 'Checking each idea against your material. This can take a moment.'}</p>}
-      <p className={s.rewardNote}>{earned}/{TEACH_BACK_LIMITS.maxCoins} topic coins earned. Coins follow your best score; improving it earns the difference.</p>
+      <div className={s.rewardMeter}>
+        <div className={s.track} aria-hidden="true"><i style={{ width: `${Math.min(100, (earned / TEACH_BACK_LIMITS.maxCoins) * 100)}%` }} /></div>
+        <p className={s.rewardNote}>{earned}/{TEACH_BACK_LIMITS.maxCoins} topic coins earned. Coins follow your best score; improving it earns the difference.</p>
+      </div>
     </div>
+  )
+}
+
+// The chunky badge on the right of each picker; the select stays the real control.
+function Chevron() {
+  return (
+    <span className={s.chevron} aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+    </span>
   )
 }
 
