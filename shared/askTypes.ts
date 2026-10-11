@@ -29,10 +29,15 @@ export interface AskTurn {
   text: string
 }
 
+// Study: he teaches the lesson. Play: the hangout room, no lesson, just chat.
+export const ASK_MODES = ['study', 'play'] as const
+export type AskMode = (typeof ASK_MODES)[number]
+
 export interface AskRequest {
   question: string
   context: { step: string; notes: string; board: string }
   history?: AskTurn[]
+  mode?: AskMode // which persona answers; study when missing
 }
 
 export interface AskReply {

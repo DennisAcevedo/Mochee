@@ -11,7 +11,7 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 export type CoinReason = 'sectionDone' | 'quizCorrect' | 'bossWin' | 'lessonDone'
 
 export const COIN_REWARD: Record<CoinReason, number> = {
-  sectionDone: 25, // the header's "Section N of M" advances (runner.ts, once per section per run)
+  sectionDone: 25, // the lesson moves on a section: lecture to quick check (runner.ts, once per section per run)
   quizCorrect: 15, // a right answer: the lesson's quick check or the Learning drawer's quiz
   bossWin: 100, // Beat the Boss won (src/boss/bossStore.ts)
   lessonDone: 50, // the guided lesson's last step reached

@@ -48,35 +48,6 @@
   margin-left: auto;
 }
 
-.progress {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: #4a4754;
-  white-space: nowrap;
-}
-
-.pips {
-  display: flex;
-  gap: 4px;
-}
-
-.pip {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--r-pip);
-  background: var(--border-badge);
-}
-.pip[data-state='done'] {
-  background: var(--pip-done);
-}
-.pip[data-state='current'] {
-  width: 18px;
-  background: var(--accent);
-}
-
 /* Phones: the heading shrinks a touch and the right group takes its own row. */
 @media (max-width: 759px) {
   .bar {
@@ -97,8 +68,5 @@
     width: 100%;
     justify-content: space-between;
     gap: 10px;
-  }
-  .progress {
-    font-size: 12px;
   }
 }

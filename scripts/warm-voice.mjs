@@ -16,7 +16,8 @@ let lines
 try {
   const { WALKTHROUGH, QUIZ_FEEDBACK } = await loader.ssrLoadModule('/src/lesson/walkthrough.ts')
   const { script } = await loader.ssrLoadModule('/src/data/mockLesson.ts')
-  lines = [...new Set([script.greeting, ...WALKTHROUGH.map((step) => step.say), ...Object.values(QUIZ_FEEDBACK)]
+  const { PLAY_WELCOME } = await loader.ssrLoadModule('/src/play/playLines.ts')
+  lines = [...new Set([script.greeting, ...WALKTHROUGH.map((step) => step.say), ...Object.values(QUIZ_FEEDBACK), PLAY_WELCOME.first, ...PLAY_WELCOME.again]
     .map((text) => text.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()))]
 } finally {
   await loader.close()

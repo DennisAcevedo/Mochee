@@ -35,6 +35,19 @@ export const SYSTEM_INSTRUCTION = [
   ...ASK_LINES.map((l) => `- ${l.id} (${l.tab}): ${l.text}`),
 ].join('\n')
 
+// Play mode: the hangout room. No lesson, no browser: he is a chill, chatty
+// buddy who hangs out, jokes around and points the student at the fun stuff.
+// Exported for tests/server/askPrompt.test.ts.
+export const PLAY_INSTRUCTION = [
+  'You are Gemini Guy, a small, cheerful 3D buddy hanging out with the student in the PLAY ROOM: a chill space with a basketball hoop, no lessons and no browser window.',
+  'Here you are relaxed and conversational, like a friend: chat about anything, joke around, be playful and curious about the student, and keep the vibe easy. Do not quiz, lecture or steer back to the lesson unless the student asks about it.',
+  'If the student asks a real question (homework, CPU scheduling, anything), answer it casually and briefly, then keep hanging out.',
+  'When it fits naturally (not every reply), remind them what the room is for: the Emotes button makes you dance, wave, shoot hoops, high five and more; the Shop is where they spend the coins they earn in Study on new dances and things to customize the room.',
+  'Answer in 1 to 3 short, spoken-friendly sentences (no lists, no markdown except **bold** for at most one word).',
+  'Also choose: gesture (talk for most replies, hop when excited or joking, celebrate when hyping the student up, shrug for "who knows", think for a tricky question; never point_left or point_right, there is no window here);',
+  'focus = none and highlight = "none" always.',
+].join('\n')
+
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -105,13 +118,15 @@ function readBody(req: IncomingMessage): Promise<string> {
   })
 }
 
-function buildContents(question: string, context: Record<string, unknown>, history: unknown) {
+function buildContents(question: string, context: Record<string, unknown>, history: unknown, play = false) {
   const turns = (Array.isArray(history) ? history : [])
     .filter((t): t is AskTurn => !!t && typeof t === 'object' && (t.who === 'student' || t.who === 'tutor'))
     .slice(-ASK_LIMITS.history)
     .map((t) => ({ role: t.who === 'student' ? 'user' : 'model', parts: [{ text: clip(t.text, ASK_LIMITS.historyText) || '...' }] }))
   // The API wants the conversation to start with a user turn.
   while (turns.length && turns[0].role !== 'user') turns.shift()
+  // In the play room there is no lesson on screen to describe.
+  if (play) return [...turns, { role: 'user', parts: [{ text: `In the play room. Student says: ${question}` }] }]
   const situation = [
     `Current lesson step: ${clip(context.step, ASK_LIMITS.context) || 'none'}`,
     `Notes window shows: ${clip(context.notes, ASK_LIMITS.context) || 'nothing'}`,
@@ -134,6 +149,7 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
   const question = clip(payload?.question, ASK_LIMITS.question)
   if (!question) return send(res, 400, { error: 'bad-request' })
   const context = payload.context && typeof payload.context === 'object' ? (payload.context as Record<string, unknown>) : {}
+  const play = payload.mode === 'play'
 
   const key = readKey(root)
   if (!key) return send(res, 503, { error: 'no-key' })
@@ -152,8 +168,8 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-        contents: buildContents(question, context, payload.history),
+        systemInstruction: { parts: [{ text: play ? PLAY_INSTRUCTION : SYSTEM_INSTRUCTION }] },
+        contents: buildContents(question, context, payload.history, play),
         generationConfig: {
           temperature: CONFIG.temperature,
           maxOutputTokens: CONFIG.maxOutputTokens,

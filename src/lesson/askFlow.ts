@@ -135,7 +135,8 @@ export function askTutor(question: string, fallback: string) {
     useTutorStore.setState({ awaitingReply: false })
     useWalkthrough.setState({ held: false })
   })
-  void askGemini({ question, context: lessonContext(), history: recentHistory() }, abort.signal).then((reply) => {
+  const mode = useMode.getState().mode === 'study' ? 'study' : 'play' // celebrate counts as play
+  void askGemini({ question, context: lessonContext(), history: recentHistory(), mode }, abort.signal).then((reply) => {
     unsubscribe()
     unsubscribeMode()
     if (my !== seq || abort.signal.aborted) { trace.finish('cancelled'); return }

@@ -7,7 +7,7 @@ import styles from './TopBar.module.css'
 
 // The lesson header, in its own row above the stage: All tutors, the one-line
 // heading (course and current section, ellipsized rather than wrapped), and
-// on the right `extra` (the Study / Play pill) beside the section counter.
+// on the right `extra` (the Study / Play pill). Progress lives in the step bar.
 // On narrow screens the right group wraps to a second row.
 export function TopBar({ extra }: { extra?: ReactNode }) {
   const section = useTutorStore(selectSection)
@@ -23,21 +23,7 @@ export function TopBar({ extra }: { extra?: ReactNode }) {
         </h1>
       </div>
 
-      <div className={styles.right}>
-        {extra}
-        <div className={styles.progress} data-gg-part="section">
-          Section {section + 1} of {outline.length}
-          <div className={styles.pips}>
-            {outline.map((o, i) => (
-              <div
-                key={o.title}
-                className={styles.pip}
-                data-state={i === section ? 'current' : i < section ? 'done' : 'todo'}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <div className={styles.right}>{extra}</div>
     </header>
   )
 }
