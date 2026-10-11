@@ -47,6 +47,7 @@ export function RecordPane({ tutorId }: { tutorId: string | null }) {
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState<{ blob: Blob; name: string } | null>(null)
   const [saved, setSaved] = useState<DocumentInfo | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const live = useRef<Live | null>(null)
   const mounted = useRef(true)
 
@@ -181,7 +182,7 @@ export function RecordPane({ tutorId }: { tutorId: string | null }) {
       <div className={s.recBox}>
         {phase === 'recording' ? (
           <button type="button" className={s.recBtn} data-live onClick={stopRec} aria-label="Stop recording" data-testid="record-stop">
-            <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
+            <svg width="36" height="36" viewBox="0 0 24 24" aria-hidden>
               <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" />
             </svg>
           </button>
@@ -194,7 +195,7 @@ export function RecordPane({ tutorId }: { tutorId: string | null }) {
             aria-label="Start recording"
             data-testid="record-start"
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
               <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3" />
             </svg>
           </button>
@@ -202,15 +203,38 @@ export function RecordPane({ tutorId }: { tutorId: string | null }) {
         <span className={s.recTime} aria-live="off">
           {mm}:{ss}
         </span>
-        <div className={s.meter} role="meter" aria-label="Input level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}>
+        <div className={s.recMeter} role="meter" aria-label="Input level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}>
           <span style={{ width: `${Math.min(100, Math.round(level * 140))}%` }} />
         </div>
-        <span className={s.muted}>
+        <p className={s.recNote}>
           {phase === 'recording' ? 'Listening… press stop when class ends.' : phase === 'saving' ? 'Gemini is writing the transcript…' : 'Record class in the browser. The transcript joins your material.'}
-        </span>
+        </p>
       </div>
-      <label className={s.fileLabel}>
-        Or upload an audio file{' '}
+      <label
+        className={s.drop}
+        data-over={dragOver || undefined}
+        data-disabled={phase !== 'idle' || undefined}
+        onDragOver={(e) => {
+          if (phase !== 'idle') return
+          e.preventDefault()
+          setDragOver(true)
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault()
+          setDragOver(false)
+          if (phase === 'idle') onFile(e.dataTransfer.files[0])
+        }}
+      >
+        <span className={s.dropIcon} aria-hidden>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4" />
+          </svg>
+        </span>
+        <span className={s.dropText}>
+          <span className={s.dropTitle}>Or upload an audio file</span>
+          <span className={s.dropSub}>Choose or drop · MP3, WAV, M4A</span>
+        </span>
         <input
           type="file"
           accept="audio/*"

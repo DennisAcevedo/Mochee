@@ -526,26 +526,134 @@
 }
 
 /* ---------- record ---------- */
+/* Record a Lecture (design: "2a · Drop zone"): a warm yellow card with the
+   big red mic, the timer and a level track, then a dashed upload card. */
 .recBox {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 20px 14px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  gap: 16px;
+  padding: 28px 20px 26px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #f9efc4, #f4df85);
 }
 
 .recBtn {
-  width: 72px;
-  height: 72px;
+  width: 110px;
+  height: 110px;
   display: grid;
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #ea4335;
+  background: #e0443a;
   color: #ffffff;
   cursor: pointer;
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.recBtn:hover:not(:disabled) {
+  transform: scale(1.04);
+}
+
+.recBtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.recBtn:disabled {
+  filter: saturate(0.6);
+  cursor: default;
+}
+
+.recBtn:focus-visible,
+.drop:focus-within {
+  outline: 3px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+.recMeter {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(150, 120, 40, 0.16);
+  overflow: hidden;
+}
+
+.recMeter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #34a853, #fbbc04, #ea4335);
+  transition: width 80ms linear;
+}
+
+.recNote {
+  align-self: stretch;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #6b6455;
+}
+
+/* Upload: a dashed card with a round icon, a title and the formats. */
+.drop {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 2px dashed #e6d48a;
+  border-radius: 22px;
+  background: #fdf7df;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.drop:hover,
+.drop[data-over] {
+  background: #fbf0c4;
+  border-color: #d9bf55;
+}
+
+.drop[data-disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dropIcon {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #e0443a;
+  box-shadow: 0 2px 8px rgba(120, 90, 20, 0.12);
+}
+
+.dropText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dropTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1d1b24;
+}
+
+.dropSub {
+  font-size: 14px;
+  color: #6b6455;
 }
 
 .recBtn[data-live='true'] {
@@ -576,8 +684,10 @@
 
 .recTime {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #1d1b24;
 }
 
 .fileLabel {
