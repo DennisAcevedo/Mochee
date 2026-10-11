@@ -6,6 +6,7 @@ import { tabInfo } from './tabInfo'
 import { WIN } from './tabModel'
 import { WINDOW_UI } from './windowConfig'
 import { WINDOW_STYLE } from './windowStyle'
+import { bringBrowserForward } from './windowStack'
 import s from './WindowControls.module.css'
 
 // The window's DOM controls, laid over the canvas: the traffic lights as real
@@ -108,6 +109,8 @@ export function WindowControls({ parts }: { parts: ControlParts }) {
           return () => void (parts.lights === el && (parts.lights = null))
         }}
         className={s.lights}
+        onPointerDownCapture={bringBrowserForward}
+        onFocusCapture={bringBrowserForward}
         role="group"
         aria-label="Browser window"
         data-win={WIN}
@@ -138,6 +141,8 @@ export function WindowControls({ parts }: { parts: ControlParts }) {
         }}
         type="button"
         className={s.chip}
+        onPointerDownCapture={bringBrowserForward}
+        onFocusCapture={bringBrowserForward}
         data-win={WIN}
         aria-label={`Restore browser window: ${info.title}`}
         onClick={(e) => unfold(parts, e)}

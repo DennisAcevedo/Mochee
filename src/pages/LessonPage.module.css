@@ -3,7 +3,7 @@
    stage is full-bleed: its sky and the canvas (fixed layers at z-index 0)
    cover the whole window, and the frame is only where the lesson shot lands,
    so the windows and the tutor always sit clear of the header and the dock.
-   Every DOM control here sits above the canvas to keep its clicks, and every
+   DOM controls normally sit above the canvas to keep their clicks, and every
    box that only places them lets the pointer through to the tutor. LessonPage.tsx publishes the stage's size and place as
    --frame-w / --frame-h (on the frame) and --stage-left / --stage-top /
    --stage-w (on the page, for the drawer and the rows).

@@ -11,6 +11,7 @@ import { WIN, type Tab, type WinTabs } from './tabModel'
 import { INVISIBLE, placeTab, TAB_H, TabView, UNIT, type Anim, type Parts } from './TabView'
 import { WINDOW_UI } from './windowConfig'
 import { WINDOW_STYLE } from './windowStyle'
+import { bringBrowserForward } from './windowStack'
 
 // The window's Chrome tab strip. Tabs share the strip and shrink evenly as
 // more open; a new tab grows in from zero width while its title fades in, a
@@ -183,6 +184,7 @@ export function TabStrip({ wt, width, top, z, pivot, onEmptyPress }: Props) {
     if (!p || !g) return
     const h = hitTest(p.x, p.y)
     if (!h.part) return
+    bringBrowserForward()
     e.stopPropagation()
     hover.current = h
     const ne = e.nativeEvent

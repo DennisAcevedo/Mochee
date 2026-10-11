@@ -10,6 +10,7 @@ import { StageDirector } from '../lesson/StageDirector'
 import { UnlockWatcher } from '../play/UnlockWatcher'
 import { LESSON_CAMERA } from '../scene/layout3d'
 import { Stage } from '../scene/Stage'
+import { bringLessonControlsForward, registerLessonControls } from '../scene/windows/windowStack'
 import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
 import { useIsHidden } from '../state/hidden'
@@ -186,7 +187,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const hud =
     live &&
     (study ? (
-      <div className={`${lesson.hud} ${lesson.steps} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
+      <div ref={registerLessonControls} className={`${lesson.hud} ${lesson.steps} ${lesson.enter}`} data-enter="drop" onPointerDownCapture={bringLessonControlsForward} onFocusCapture={bringLessonControlsForward} style={{ '--enter-delay': '160ms' } as CSSProperties}>
         {walkHidden && !folded('top') && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
         <WalkthroughBar className={`${lesson.stepBar} ${walkHidden || folded('top') ? lesson.gone : ''}`} closeable />
       </div>

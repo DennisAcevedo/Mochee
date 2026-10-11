@@ -73,7 +73,8 @@ export function Stage({ children }: Props) {
       <div ref={introRef('scene')} className={styles.scene}>
         {/* Renderer settings match tutor-3d.js: ACES filmic at 1.18, soft shadows, DPR ≤ 2.
             Pointer events only once live: 3D clicks (quiz keys, tickles, window tabs)
-            land on the canvas; DOM chrome sits above it with its own z-index. */}
+            land on the canvas; DOM chrome normally sits above it, with the
+            browser able to take focus in front of the lesson controls. */}
         <Canvas
           style={{ position: 'absolute', inset: 0, pointerEvents: live ? 'auto' : 'none' }}
           shadows="soft"

@@ -1,9 +1,10 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react'
 import { archetypeFor } from './archetypes'
 import { BEAT, GEMINI_SPARK as SPARK, JUICE } from './arena/config'
 import { useBoss } from './bossStore'
 import { bindFight, fightDom, isFightPhase, useFight } from './fight'
 import { useBossMastery } from './mastery'
+import { SourcePage } from './SourcePage'
 import { errorText } from '../ui/Drawers/docsClient'
 import { COIN_REWARD } from '../state/progress'
 import css from './Boss.module.css'
@@ -173,9 +174,25 @@ function Battle() {
   const reduced = useFight((f) => f.reduced)
   const ready = useFight((f) => f.ready)
   const { topic, phase, queue, hp, maxHp, hearts, picked, result, hitId, lastHit, streak } = s
+  const battleRef = useRef<HTMLDivElement>(null)
+  const questionRef = useRef<HTMLElement>(null)
+  const q = queue[0]
+
+  // Keep the cited page above the question card even when its prompt wraps or
+  // the window resizes. The page scrolls inside the space left in the middle.
+  useLayoutEffect(() => {
+    const battle = battleRef.current
+    const card = questionRef.current
+    if (!battle || !card) return
+    const fit = () => battle.style.setProperty('--source-bottom', `${card.offsetHeight + 38}px`)
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(card)
+    return () => observer.disconnect()
+  }, [q?.id, round, phase])
+
   if (!topic) return null
   const a = archetypeFor(topic)
-  const q = queue[0]
   const done = phase === 'answered' || phase === 'won' || phase === 'lost'
   const shown = phase === 'answered' && !!result && revealed === hitId
   const canNext = phase === 'answered' && hp > 0 && hearts > 0
@@ -188,7 +205,7 @@ function Battle() {
   // The cards are never keyed by hit: a remount would skip the HP bar's
   // transitions and replay the slide-in. The class adds the shake (Boss.module.css).
   return (
-    <div className={css.battle} style={timingVars(reduced)}>
+    <div ref={battleRef} className={css.battle} style={timingVars(reduced)}>
       {/* HUD cards */}
       <div className={miss ? css.hudShake : css.hud} data-arena-top>
         <span className={css.mono}>YOU + GEMINI GUY</span>
@@ -246,8 +263,11 @@ function Battle() {
       )}
       {phase === 'won' && !reduced && <Confetti />}
 
+      {q && s.doc && phase === 'ask' && <SourcePage key={`${s.doc.id}:${q.page}`} doc={s.doc} page={q.page} />}
+
       {q && phase !== 'won' && phase !== 'lost' && (
         <section
+          ref={questionRef}
           key={`q${round}`}
           className={css.question}
           data-arena-bottom

@@ -1,6 +1,6 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Color, Matrix4, Plane, Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three'
+import { Color, Matrix4, Plane, Raycaster, Vector2, Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three'
 import { useDirector } from '../../state/director'
 import { useWindows } from '../../state/windows'
 import { anchors } from '../anchors'
@@ -10,7 +10,7 @@ import { useBoardReplay } from './LectureBoard'
 import { activateByStudent, useLessonTabs } from './lessonSync'
 import { facePlane, pointerOnPlane, PointerTrack, setCursor } from './pointer'
 import { ArrowGlyph, damp, Flat, GripGlyph, Hit, Label, MaximizeGlyph, ReloadGlyph } from './primitives'
-import { windowFrames, windowHits } from './registry'
+import { shown, windowFrames, windowHits } from './registry'
 import { roundedRect, roundedRectRing, roundedSlab } from './shapes'
 import { MinimizeRig } from './minimizeRig'
 import { clampSize, ellipsize } from './tabLayout'
@@ -19,6 +19,7 @@ import { WIN, type WinId, type WinTabs } from './tabModel'
 import { TabStrip } from './TabStrip'
 import { INVISIBLE, UNIT } from './TabView'
 import { WINDOW_UI } from './windowConfig'
+import { bringBrowserForward, browserCutoutPad, placeBrowserAboveControls } from './windowStack'
 import { CONTENT_BG, WindowContent } from './WindowContent'
 import { controlParts, useWindowControls } from './WindowControls'
 import { clampOffset, maximizedPlace, yawAt } from './windowPlace'
@@ -103,6 +104,7 @@ export function BrowserWindow3D() {
   const index = wt.tabs.indexOf(tab)
   const info = tabInfo(tab)
   const canvas = useThree((s) => s.gl.domElement)
+  const getThree = useThree((s) => s.get)
   const [reloads, setReloads] = useState(0)
   const replay = useBoardReplay()
 
@@ -110,9 +112,29 @@ export function BrowserWindow3D() {
   const mini = useRef<Group>(null) // the minimize fold: carries the window into its chip
   const pivot = useRef<Group | null>(null)
   const ringMat = useRef<MeshBasicMaterial>(null)
+  const stackBacking = useRef<Mesh>(null)
   const glowMat = useRef<MeshBasicMaterial>(null)
   const glow = useMemo(() => glowTexture(), [])
   useEffect(() => () => glow.dispose(), [glow])
+
+  // Capture before 3D tab and page handlers stop propagation. A press on any
+  // part of the window brings it in front of the lesson controls.
+  useEffect(() => {
+    const ray = new Raycaster()
+    const pointer = new Vector2()
+    const onDown = (event: PointerEvent) => {
+      if (event.button !== 0) return
+      const frame = windowHits.frame
+      if (!frame || !shown(frame)) return
+      const rect = canvas.getBoundingClientRect()
+      pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, 1 - ((event.clientY - rect.top) / rect.height) * 2)
+      frame.updateWorldMatrix(true, false)
+      ray.setFromCamera(pointer, getThree().camera)
+      if (ray.intersectObject(frame).length) bringBrowserForward()
+    }
+    canvas.addEventListener('pointerdown', onDown, true)
+    return () => canvas.removeEventListener('pointerdown', onDown, true)
+  }, [canvas, getThree])
 
   // The DOM lights and restore chip, and the fold that drives them.
   const parts = useMemo(controlParts, [])
@@ -164,6 +186,7 @@ export function BrowserWindow3D() {
   )
 
   const startMove = (e: ThreeEvent<PointerEvent>, fromStrip: boolean) => {
+    bringBrowserForward()
     e.stopPropagation()
     const ne = e.nativeEvent
     if (ne.button !== 0) return
@@ -186,6 +209,7 @@ export function BrowserWindow3D() {
   }
 
   const startResize = (e: ThreeEvent<PointerEvent>, corner: Corner) => {
+    bringBrowserForward()
     e.stopPropagation()
     const g = pivot.current
     const ne = e.nativeEvent
@@ -305,6 +329,8 @@ export function BrowserWindow3D() {
 
     rig.step(dt, state.clock.elapsedTime * 1000, st.minimized, st.closed, g, mn, cw, ch, pv.scale.x, state.camera, state.gl.domElement)
     rig.glue(pv, cw, ch, state.camera, state.gl.domElement)
+    const aboveControls = placeBrowserAboveControls(pv, cw, ch, state.camera, state.gl.domElement, shown(pv))
+    if (stackBacking.current) stackBacking.current.visible = aboveControls
     if (holding.current && rig.c >= 1) {
       holding.current = false // gone from view: drop the old tabs (and their pages)
       setHeld(null)
@@ -354,6 +380,12 @@ export function BrowserWindow3D() {
           <mesh position={[0, 0, -W.depth]} scale={[width + W.focus.glow.pad * 2, height + W.focus.glow.pad * 2, 1]} renderOrder={-1}>
             <planeGeometry args={[1, 1]} />
             <meshBasicMaterial ref={glowMat} map={glow} color={W.focus.glow.color} transparent opacity={0} depthWrite={false} toneMapped={false} />
+          </mesh>
+          {/* The DOM lesson bar is cut away at the ring when this window is in
+              front. Fill that exact area so the room cannot show through it. */}
+          <mesh ref={stackBacking} visible={false} position={[0, 0, 0]} scale={[width + browserCutoutPad * 2, height + browserCutoutPad * 2, 1]}>
+            <planeGeometry args={[1, 1]} />
+            <meshBasicMaterial color={S.color} toneMapped={false} />
           </mesh>
           <mesh geometry={roundedRectRing(width + ring.gap * 2, height + ring.gap * 2, W.radius + ring.gap, ring.stroke)} position={[0, 0, z - W.depth / 2]}>
             <meshBasicMaterial ref={ringMat} color={ring.color} transparent opacity={0} toneMapped={false} />
