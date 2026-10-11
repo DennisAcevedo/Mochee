@@ -222,11 +222,17 @@ function apply(index: number) {
   else speakStep(step)
 }
 
+// Steps whose gesture and fx already played this run: pressing play again
+// (or stepping back to one) replays the line, not the wave, hop or confetti.
+const performed = new Set<string>()
+
 function speakStep(step: ResolvedStep) {
   const d = useDirector.getState()
   useWalkthrough.setState({ phase: 'speaking', loopOverride: step.loop })
-  if (step.gesture) d.play(step.gesture)
-  if (step.fx) d.burst(step.fx[0], step.fx[1])
+  const first = !performed.has(step.id)
+  performed.add(step.id)
+  if (first && step.gesture) d.play(step.gesture)
+  if (first && step.fx) d.burst(step.fx[0], step.fx[1])
   if (step.cue) {
     const cue = step.cue
     later(cue.afterMs, () => useDirector.getState().setHighlight(cue.highlight))
@@ -388,6 +394,7 @@ const initialRun = () => ({
 // Starting and restarting, shared by the student's controls (the store
 // actions, inside asStudent) and the lesson's own callers (the auto-start, resume).
 function begin() {
+  performed.clear()
   useWalkthrough.setState({ started: true, playing: true })
   apply(0)
 }
@@ -398,6 +405,7 @@ function startOver() {
   micIdle()
   // Unless the cancel just opened the mastery invite (cancelAll): its celebration has the stage.
   if (shutBefore || !gate) useDirector.getState().resetStage()
+  performed.clear()
   useWalkthrough.setState({ ...initialRun(), started: true, playing: true })
   apply(0)
 }

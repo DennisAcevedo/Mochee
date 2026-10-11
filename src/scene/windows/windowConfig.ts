@@ -40,11 +40,13 @@ export const WINDOW_UI = {
     // below the play HUD band along the top and above the caption, so its strip
     // and grip never end up under the DOM overlays.
     clampBox: [-0.98, -0.76, 0.98, 0.66] as [number, number, number, number],
-    // And in the room: a moved or widened window's focus ring (focused, it turns
-    // to focusYaw) keeps its left edge at or right of this world x, inside the
-    // room's left wall (-4.70) and the Blender study room's left rail (face at
-    // x -4.62). The NDC box alone let a drag reach x -4.76.
-    minRingX: -4.61,
+    // And in the room: a moved or widened window's frame, at rest, stops this
+    // far inside either side wall (ROOM.width / 2), so dragged against the left
+    // or the right wall it rests against it the same way and never passes
+    // through. (A left-only focus-ring limit used to hold it out in the room
+    // on the left while the right side reached the wall.)
+    wallGap: 0.04,
+    floorGap: 0.08, // the frame's bottom edge stops this far above the floor
     radius: 0.1, // frame corner radius (windowStyle.ts draws with it)
     depth: 0.06, // frame thickness (windowStyle.ts draws with it)
     moveRate: 26, // settle after a drag or a restore

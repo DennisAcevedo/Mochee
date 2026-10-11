@@ -96,7 +96,9 @@ export const WINDOW_STYLE = {
   },
 
   // Bottom-right resize grip.
-  grip: { size: 0.13, radius: 0.035, inset: 0.04, bg: '#f3f2f7', color: '#8a8794', stroke: 0.011 },
+  // inset: the grip's centre sits this far inside the frame corner (smaller than
+  // half its size, so it straddles the corner); border: a thin edge round it.
+  grip: { size: 0.15, radius: 0.04, inset: 0.012, border: 0.008, edge: '#d4d1df', bg: '#eceaf3', color: '#5f5c6b', stroke: 0.013 },
 
   maximizedRing: '#4285f4', // ring around the maximized window
   chipAccent: PALETTE.teal, // the restore chip's stripe while the window is minimized

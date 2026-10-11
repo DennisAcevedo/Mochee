@@ -242,29 +242,33 @@ describe('resting placement (one window, left of the tutor)', () => {
     assert.ok(clearance(SPOTS.left.x - 0.1, cam, 'point_left') < 0)
   })
 
-  // The room's left wall is at -ROOM.width / 2 (-4.70); the Blender study
-  // room's left rail face sits at x -4.62 (BLENDER/rooms, rail_left).
-  const insideRoom = (minX: number, what: string) => {
-    assert.ok(minX >= -ROOM.width / 2 + 0.03, `${what}: ring min x ${minX}`)
-    assert.ok(minX >= -4.62 + 0.01, `${what}: ring min x ${minX} vs the study rail`)
-    assert.ok(minX >= WINDOW_UI.window.minRingX - 1e-6, `${what}: ring min x ${minX} vs minRingX`)
-  }
+  // The side walls are at x = +-ROOM.width / 2 (+-4.70).
   const ringMinX = (opts: Opts = {}) => Math.min(...ringWorld(NOW, opts).map((v) => v.x))
 
-  it('focused, its ring stays inside the room: clear of the left wall and the study rail', () => {
-    insideRoom(ringMinX(), 'default')
+  it('focused at rest, its ring stays inside the room', () => {
+    assert.ok(ringMinX() >= -ROOM.width / 2 + 0.03, `ring min x ${ringMinX()}`)
     assert.ok(Math.abs(ringMinX() - ringLeftX(W.position[0], W.width)) < 1e-3, 'ringLeftX matches the drawn ring')
     // The old layout crossed the wall (the regression this guards).
     assert.ok(Math.min(...ringWorld(OLD).map((v) => v.x)) < -ROOM.width / 2)
   })
 
-  it('dragged as far left as the clamp allows, focused, its ring stays inside the room (default and widest)', () => {
+  // The resting frame's outer edge, world x, for a window w wide at offset ox.
+  const outerEdge = (ox: number, w: number) => {
+    const x = W.position[0] + ox
+    return x + Math.sign(x) * (w / 2) * Math.cos(yawAt(x))
+  }
+
+  it('dragged against either side wall, it rests inside it, the left side mirroring the right (default and widest)', () => {
+    const wall = ROOM.width / 2 - WINDOW_UI.window.wallGap
     for (const w of [W.width, WINDOW_UI.window.maxSize[0]]) {
-      const [ox] = clamp(-6, 0, w, W.height)
-      insideRoom(ringMinX({ ox, w }), `w ${w}`)
-      // The frame-only NDC box alone used to let this drag reach x -4.76.
-      const [ex] = clamp(-6, 0.5, w, W.height)
-      insideRoom(ringMinX({ ox: ex, w }), `w ${w}, raised`)
+      for (const oy of [0, 0.5]) {
+        const [lx] = clamp(-20, oy, w, W.height)
+        const [rx] = clamp(20, oy, w, W.height)
+        const left = outerEdge(lx, w)
+        const right = outerEdge(rx, w)
+        assert.ok(left >= -wall - 1e-6 && right <= wall + 1e-6, `w ${w}, oy ${oy}: edges ${left} .. ${right} inside +-${wall}`)
+        assert.ok(Math.abs(left + right) < 1e-3, `w ${w}, oy ${oy}: left ${left} mirrors right ${right}`)
+      }
     }
   })
 

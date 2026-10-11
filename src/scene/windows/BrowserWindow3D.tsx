@@ -54,6 +54,17 @@ const RING_FOCUS = new Color(W.focus.ring.color)
 const RING_MAX = new Color(W.maximizedRing)
 const GRIP_Z = W.z + 0.18 // in front of the tallest page content (the quiz keys)
 
+// The four resize grips: (cx, cy) is the corner's side (+1 right / top). Each
+// straddles its corner, half off the frame, so the top two stay clear of the
+// traffic lights and the + button. The glyph turns to face its corner.
+type Corner = { cx: 1 | -1; cy: 1 | -1; turn: number; cursor: string }
+const CORNERS: Corner[] = [
+  { cx: 1, cy: -1, turn: 0, cursor: 'nwse-resize' },
+  { cx: -1, cy: -1, turn: -Math.PI / 2, cursor: 'nesw-resize' },
+  { cx: -1, cy: 1, turn: Math.PI, cursor: 'nwse-resize' },
+  { cx: 1, cy: 1, turn: Math.PI / 2, cursor: 'nesw-resize' },
+]
+
 const hitPoint = new Vector3()
 const clamped: [number, number] = [0, 0]
 const sized: [number, number] = [0, 0]
@@ -138,7 +149,7 @@ export function BrowserWindow3D() {
   const sizeTrack = useMemo(() => new PointerTrack(), [])
   const move = useRef({ px: 0, py: 0, ox: 0, oy: 0, x: 0, y: 0, live: false })
   const movePlane = useMemo(() => new Plane(), [])
-  const resize = useRef({ w0: 0, h0: 0, ox: 0, oy: 0, dx: 0, dy: 0, sx: 1, sy: 1 })
+  const resize = useRef({ w0: 0, h0: 0, ox: 0, oy: 0, dx: 0, dy: 0, sx: 1, sy: 1, cx: 1, cy: -1 })
   const sizePlane = useMemo(() => new Plane(), [])
   const sizeInv = useMemo(() => new Matrix4(), [])
   const lastStrip = useRef({ t: -1e9, x: 0, y: 0 })
@@ -174,7 +185,7 @@ export function BrowserWindow3D() {
     moveTrack.press(ne, canvas)
   }
 
-  const startResize = (e: ThreeEvent<PointerEvent>) => {
+  const startResize = (e: ThreeEvent<PointerEvent>, corner: Corner) => {
     e.stopPropagation()
     const g = pivot.current
     const ne = e.nativeEvent
@@ -184,10 +195,11 @@ export function BrowserWindow3D() {
     facePlane(g, sizePlane)
     sizeInv.copy(g.matrixWorld).invert()
     const p = hitPoint.copy(e.point).applyMatrix4(sizeInv)
-    // The corner keeps its offset from the pointer; the top-left corner stays put.
-    resize.current = { w0, h0, ox: st.offset[0], oy: st.offset[1], dx: w0 / 2 - p.x, dy: -h0 / 2 - p.y, sx: Math.cos(g.rotation.y) * g.scale.x, sy: g.scale.y }
+    // The grabbed corner keeps its offset from the pointer; the opposite corner stays put.
+    const { cx, cy } = corner
+    resize.current = { w0, h0, ox: st.offset[0], oy: st.offset[1], dx: (cx * w0) / 2 - p.x, dy: (cy * h0) / 2 - p.y, sx: Math.cos(g.rotation.y) * g.scale.x, sy: g.scale.y, cx, cy }
     sizeTrack.press(ne, canvas)
-    setCursor('nwse-resize')
+    setCursor(corner.cursor)
   }
 
   const hoverCursor = (cursor: string) => ({
@@ -231,15 +243,17 @@ export function BrowserWindow3D() {
       }
     }
 
-    // Resize from the corner grip, in the window's own (frozen) frame.
+    // Resize from a corner grip, in the window's own (frozen) frame: the
+    // grabbed corner follows the pointer and the centre moves half the growth
+    // toward it, so the opposite corner stays where it was.
     if (sizeTrack.active) {
       const r = resize.current
       if (sizeTrack.dragging && pointerOnPlane(sizeTrack.x, sizeTrack.y, state.camera, state.gl.domElement, sizePlane, hitPoint)) {
         const p = hitPoint.applyMatrix4(sizeInv)
-        clampSize(p.x + r.dx + r.w0 / 2, r.h0 / 2 - (p.y + r.dy), sized)
+        clampSize(r.cx * (p.x + r.dx) + r.w0 / 2, r.cy * (p.y + r.dy) + r.h0 / 2, sized)
         if (sized[0] !== cw || sized[1] !== ch) {
           st.setSize(WIN, [sized[0], sized[1]])
-          st.setOffset(WIN, [r.ox + ((sized[0] - r.w0) / 2) * r.sx, r.oy - ((sized[1] - r.h0) / 2) * r.sy])
+          st.setOffset(WIN, [r.ox + r.cx * ((sized[0] - r.w0) / 2) * r.sx, r.oy + r.cy * ((sized[1] - r.h0) / 2) * r.sy])
         }
       }
       if (sizeTrack.up) {
@@ -410,13 +424,25 @@ export function BrowserWindow3D() {
             </Suspense>
           </group>
 
-          {/* Bottom-right resize grip. */}
-          <group ref={setGrip} position={[width / 2 - G.inset - G.size / 2, -height / 2 + G.inset + G.size / 2, GRIP_Z]} visible={!isMax}>
-            <mesh geometry={roundedRect(G.size, G.size, G.radius)} onPointerDown={isMax ? undefined : startResize} {...hoverCursor('nwse-resize')}>
-              <meshBasicMaterial color={G.bg} toneMapped={false} />
-            </mesh>
-            <GripGlyph size={G.size * 0.62} stroke={G.stroke} color={G.color} position={[0, 0, L]} />
-          </group>
+          {/* Resize grips on all four corners (the bottom-right one is the registry's). */}
+          {CORNERS.map((c) => (
+            <group
+              key={`${c.cx}${c.cy}`}
+              ref={c.cx > 0 && c.cy < 0 ? setGrip : undefined}
+              position={[c.cx * (width / 2 - G.inset), c.cy * (height / 2 - G.inset), GRIP_Z]}
+              visible={!isMax}
+            >
+              <mesh geometry={roundedRect(G.size + G.border * 2, G.size + G.border * 2, G.radius + G.border)} position={[0, 0, -L]}>
+                <meshBasicMaterial color={G.edge} toneMapped={false} />
+              </mesh>
+              <mesh geometry={roundedRect(G.size, G.size, G.radius)} onPointerDown={isMax ? undefined : (e: ThreeEvent<PointerEvent>) => startResize(e, c)} {...hoverCursor(c.cursor)}>
+                <meshBasicMaterial color={G.bg} toneMapped={false} />
+              </mesh>
+              <group rotation={[0, 0, c.turn]}>
+                <GripGlyph size={G.size * 0.62} stroke={G.stroke} color={G.color} position={[0, 0, L]} />
+              </group>
+            </group>
+          ))}
 
           {/* Keeps clicks on the window's body from reaching what is behind it. */}
           <mesh geometry={UNIT} material={INVISIBLE} scale={[width, height, 1]} position={[0, 0, z - L]} onPointerDown={(e: ThreeEvent<PointerEvent>) => e.stopPropagation()} />

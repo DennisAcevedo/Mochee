@@ -1,5 +1,5 @@
 import { MathUtils, PerspectiveCamera, Vector3 } from 'three'
-import { LESSON_CAMERA, WINDOW, WINDOWS } from '../layout3d.ts'
+import { FLOOR_Y, LESSON_CAMERA, ROOM, WINDOW, WINDOWS } from '../layout3d.ts'
 import { WINDOW_UI } from './windowConfig.ts'
 
 // Where the window rests: WINDOW (layout3d.ts, the stage's default) plus the
@@ -8,7 +8,9 @@ import { WINDOW_UI } from './windowConfig.ts'
 // clamped so the whole window stays inside the 16:9 frame of the resting
 // lesson camera (not the live one, which pans toward a focused window),
 // between the play HUD and the caption (WINDOW_UI.window.clampBox), and so
-// its focus ring stays inside the room (WINDOW_UI.window.minRingX).
+// its frame never passes through either side wall (WINDOW_UI.window.wallGap):
+// dragged left or right it comes to rest against the wall the same way. Pushed
+// down, its bottom edge stops just above the floor (floorGap).
 
 const U = WINDOW_UI.window
 
@@ -30,13 +32,13 @@ export const RING_PAD = WINDOW_UI.focus.ring.gap + WINDOW_UI.focus.ring.stroke
 // World x of the focused ring's left edge, for a window centred at world x, w wide.
 export const ringLeftX = (x: number, w: number): number => x - (w / 2 + RING_PAD) * WINDOWS.focusScale * Math.cos(focusYawAt(x))
 
-// The smallest x offset at which a w-wide window's focused ring keeps to
-// U.minRingX (the turn depends on x, so settle it in a few steps).
-function minOffsetX(w: number): number {
-  const reach = (w / 2 + RING_PAD) * WINDOWS.focusScale
-  let x = WINDOW.position[0]
-  for (let i = 0; i < 4; i++) x = U.minRingX + reach * Math.cos(focusYawAt(x))
-  return x - WINDOW.position[0]
+// The x offsets between which a w-wide window's frame stays U.wallGap inside
+// both side walls (the turn depends on x, so settle each side in a few steps).
+function wallOffsets(w: number): [number, number] {
+  const wall = ROOM.width / 2 - U.wallGap
+  let x = wall
+  for (let i = 0; i < 4; i++) x = wall - (w / 2) * Math.cos(yawAt(x))
+  return [-x - WINDOW.position[0], x - WINDOW.position[0]] // yawAt is odd in x: the left side mirrors the right
 }
 
 const cam = new PerspectiveCamera(LESSON_CAMERA.fov, LESSON_CAMERA.aspect, 0.1, 100)
@@ -123,7 +125,9 @@ export function clampOffset(ox: number, oy: number, w: number, h: number, out: [
   }
   x = toEdge(true, x, ox, y, w, h)
   y = toEdge(false, y, oy, x, w, h)
-  x = Math.max(x, minOffsetX(w)) // the room's left wall and the study rail, wherever the frame's edge would allow
+  const [lo, hi] = wallOffsets(w)
+  x = MathUtils.clamp(x, lo, hi) // the side walls, wherever the frame's edge would allow
+  y = Math.max(y, FLOOR_Y + U.floorGap + h / 2 - WINDOW.position[1]) // never into the floor
   out[0] = MathUtils.clamp(x, -U.offsetLimit[0], U.offsetLimit[0])
   out[1] = MathUtils.clamp(y, -U.offsetLimit[1], U.offsetLimit[1])
   return out

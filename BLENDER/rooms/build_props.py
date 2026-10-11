@@ -27,8 +27,10 @@ ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 ROOM = ARGS[ARGS.index('--room') + 1] if '--room' in ARGS else 'study'
 LIST = '--list' in ARGS
 
-# Shell objects to KEEP (wall finish other props stand on); everything else flagged gg_shell goes.
-KEEP_PREFIX = ('rail_', 'moulding_')
+# Shell objects to KEEP: the rails (the back one is the ledge the books and the
+# mug stand on). Everything else flagged gg_shell goes, the study's wainscot
+# mouldings (the white panel frames) included.
+KEEP_PREFIX = ('rail_',)
 # Non-shell objects to drop: the room's own rug (the white box has one under his
 # spot) and, for a calmer study, its LIBRARY bookcase with its books and the
 # potted plant. The ledge's books are ledge_book_*, so 'book_' leaves them.
