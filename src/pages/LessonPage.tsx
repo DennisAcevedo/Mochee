@@ -24,7 +24,7 @@ import { PANEL } from '../ui/Drawers/Panel'
 import { InputBar } from '../ui/InputBar/InputBar'
 import { ModeSwitch } from '../ui/ModeSwitch/ModeSwitch'
 import { LevelUpBanner } from '../ui/PlayHud/LevelUpBanner'
-import { PlayHud } from '../ui/PlayHud/PlayHud'
+import { LevelPill, PlayHud } from '../ui/PlayHud/PlayHud'
 import { SkipButton } from '../ui/Start/SkipButton'
 import { StartScreen } from '../ui/Start/StartScreen'
 import { Toast } from '../ui/Toast/Toast'
@@ -127,6 +127,9 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const hudHidden = useIsHidden('hud')
   const captionHidden = useIsHidden('caption')
   const walkHidden = useIsHidden('walkthrough')
+  // Study: the step bar takes the top of the stage and the level shrinks to a
+  // pill in the header. Play: the full play HUD up there, the step bar in the dock.
+  const study = useMode((m) => m.mode === 'study')
   const greeting = steps?.[0]?.say ?? fallbackGreeting(tutor)
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
@@ -161,11 +164,21 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // The level-up banner is page-level (fixed, centred), so the HUD's own copy is off.
   // Each live piece animates in as it mounts (LessonPage.module.css); the intro
   // animates the top bar and the dock itself. A closed card leaves a chip that reopens it.
-  const hud = live && (
-    <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-      {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
-    </div>
-  )
+  // The top of the stage: the step bar in study (closed, a chip brings it
+  // back), the play HUD in play. The step bar only exists in study: play
+  // keeps the lesson silent, and its arrow keys go with it.
+  const hud =
+    live &&
+    (study ? (
+      <div className={`${lesson.hud} ${lesson.steps} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
+        {walkHidden && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
+        <WalkthroughBar className={`${lesson.stepBar} ${walkHidden ? lesson.gone : ''}`} closeable />
+      </div>
+    ) : (
+      <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
+        {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
+      </div>
+    ))
   const caption = live && (
     <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
       {captionHidden ? <ReopenChip id="caption" label="Captions" icon="💬" /> : <Caption className={lesson.bubble} closeable />}
@@ -179,7 +192,8 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
           <TopBar
             extra={
               live ? (
-                <div className={lesson.enter} data-enter="down" style={{ '--enter-delay': '80ms' } as CSSProperties}>
+                <div className={`${lesson.enter} ${lesson.headerTools}`} data-enter="down" style={{ '--enter-delay': '80ms' } as CSSProperties}>
+                  {study && <LevelPill />}
                   <ModeSwitch />
                 </div>
               ) : null
@@ -210,9 +224,6 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
           </div>
         )}
         <div ref={introRef('dock')} className={lesson.dock} data-live={live || undefined}>
-          {/* Closed, the bar stays mounted (display: none) so its arrow keys still step the lesson. */}
-          <WalkthroughBar className={`${lesson.walk} ${walkHidden ? lesson.gone : ''}`} closeable />
-          {live && walkHidden && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
           <div className={lesson.ask} data-gg-part="ask">
             <InputBar />
           </div>

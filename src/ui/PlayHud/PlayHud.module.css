@@ -852,3 +852,45 @@
     animation: none;
   }
 }
+
+/* Study mode's header pill (LevelPill): the HUD's badge, rank and XP bar at
+   header size. Carries the HUD's variables so the shared parts draw the same. */
+.pill {
+  --ink: #1d1b24;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --rainbow: linear-gradient(90deg, #12a4b4, #4cc76a, #ffc83d, #ff6b5b, #ff6fae, #7c5cf2);
+  --px: 0.82px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(29, 27, 36, 0.06),
+    0 6px 16px -8px rgba(60, 70, 130, 0.28);
+  font-family: 'Figtree', var(--font-ui, system-ui), sans-serif;
+  color: var(--ink);
+}
+
+.pillBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 92px;
+}
+
+.pillBody .bar {
+  width: 100%;
+  height: 5px;
+}
+
+.pill .fill {
+  background-size: 92px 100%;
+}
+
+.pill .toasts {
+  z-index: 5;
+}

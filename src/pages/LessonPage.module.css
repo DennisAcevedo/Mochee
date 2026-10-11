@@ -78,6 +78,26 @@
   pointer-events: auto;
 }
 
+/* Study: the step bar in the HUD's place, a fixed share of the stage wide.
+   Closed, the bar stays mounted (display: none) so its arrow keys still step
+   the lesson, and its chip sits where it was. */
+.steps {
+  width: min(820px, 74%);
+  display: flex;
+  justify-content: center;
+}
+
+.stepBar {
+  width: 100%;
+}
+
+/* The header's right group in study: the level pill beside the mode switch. */
+.headerTools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* Caption, inside the bottom of the stage, below the tutor's feet. */
 .caption {
   position: absolute;
@@ -129,32 +149,8 @@
   pointer-events: auto;
 }
 
-.dock > .walk {
-  width: 100%;
-}
-
 .ask > div {
   height: 100%;
-}
-
-/* Held in the layout from the start so the stage never jumps; shown once live. */
-.walk {
-  visibility: hidden;
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 320ms ease,
-    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    visibility 0s 320ms;
-}
-
-.dock[data-live] .walk {
-  visibility: visible;
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 320ms ease,
-    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* A card closed for now (src/state/hidden.ts). */
@@ -200,22 +196,6 @@
 @keyframes liveFade {
   from {
     opacity: 0;
-  }
-}
-
-/* An even split, but the walkthrough bar never drops below what its chip,
-   title and five controls need, so on narrower rows the ask box gives way. */
-@media (min-width: 1180px) {
-  .dock {
-    flex-direction: row;
-  }
-  .dock > .walk {
-    flex: 1 1 0;
-    min-width: 560px;
-  }
-  .ask {
-    flex: 1 1 0;
-    min-width: 0;
   }
 }
 
@@ -273,6 +253,10 @@
   position: relative; /* in flow, but still above the caption */
   inset: auto; /* no offset from .hud's top / left */
   max-width: 100%;
+}
+
+.below .steps {
+  width: 100%;
 }
 
 .below .caption {

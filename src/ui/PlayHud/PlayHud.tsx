@@ -273,6 +273,51 @@ function XpMeter() {
   )
 }
 
+// The "+N XP" toasts, floating up or down from whatever holds them.
+function XpToasts({ direction }: { direction: 'up' | 'down' }) {
+  const toasts = useXpToasts()
+  return (
+    <div className={[styles.toasts, direction === 'up' ? styles.up : styles.down].join(' ')} aria-live="polite">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={[styles.toast, LIGHT_ACCENTS.includes(t.color) && styles.toastInk].filter(Boolean).join(' ')}
+          style={{ '--c': t.color, animationDuration: `${PLAY.toastMs}ms` } as CSSProperties}
+        >
+          <b>+{t.xp} XP</b>
+          <span>{t.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Study mode's level readout for the header: the badge, the rank and a thin
+// XP bar in one small pill, with the "+N XP" toasts floating under it (steps
+// earn XP). Play mode shows the full HUD on the stage instead.
+export function LevelPill({ className }: { className?: string }) {
+  const xp = useProgress((s) => s.xp)
+  const level = useProgress((s) => s.level)
+  const floor = xpForLevel(level)
+  const next = xpForLevel(level + 1)
+  const pct = Math.min(100, Math.max(0, ((xp - floor) / (next - floor)) * 100))
+  return (
+    <div className={[styles.pill, className].filter(Boolean).join(' ')} role="group" aria-label={`Level ${level}, ${levelTitle(level)}: ${xp} of ${next} XP`}>
+      <div key={level} className={styles.badge} aria-hidden="true">
+        <span className={styles.badgeLv}>LV</span>
+        <span className={styles.badgeNum}>{level}</span>
+      </div>
+      <div className={styles.pillBody} aria-hidden="true">
+        <span className={styles.title}>{levelTitle(level)}</span>
+        <div className={styles.bar}>
+          <div className={styles.fill} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+      <XpToasts direction="down" />
+    </div>
+  )
+}
+
 interface Props {
   toastDirection?: 'up' | 'down' // which way the "+N XP" toasts float
   banner?: boolean // render the level-up banner here (fixed, centred)
@@ -282,7 +327,6 @@ interface Props {
 
 export function PlayHud({ toastDirection = 'down', banner = true, className, closeable = false }: Props) {
   const level = useProgress((s) => s.level)
-  const toasts = useXpToasts()
   const playing = useMode((m) => m.mode !== 'study')
   const hintSeen = usePlay((s) => s.tickleHintSeen)
 
@@ -329,18 +373,7 @@ export function PlayHud({ toastDirection = 'down', banner = true, className, clo
         </button>
       )}
 
-      <div className={[styles.toasts, toastDirection === 'up' ? styles.up : styles.down].join(' ')} aria-live="polite">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={[styles.toast, LIGHT_ACCENTS.includes(t.color) && styles.toastInk].filter(Boolean).join(' ')}
-            style={{ '--c': t.color, animationDuration: `${PLAY.toastMs}ms` } as CSSProperties}
-          >
-            <b>+{t.xp} XP</b>
-            <span>{t.label}</span>
-          </div>
-        ))}
-      </div>
+      <XpToasts direction={toastDirection} />
 
       {banner && <LevelUpBanner />}
     </div>
