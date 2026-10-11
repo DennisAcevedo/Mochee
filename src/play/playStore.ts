@@ -29,6 +29,7 @@ export interface PlayState {
   banner: LevelBanner | null
   capIndex: number // into CAP_COLORS; 0 = the model's own colour
   partyUntil: number // performance.now() the party lights switch off
+  tickleHintSeen: boolean // the student has tickled him or pressed a play button: the tickle hint is gone for good
 
   startCooldown: (action: PlayAction, ms: number) => void
   spawnProp: (kind: PropKind, color: string) => PlayProp
@@ -37,6 +38,7 @@ export interface PlayState {
   hideBanner: () => void
   nextCap: () => void
   startParty: (ms: number) => void
+  seeTickleHint: () => void
 }
 
 let nextId = 1
@@ -49,6 +51,7 @@ export const usePlay = create<PlayState>()(
       banner: null,
       capIndex: 0,
       partyUntil: 0,
+      tickleHintSeen: false,
 
       startCooldown: (action, ms) =>
         set((s) => ({ cooldownUntil: { ...s.cooldownUntil, [action]: performance.now() + ms } })),
@@ -62,12 +65,15 @@ export const usePlay = create<PlayState>()(
       hideBanner: () => set({ banner: null }),
       nextCap: () => set((s) => ({ capIndex: (s.capIndex + 1) % CAP_COLORS.length })),
       startParty: (ms) => set({ partyUntil: performance.now() + ms }),
+      seeTickleHint: () => set((s) => (s.tickleHintSeen ? s : { tickleHintSeen: true })),
     }),
     {
       name: 'geminiguy-play',
       version: 1,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ capIndex: s.capIndex }), // the chosen cap colour is the only thing worth keeping
+      // The chosen cap colour, and whether the tickle hint has done its job. safeStorage
+      // wraps localStorage in try/catch: blocked storage keeps them for this visit only.
+      partialize: (s) => ({ capIndex: s.capIndex, tickleHintSeen: s.tickleHintSeen }),
     },
   ),
 )

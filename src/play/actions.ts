@@ -23,8 +23,9 @@ function claim(action: PlayAction): boolean {
 
 const after = (ms: number, fn: () => void) => window.setTimeout(fn, ms)
 
-// Tickle: tap on him (or the hint chip).
+// Tickle: tap on him (or the hint chip). Either way the student knows now: the hint goes.
 export function poke(): boolean {
+  usePlay.getState().seeTickleHint()
   if (!claim('poke')) return false
   director().play('giggle', { vary: true }) // giggle, laugh, shy in turn (CLIP_VARIANTS)
   director().burst('hearts')

@@ -5,6 +5,7 @@ import { capColor, cycleCap, danceParty, feedSnack, highFive, playCatch, poke } 
 import { CAP_COLORS, PLAY, type PlayAction } from '../../play/config'
 import { usePlay } from '../../play/playStore'
 import { PALETTE } from '../../scene/layout3d'
+import { useMode } from '../../state/mode'
 import {
   DANCE_UNLOCKS,
   XP_REWARD,
@@ -23,7 +24,8 @@ import styles from './PlayHud.module.css'
 // The play HUD: level badge, XP bar, the play buttons (high five, catch,
 // snack, dance with a dance picker, cap colour), the tickle hint, floating
 // "+N XP" toasts and the level-up banner. A compact strip; the page decides
-// where it sits.
+// where it sits. Study mode keeps the level, the XP toasts and the banner
+// (steps earn XP too); the buttons, hoops included, and the hint are Play's.
 
 interface ActionSpec {
   action: PlayAction
@@ -279,42 +281,50 @@ interface Props {
 export function PlayHud({ toastDirection = 'down', banner = true, className }: Props) {
   const level = useProgress((s) => s.level)
   const toasts = useXpToasts()
-  const [nope, wiggle] = useNope()
+  const playing = useMode((m) => m.mode !== 'study')
+  const hintSeen = usePlay((s) => s.tickleHintSeen)
 
   return (
-    <div className={[styles.hud, className].filter(Boolean).join(' ')} role="region" aria-label="Play with Gemini Guy">
+    <div
+      className={[styles.hud, className].filter(Boolean).join(' ')}
+      role="region"
+      aria-label="Play with Gemini Guy"
+      // The first press of any button here (or a tickle, actions.ts) retires the tickle hint for good.
+      onClickCapture={(e) => {
+        if (e.target instanceof Element && e.target.closest('button')) usePlay.getState().seeTickleHint()
+      }}
+    >
       <div className={styles.strip}>
         <XpMeter />
-        <div className={styles.divider} aria-hidden="true" />
-        <div className={styles.actions}>
-          <HoopsControls />
-          {ACTIONS.map((a) => (
-            <PlayButton
-              key={a.action}
-              action={a.action}
-              label={a.label}
-              icon={a.icon}
-              color={a.color}
-              xp={XP_REWARD[a.action]}
-              onPress={a.run}
-              className={a.ink ? styles.ink : undefined}
-            />
-          ))}
-          <DanceButton level={level} />
-          <CapButton level={level} />
-        </div>
+        {playing && (
+          <>
+            <div className={styles.divider} aria-hidden="true" />
+            <div className={styles.actions}>
+              <HoopsControls />
+              {ACTIONS.map((a) => (
+                <PlayButton
+                  key={a.action}
+                  action={a.action}
+                  label={a.label}
+                  icon={a.icon}
+                  color={a.color}
+                  xp={XP_REWARD[a.action]}
+                  onPress={a.run}
+                  className={a.ink ? styles.ink : undefined}
+                />
+              ))}
+              <DanceButton level={level} />
+              <CapButton level={level} />
+            </div>
+          </>
+        )}
       </div>
 
-      <button
-        type="button"
-        className={[styles.hint, nope && styles.nope].filter(Boolean).join(' ')}
-        onClick={() => {
-          if (!poke()) wiggle()
-        }}
-        aria-label={`Tickle Gemini Guy, plus ${XP_REWARD.poke} XP`}
-      >
-        <span aria-hidden="true">👆</span> Tap <b>Gemini Guy</b> to tickle him <span className={styles.hintXp}>+{XP_REWARD.poke}</span>
-      </button>
+      {playing && !hintSeen && (
+        <button type="button" className={styles.hint} onClick={() => poke()} aria-label={`Tickle Gemini Guy, plus ${XP_REWARD.poke} XP`}>
+          <span aria-hidden="true">👆</span> Tap <b>Gemini Guy</b> to tickle him <span className={styles.hintXp}>+{XP_REWARD.poke}</span>
+        </button>
+      )}
 
       <div className={[styles.toasts, toastDirection === 'up' ? styles.up : styles.down].join(' ')} aria-live="polite">
         {toasts.map((t) => (

@@ -33,6 +33,7 @@
     0 0 0 calc(1.5 * var(--px)) rgba(29, 27, 36, 0.06),
     0 calc(9 * var(--px)) calc(26 * var(--px)) rgba(60, 70, 130, 0.18);
   position: relative;
+  z-index: 1; /* its menus (dance, ball tricks) open over the tickle hint, never under it */
 }
 
 /* A thin rainbow edge along the bottom of the strip. */
@@ -205,6 +206,7 @@
   display: flex;
   align-items: center;
   gap: calc(5 * var(--px));
+  animation: actionsIn 0.26s var(--spring); /* they mount on entering Play */
 }
 
 .action {
@@ -491,9 +493,14 @@
   background: #c9c5d4;
 }
 
-/* Tickle hint */
+/* Tickle hint (Play only, until the first tickle or button press). It hangs
+   off the meter's end of the strip with a clear gap, out of the way of the
+   buttons and of the menus that drop from them. */
 
 .hint {
+  position: absolute;
+  top: calc(100% + 14 * var(--px));
+  left: calc(4 * var(--px));
   display: inline-flex;
   align-items: center;
   gap: calc(5 * var(--px));
@@ -704,10 +711,18 @@
   }
 }
 
+@keyframes actionsIn {
+  from {
+    opacity: 0;
+    translate: calc(-8 * var(--px)) 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .badge::before,
   .fill::after,
-  .hint {
+  .hint,
+  .actions {
     animation: none;
   }
 }
@@ -717,6 +732,14 @@
   .strip {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  /* The HUD sits in the page flow under the stage here: the hint goes above the
+     strip, by the meter, instead of between the buttons and the caption. */
+  .hint {
+    position: static;
+    order: -1;
+    margin-bottom: calc(4 * var(--px));
   }
 
   .divider {
