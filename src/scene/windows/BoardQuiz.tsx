@@ -2,7 +2,8 @@ import { useCursor } from '@react-three/drei'
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useRef, useState } from 'react'
 import type { Group } from 'three'
-import { feedback, quiz, quizBoard } from '../../data/mockLesson'
+import { feedback } from '../../data/mockLesson'
+import { currentQuestion, useQuickCheck } from '../../lesson/quickCheck'
 import { useTutorStore } from '../../state/store'
 import { PALETTE } from '../layout3d'
 import type { ContentBox } from './WindowContent'
@@ -10,9 +11,10 @@ import { damp, Flat, Label } from './primitives'
 import { roundedSlab } from './shapes'
 import { FONTS, WINDOW_STYLE } from './windowStyle'
 
-// The board's "Quick check" tab: the mock lesson's quiz with four 3D answer
-// buttons that lift on hover and call pick(i). Right = lime, wrong = coral,
-// and a feedback pill below.
+// The board's "Quick check" tab: the current question (src/lesson/quickCheck.ts:
+// the built-in lesson's, or the document's) with 3D answer buttons that lift
+// on hover and call pick(i). Right = lime, wrong = coral, a feedback pill
+// below, and "Question n of N" in the corner.
 
 const Q = WINDOW_STYLE.board.quiz
 const B = WINDOW_STYLE.board
@@ -82,7 +84,15 @@ function Option({ index, label, w, state, locked }: { index: number; label: stri
         >
           {LETTERS[index]}
         </Label>
-        <Label size={o.size} color={text} anchorX="center" position={[0.06, 0, o.depth + L * 3]}>
+        <Label
+          size={label.length > 34 ? o.size * 0.62 : label.length > 22 ? o.size * 0.78 : o.size}
+          color={text}
+          anchorX="center"
+          textAlign="center"
+          maxWidth={w - 0.28}
+          lineHeight={1.1}
+          position={[0.06, 0, o.depth + L * 3]}
+        >
           {label}
         </Label>
       </group>
@@ -90,31 +100,46 @@ function Option({ index, label, w, state, locked }: { index: number; label: stri
   )
 }
 
+// The prompt's first **bold** run is drawn highlighted: [before, bold, after], marks gone.
+function splitBold(prompt: string): [string, string, string] {
+  const m = /\*\*(.+?)\*\*/.exec(prompt)
+  const plain = (t: string) => t.replace(/\*\*/g, '')
+  if (!m) return [plain(prompt), '', '']
+  return [plain(prompt.slice(0, m.index)), m[1], plain(prompt.slice(m.index + m[0].length))]
+}
+
 export function BoardQuiz({ box }: { box: ContentBox }) {
-  const answer = useTutorStore((s) => s.answer)
+  useTutorStore((s) => s.answer) // re-draw with each pick
+  const qc = useQuickCheck()
+  const q = currentQuestion(qc)
   const [chip, setChip] = useState<[number, number, number, number] | null>(null) // x0, x1, y0, y1
   const pad = C.pad
   const iw = box.w - pad * 2
   const o = Q.option
   const cols = 2
   const ow = (iw - o.gap) / cols
-  const right = answer === quiz.correctIndex
-  const wrong = answer !== null && !right
+  const right = qc.result === 'correct'
+  const wrong = qc.result === 'wrong'
 
   const stateOf = (i: number): OptionState => {
-    if (answer === i) return i === quiz.correctIndex ? 'right' : 'wrong'
+    if (qc.picked === i && qc.result) return right ? 'right' : 'wrong'
+    if (qc.picked === i && qc.checking) return 'dim'
     return right ? 'dim' : 'idle'
   }
 
   // The bold part of the prompt is coloured through troika's colorRanges.
-  const full = quiz.prompt + quiz.bold + quiz.promptTail
-  const ranges = { 0: Q.prompt.color, [quiz.prompt.length]: Q.prompt.boldColor, [quiz.prompt.length + quiz.bold.length]: Q.prompt.color }
+  const [before, bold, after] = q ? splitBold(q.prompt) : [qc.status === 'loading' ? 'Getting your questions ready…' : 'No questions for this one yet.', '', '']
+  const full = before + bold + after
+  const ranges = { 0: Q.prompt.color, [before.length]: Q.prompt.boldColor, [before.length + bold.length]: Q.prompt.color }
   const measureBold = (mesh: { textRenderInfo?: { caretPositions?: Float32Array } }) => {
     const c = mesh.textRenderInfo?.caretPositions
-    if (!c) return
-    const a = quiz.prompt.length
+    if (!c || !bold) {
+      if (chip) setChip(null)
+      return
+    }
+    const a = before.length
     // Chip over the bold run's first line (it may wrap; the rest stays coloured).
-    let b = a + quiz.bold.length - 1
+    let b = a + bold.length - 1
     while (b > a && c[b * 4 + 2] !== c[a * 4 + 2]) b--
     const next: [number, number, number, number] = [c[a * 4], c[b * 4 + 1], c[a * 4 + 2], c[a * 4 + 3]]
     if (!chip || next.some((v, i) => Math.abs(v - chip[i]) > 1e-4)) setChip(next)
@@ -122,7 +147,7 @@ export function BoardQuiz({ box }: { box: ContentBox }) {
   const pp = Q.prompt
 
   const gridTop = Q.gridTop
-  const fb = right ? feedback.correct : wrong ? feedback.wrong : feedback.idle
+  const fb = right ? (q?.boardRight ?? feedback.correct) : wrong ? (q?.boardWrong ?? feedback.wrong) : qc.checking ? 'Checking…' : feedback.idle
   const fbColor = right ? Q.right : wrong ? Q.wrong : null
   const fbY = -(gridTop + o.h * 2 + o.gap + Q.feedback.gap)
 
@@ -132,7 +157,7 @@ export function BoardQuiz({ box }: { box: ContentBox }) {
         QUICK CHECK
       </Label>
       <Label size={B.kicker.size} color={B.kicker.color} font={FONTS.mono} letterSpacing={0.06} anchorX="right" position={[iw, -B.rows.kicker, 0]}>
-        {quizBoard.sectionLabel.toUpperCase()}
+        {q ? `QUESTION ${qc.index + 1} OF ${qc.questions.length}` : ''}
       </Label>
       <group position={[0, -Q.promptTop, 0]}>
         {chip && (
@@ -144,22 +169,31 @@ export function BoardQuiz({ box }: { box: ContentBox }) {
             position={[(chip[0] + chip[1]) / 2, (chip[2] + chip[3]) / 2, 0]}
           />
         )}
-        <Label size={pp.size} color={pp.color} anchorY="top" maxWidth={iw} lineHeight={1.3} colorRanges={ranges} position={[0, 0, L]} onSync={measureBold}>
+        <Label
+          size={full.length > 170 ? pp.size * 0.72 : full.length > 110 ? pp.size * 0.85 : pp.size}
+          color={pp.color}
+          anchorY="top"
+          maxWidth={iw}
+          lineHeight={1.3}
+          colorRanges={ranges}
+          position={[0, 0, L]}
+          onSync={measureBold}
+        >
           {full}
         </Label>
       </group>
 
-      {quiz.options.map((label, i) => {
+      {(q?.choices ?? []).map((label, i) => {
         const col = i % cols
         const row = Math.floor(i / cols)
         return (
-          <group key={label + i} position={[col * (ow + o.gap) + ow / 2, -(gridTop + row * (o.h + o.gap) + o.h / 2), 0]}>
-            <Option index={i} label={label} w={ow} state={stateOf(i)} locked={right} />
+          <group key={`${q?.id}-${i}`} position={[col * (ow + o.gap) + ow / 2, -(gridTop + row * (o.h + o.gap) + o.h / 2), 0]}>
+            <Option index={i} label={label} w={ow} state={stateOf(i)} locked={right || qc.checking} />
           </group>
         )
       })}
 
-      {fbColor ? (
+      {!q ? null : fbColor ? (
         <group position={[0, fbY, 0]}>
           <Flat w={iw} h={Q.feedback.h} r={Q.feedback.h / 2} color={fbColor} position={[iw / 2, 0, 0]} />
           <Label size={Q.feedback.size} color="#ffffff" anchorX="center" position={[iw / 2, 0, L]}>

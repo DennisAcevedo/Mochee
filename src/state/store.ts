@@ -1,11 +1,11 @@
 import { create } from 'zustand'
 import type { Expression, Pose } from '../animation/config'
 import {
-  quiz,
   script,
   type TranscriptLine,
 } from '../data/mockLesson'
 import { askTutor, beginListening, endListening } from '../lesson/askFlow'
+import { useQuickCheck } from '../lesson/quickCheck'
 
 export type Mode = 'lecture' | 'quiz'
 export type Mic = 'idle' | 'listening' | 'speaking'
@@ -86,6 +86,12 @@ function initialSession() {
 const greetingText = (s: TutorState, chars: number) =>
   s.lines.map((l) => (l.greeting ? { ...l, text: s.session.greeting.slice(0, chars) } : l))
 
+// Set by the lesson runner, which owns the Quick check (store.pick() delegates to it).
+let pickHandler: ((index: number) => void) | null = null
+export function setPickHandler(fn: ((index: number) => void) | null) {
+  pickHandler = fn
+}
+
 export const useTutorStore = create<TutorState>((set, get) => ({
   ...initialSession(),
   session: DEFAULT_SESSION,
@@ -117,11 +123,8 @@ export const useTutorStore = create<TutorState>((set, get) => ({
     else get().tutorSays(script.backToLecture, { mode, answer: null })
   },
 
-  pick: (index) => {
-    if (get().answer === quiz.correctIndex) return
-    if (index === quiz.correctIndex) get().tutorSays(script.correct, { answer: index })
-    else get().tutorSays(script.wrong, { answer: index })
-  },
+  // The Quick check's answer: the lesson runner checks it (src/lesson/quickCheck.ts) and says the feedback.
+  pick: (index) => pickHandler?.(index),
 
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
   setDraft: (draft) => set({ draft }),
@@ -194,13 +197,13 @@ export const selectSection = (s: TutorState) =>
   s.mode === 'quiz' ? s.session.sectionCount - 1 : Math.min(LECTURE_SECTION, s.session.sectionCount - 1)
 export const selectSpeaking = (s: TutorState) => s.mic === 'speaking'
 export const selectListening = (s: TutorState) => s.mic === 'listening'
-export const selectAnsweredRight = (s: TutorState) =>
-  s.mode === 'quiz' && s.answer === quiz.correctIndex
-export const selectAnsweredWrong = (s: TutorState) =>
-  s.mode === 'quiz' && s.answer !== null && s.answer !== quiz.correctIndex
 
 // Pose priority, using the states from design/Tutor Character.dc.html.
 // `point` has no trigger on the main screen yet; the export never selected it either.
+// The Quick check's current answer (src/lesson/quickCheck.ts checks it; `answer` flags a pick).
+const selectAnsweredRight = (s: TutorState) => s.mode === 'quiz' && s.answer !== null && useQuickCheck.getState().result === 'correct'
+const selectAnsweredWrong = (s: TutorState) => s.mode === 'quiz' && s.answer !== null && useQuickCheck.getState().result === 'wrong'
+
 export const selectPose = (s: TutorState): Pose => {
   if (s.introPose) return s.introPose
   if (selectAnsweredRight(s)) return 'celebrate'

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { lectureBoard, quiz } from '../data/mockLesson'
+import { lectureBoard } from '../data/mockLesson'
+import { currentQuestion, useQuickCheck } from './quickCheck'
 import { boardShows, type BoardPart } from '../data/stageContent'
 import { notesTabs } from '../../shared/lessonNotes'
 import { useDirector } from '../state/director'
@@ -64,9 +65,18 @@ function packContext(): { context: { step: string; notes: string; board: string 
     context: {
       step: w.started && step ? `${step.title}: ${stripMarks(step.say)}` : `Lesson not started yet (document: ${pack.title})`,
       notes: `${tab.title} (${tab.page}): ` + tab.lines.map((l) => `${l.id === d.highlight ? '[highlighted] ' : ''}${l.text}`).join(' / '),
-      board: shown.join(' / ') || 'empty',
+      board: useTutorStore.getState().mode === 'quiz' ? quizText() : shown.join(' / ') || 'empty',
     },
   }
+}
+
+// The Quick check's current question as the board shows it (no answer: a document's stays on the server).
+function quizText() {
+  const qc = useQuickCheck.getState()
+  const q = currentQuestion(qc)
+  if (!q) return 'Quick check: questions still loading'
+  const picked = qc.picked === null ? 'nothing yet' : `${q.choices[qc.picked]} (${qc.result ?? 'checking'})`
+  return `Quick check question ${qc.index + 1} of ${qc.questions.length}: ${stripMarks(q.prompt)} Options: ${q.choices.join(', ')}. Student picked: ${picked}. Do not reveal the answer; give a hint.`
 }
 
 function lessonContext() {
@@ -80,8 +90,7 @@ function lessonContext() {
     tab.lines.map((l) => `${l.id === d.highlight ? '[highlighted] ' : ''}${l.cells ? l.cells.join(' | ') : l.text}`).join(' / ')
   const board =
     t.mode === 'quiz'
-      ? `Quick check: ${quiz.prompt}${quiz.bold}${quiz.promptTail} Options: ${quiz.options.join(', ')}. ` +
-        `Student picked: ${t.answer === null ? 'nothing yet' : quiz.options[t.answer]}`
+      ? quizText()
       : (Object.keys(BOARD_TEXT) as BoardPart[])
           .filter((p) => boardShows(p, d.boardReveal))
           .map((p) => BOARD_TEXT[p])

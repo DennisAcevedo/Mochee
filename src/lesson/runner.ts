@@ -6,12 +6,13 @@ import { BUILTIN_TOPIC_REF, GROWTH, isExperimentRunning, skipExperiment, useExpe
 import { useDirector, type LoopClip, type Spot } from '../state/director'
 import { useGrowth } from '../state/growth'
 import { canCelebrate, useProgress, type CoinReason } from '../state/progress'
-import { selectSection, useTutorStore, type Mic, type Mode } from '../state/store'
+import { selectSection, setPickHandler, useTutorStore, type Mic, type Mode } from '../state/store'
 import { stripMarks } from './markup'
 import type { LatencyTrace } from './latency'
 import { openCelebrations, pickNoRepeat } from './roam'
 import { prefetchSpeech, setVoiceEnabled, speak, speakingText, stopSpeaking } from './speech'
-import { QUIZ_FEEDBACK, RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
+import { answerQuickCheck, currentQuestion, isLastQuestion, nextQuestion, restartQuickCheck, useQuickCheck } from './quickCheck'
+import { RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 
 // Plays the guided lesson (walkthrough.ts) through the director and the tutor
 // store: walk to the step's spot, set the stage, gesture, then say the line
@@ -39,7 +40,7 @@ const RUNNER = {
 
 // Where a wrong quick-check answer sends him: the notes line that unlocks it
 // (waits are start minus arrival), pointed at from in front of the notes window.
-const QUIZ_HINT = { line: 'l4-wait', spot: 'left' as Spot, loop: 'point_left' as LoopClip } as const
+const QUIZ_HINT = { spot: 'left' as Spot, loop: 'point_left' as LoopClip } as const
 
 // One-time rewards per run; `section` takes the finished section's index after it.
 const REWARD_KEYS = { quiz: 'reward:quizCorrect', lesson: 'reward:lessonDone', section: 'reward:section:' } as const
@@ -222,8 +223,12 @@ function apply(index: number) {
   prefetchSpeech(step.say)
   for (const upcoming of s.steps.slice(index + 1, index + 1 + RUNNER.lookAhead)) prefetchSpeech(upcoming.say)
   if (step.wait === 'quiz') {
-    prefetchSpeech(QUIZ_FEEDBACK.correct)
-    prefetchSpeech(QUIZ_FEEDBACK.wrong)
+    restartQuickCheck()
+    const q = currentQuestion()
+    if (q) {
+      prefetchSpeech(q.praise)
+      prefetchSpeech(q.hint)
+    }
   }
   if (moving) {
     later(RUNNER.walkMs, () => speakStep(step, true))
@@ -299,7 +304,9 @@ function celebrate() {
   d.play(nextCelebration(), { vary: true }) // a hop or celebrate pick rotates through the cheers (CLIP_VARIANTS)
   d.burst('confetti', 'board')
   d.burst('stars', 'tutor')
-  rewardOnce(REWARD_KEYS.quiz, 'quizCorrect')
+  // Coins for each question of the Quick check, once per run.
+  const i = useQuickCheck.getState().index
+  rewardOnce(i ? `${REWARD_KEYS.quiz}:${i}` : REWARD_KEYS.quiz, 'quizCorrect')
 }
 
 // After a wrong answer's shrug: open the notes on the line that helps, walk
@@ -307,10 +314,12 @@ function celebrate() {
 // camera) stays put, so the quick-check keys stay where the student saw them.
 function showHint() {
   if (useTutorStore.getState().mic !== 'speaking') return // the feedback already ended: no hint to point at
+  const line = currentQuestion()?.hintLine // built-in questions; a document's hint names its page instead
+  if (!line) return
   const d = useDirector.getState()
-  const tab = notesTabs.findIndex((t) => t.lines.some((l) => l.id === QUIZ_HINT.line))
+  const tab = notesTabs.findIndex((t) => t.lines.some((l) => l.id === line))
   if (tab >= 0) d.setNotesTab(tab)
-  d.setHighlight(QUIZ_HINT.line)
+  d.setHighlight(line)
   d.walkTo(QUIZ_HINT.spot)
   useWalkthrough.setState({ loopOverride: QUIZ_HINT.loop })
   hinting = true
@@ -335,17 +344,32 @@ function recordQuiz(): boolean {
   return useGrowth.getState().learnedId !== learned
 }
 
-// pick() in the store has already put the feedback line in the transcript.
-function onQuizAnswer(correct: boolean) {
+// A pick on the Quick check (store.pick()): checked by quickCheck.ts, then
+// the question's feedback goes in the transcript and onQuizAnswer says it.
+export function pickQuickCheck(choice: number) {
+  void answerQuickCheck(choice).then((out) => {
+    if (!out) return
+    const plain = stripMarks(out.say)
+    expectLine = plain // our own line: not one for onOtherLine
+    useTutorStore.getState().tutorSays(plain, { answer: choice }, out.say)
+    expectLine = null
+    onQuizAnswer(out.correct, out.say)
+  })
+}
+
+// The feedback line is already in the transcript.
+function onQuizAnswer(correct: boolean, text: string) {
   useWalkthrough.setState({ held: false }) // the answer takes the floor from any pending question
   const w = useWalkthrough.getState()
   const onQuizStep = w.started && w.steps[w.index]?.wait === 'quiz'
   if (!onQuizStep && presenting(w.phase)) w.pause()
   cancelAll()
-  pendingAnswer = correct
+  // The built-in topic's mastery counts once, when the whole Quick check is done (all right
+  // on the first try = mastered): mastery mid-check would switch to Celebrate and hide the board.
+  const qc = useQuickCheck.getState()
+  pendingAnswer = qc.documentId === null && correct && isLastQuestion(qc) ? qc.score === qc.questions.length : null
   useTutorStore.setState({ mic: 'speaking' })
   const d = useDirector.getState()
-  const text = correct ? QUIZ_FEEDBACK.correct : QUIZ_FEEDBACK.wrong
   if (correct) celebrate()
   else {
     d.play('shrug', { urgent: true, vary: true }) // over a step gesture still queued from his walk in; shrug, facepalm, headshake in turn
@@ -362,6 +386,19 @@ function onQuizAnswer(correct: boolean) {
     endHint()
     if (!onQuizStep) return
     if (correct) {
+      // More questions: on to the next one, and wait for its answer.
+      if (nextQuestion()) {
+        useTutorStore.setState({ answer: null })
+        useWalkthrough.setState({ quizResult: null })
+        const qc = useQuickCheck.getState()
+        const q = currentQuestion(qc)
+        if (q) {
+          prefetchSpeech(q.praise)
+          prefetchSpeech(q.hint)
+        }
+        sayLine(`Next one! **Question ${qc.index + 1} of ${qc.questions.length}.**`, () => useWalkthrough.setState({ phase: 'waiting', lineDone: true }))
+        return
+      }
       useWalkthrough.setState({ lineDone: true })
       // He shows off what he just learned before the lesson moves on.
       if (learned) later(GROWTH.celebrate.captionMs, advanceOrFinish)
@@ -375,8 +412,7 @@ function onQuizAnswer(correct: boolean) {
 // check answer still gets its feedback, a tab's line stays in the transcript.
 // `micBefore` is the mic before tutorSays flagged it as speaking for this line.
 function onOtherLine(text: string, micBefore: Mic) {
-  if (text === script.correct) return onQuizAnswer(true)
-  if (text === script.wrong) return onQuizAnswer(false)
+  if (text === script.correct || text === script.wrong) return
   if (!gate) {
     useWalkthrough.setState({ held: false }) // this line takes the floor from any pending question
     const w = useWalkthrough.getState()
@@ -540,6 +576,9 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
 // itself, reacts to quick-check answers, and (optionally) starts the lesson
 // once the intro hands over. Returns the disconnect (also stops the lesson).
 export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}): () => void {
+  // The Quick check's picks come here while the lesson is connected (registered at runtime:
+  // store.ts and this module import each other).
+  setPickHandler(pickQuickCheck)
   let autoTimer: ReturnType<typeof setTimeout> | undefined
   const maybeAutoStart = () => {
     if (useTutorStore.getState().phase === 'intro') prefetchSpeech(RESOLVED_STEPS[0].say)
@@ -582,6 +621,7 @@ export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}
   maybeAutoStart()
 
   return () => {
+    setPickHandler(null)
     unsub()
     unsubRun()
     clearTimeout(autoTimer)

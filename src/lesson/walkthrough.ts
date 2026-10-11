@@ -168,13 +168,6 @@ export const WALKTHROUGH: WalkStep[] = [
   },
 ]
 
-// What he says when the quick check is answered. Plain text matches
-// script.correct / script.wrong in mockLesson.ts (the store's pick() says those).
-export const QUIZ_FEEDBACK = {
-  correct: '**Yes!** 3 ms. The waits are **0, 3 and 6**, because the long job goes last.',
-  wrong: 'Not quite. Write out when each job starts: **P2 at 0, P3 at 3, P1 at 6**. Now average those.',
-} as const
-
 export interface ResolvedStep extends WalkStep {
   spot: Spot
   focus: Focus
