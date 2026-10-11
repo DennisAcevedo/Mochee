@@ -1,4 +1,3 @@
-import { DEFAULT_TUTOR_VOICE, type TutorVoice } from '../../shared/voices'
 import { stripMarks } from './markup'
 import type { LatencyTrace } from './latency'
 
@@ -7,14 +6,7 @@ const cache = new Map<string, string>()
 const warming = new Map<string, Promise<string | null>>()
 let disabled = false
 const clean = (text: string) => stripMarks(text).replace(/\s+/g, ' ').trim()
-
-// The voice the lesson page's tutor speaks with (LessonPage sets it per tutor).
-let current: TutorVoice = DEFAULT_TUTOR_VOICE
-export function setTutorVoice(voice: TutorVoice) {
-  current = voice
-}
-// Cache key: the same line in another voice is another clip.
-const keyOf = (text: string, voice: TutorVoice = current) => `${voice}|${clean(text)}`
+const keyOf = clean
 
 function remember(key: string, blob: Blob): string {
   const existing = cache.get(key)
@@ -29,10 +21,10 @@ function remember(key: string, blob: Blob): string {
   return url
 }
 
-async function request(text: string, voice: TutorVoice, signal: AbortSignal) {
+async function request(text: string, signal: AbortSignal) {
   const res = await fetch(VOICE.route, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text, voice }), signal,
+    body: JSON.stringify({ text }), signal,
   })
   if (!res.ok) {
     if (res.status === 503 || res.status === 429) disabled = true
@@ -43,15 +35,15 @@ async function request(text: string, voice: TutorVoice, signal: AbortSignal) {
 }
 
 // Prefetch uses the same endpoint/cache, but never creates a player or MediaSource.
-export function voiceUrl(text: string, voice: TutorVoice = current): Promise<string | null> {
+export function voiceUrl(text: string): Promise<string | null> {
   const line = clean(text)
-  const key = keyOf(line, voice)
+  const key = keyOf(line)
   const cached = cache.get(key)
   if (cached) return Promise.resolve(cached)
   if (disabled || !line) return Promise.resolve(null)
   let pending = warming.get(key)
   if (!pending) {
-    pending = request(line, voice, AbortSignal.timeout(VOICE.timeoutMs))
+    pending = request(line, AbortSignal.timeout(VOICE.timeoutMs))
       .then(async (res) => remember(key, await res.blob()))
       .catch(() => null)
       .finally(() => warming.delete(key))
@@ -85,9 +77,8 @@ function event(target: EventTarget, name: string, signal: AbortSignal, action?: 
 }
 
 export async function prepareVoice(text: string, signal: AbortSignal, trace: LatencyTrace): Promise<VoiceClip | null> {
-  const voice = current
   const line = clean(text)
-  const key = keyOf(line, voice)
+  const key = keyOf(line)
   trace.mark('ttsRequested')
   const cached = cache.get(key)
   if (cached) {
@@ -99,7 +90,7 @@ export async function prepareVoice(text: string, signal: AbortSignal, trace: Lat
   const combined = AbortSignal.any([signal, cancel.signal, AbortSignal.timeout(VOICE.timeoutMs)])
   try {
     // Join server prefetches immediately, without waiting for their complete blob.
-    const res = await request(line, voice, combined)
+    const res = await request(line, combined)
     trace.mark('audioHeaders')
     if (!res.body) throw new Error('empty-audio')
     if (typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported('audio/mpeg')) {

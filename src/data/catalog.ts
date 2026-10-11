@@ -1,4 +1,3 @@
-import type { TutorVoice } from '../../shared/voices'
 import type { Accessory } from '../character/look'
 
 // Choices offered by the Create Tutor wizard, lifted from design/Create Tutor.dc.html.
@@ -45,31 +44,3 @@ export const ACCESSORY_PALETTE: { value: string; label: string }[] = [
   { value: '#62b46e', label: 'Green' },
   { value: '#f7f5f0', label: 'Cream' },
 ]
-
-// Voice ids are stored on the tutor; `eleven` is the ElevenLabs voice he
-// speaks with (shared/voices.ts). `gemini` is where a Gemini Live voice name
-// would go. pitch/rate/vi drive the speechSynthesis fallback sample.
-export interface VoiceOption {
-  id: VoiceId
-  name: string
-  desc: string
-  eleven: TutorVoice
-  pitch: number
-  rate: number
-  vi: number
-  gemini: string | null
-}
-export type VoiceId = 'juniper' | 'atlas' | 'wren' | 'sol'
-
-// Two voices to pick from: Eve (female) and Sam (male), both ElevenLabs. The
-// ids stay 'juniper' / 'atlas' because tutors are saved with them.
-export const VOICES: VoiceOption[] = [
-  { id: 'juniper', name: 'Eve', desc: 'Female voice', eleven: 'female', pitch: 1.05, rate: 0.92, vi: 0, gemini: null },
-  { id: 'atlas', name: 'Sam', desc: 'Male voice', eleven: 'male', pitch: 0.85, rate: 1.0, vi: 1, gemini: null },
-]
-
-// The ElevenLabs voice a tutor speaks with. Tutors saved with the retired
-// Wren / Sol picks keep a voice: Wren the female one, Sol the male one.
-export function tutorVoiceOf(id: VoiceId | undefined): TutorVoice {
-  return id === 'atlas' || id === 'sol' ? 'male' : 'female'
-}

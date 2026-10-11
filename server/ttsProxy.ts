@@ -1,4 +1,4 @@
-import { DEFAULT_TUTOR_VOICE, isTutorVoice, TUTOR_VOICES, type TutorVoice } from '../shared/voices.ts'
+import { TUTOR_VOICE_ID } from '../shared/voices.ts'
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -17,8 +17,7 @@ const CONFIG = {
   route: '/api/tts',
   keyFile: 'ElevenLabsAPI.txt',
   endpoint: 'https://api.elevenlabs.io/v1/text-to-speech',
-  // The voice is the tutor's pick (shared/voices.ts: 'female' / 'male'); ELEVENLABS_VOICE_ID
-  // overrides every request with one voice.
+  // One voice for every tutor (shared/voices.ts); ELEVENLABS_VOICE_ID overrides it.
   // Turbo v2.5: natural and low latency; override with ELEVENLABS_MODEL.
   defaultModel: 'eleven_turbo_v2_5',
   outputFormat: 'mp3_44100_128',
@@ -181,14 +180,8 @@ async function handleTts(root: string, req: IncomingMessage, res: ServerResponse
   if (refused) return sendJson(res, refused.status, { error: refused.error })
 
   let text = ''
-  let picked: TutorVoice = DEFAULT_TUTOR_VOICE
   try {
-    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
-    text = speakable(body?.text)
-    if (body?.voice !== undefined) {
-      if (!isTutorVoice(body.voice)) return sendJson(res, 400, { error: 'bad-voice' })
-      picked = body.voice
-    }
+    text = speakable((JSON.parse(await readBody(req)) as Record<string, unknown>)?.text)
   } catch {
     return sendJson(res, 400, { error: 'bad-request' })
   }
@@ -196,7 +189,7 @@ async function handleTts(root: string, req: IncomingMessage, res: ServerResponse
   if (text.length > CONFIG.maxChars) return sendJson(res, 413, { error: 'too-long' })
   if (res.destroyed) return
 
-  const voice = process.env.ELEVENLABS_VOICE_ID?.trim() || TUTOR_VOICES[picked]
+  const voice = process.env.ELEVENLABS_VOICE_ID?.trim() || TUTOR_VOICE_ID
   const model = process.env.ELEVENLABS_MODEL?.trim() || CONFIG.defaultModel
   const id = createHash('sha256').update(JSON.stringify([voice, model, CONFIG.voiceSettings, text])).digest('hex').slice(0, 32)
   const dir = join(root, CONFIG.cacheDir)

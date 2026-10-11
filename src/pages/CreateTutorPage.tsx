@@ -11,13 +11,9 @@ import {
   CAP_SWATCHES,
   SUBJECTS,
   SUBJECT_LOOKS,
-  VOICES,
   type Subject,
-  type VoiceId,
-  type VoiceOption,
 } from '../data/catalog'
 import { formatLabel, UPLOAD_ACCEPT, uploadFormat } from '../../shared/docsTypes'
-import { voiceUrl } from '../lesson/voiceEleven'
 import { generateLesson, type StudyFile } from '../lesson/generateLesson'
 import { Lights } from '../scene/Lights'
 import { addTutorFiles } from '../state/fileStore'
@@ -29,8 +25,8 @@ import { CardShadow } from './HomeScene'
 
 // "/new": design/Create Tutor.dc.html.
 
-const STEP_LABELS = ['Name', 'Notes', 'Look', 'Voice']
-const STUDY_STEP = 4
+const STEP_LABELS = ['Name', 'Notes', 'Look']
+const STUDY_STEP = 3
 
 // The live preview is the Blender tutor, standalone at the origin of its own canvas.
 const PREVIEW = {
@@ -97,8 +93,6 @@ export function CreateTutorPage() {
   const [cap, setCap] = useState('')
   const [acc, setAcc] = useState<Accessory>('glasses')
   const [accColors, setAccColors] = useState<Partial<Record<Accessory, string>>>({})
-  const [voice, setVoice] = useState<VoiceId>('juniper')
-  const [playing, setPlaying] = useState<VoiceId | null>(null)
   const [study, setStudy] = useState<Study>({ lines: [], index: 0, total: 5, done: false })
   const [result, setResult] = useState<{ id: string; outline: OutlineItem[] } | null>(null)
   const [flash, setFlash] = useState<{ clip: Flash; id: number } | null>(null)
@@ -106,8 +100,6 @@ export function CreateTutorPage() {
   const nameRef = useRef<HTMLInputElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const playTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const sample = useRef<HTMLAudioElement | null>(null) // the voice sample playing now
   const studyAbort = useRef<AbortController | null>(null)
 
   // A one-shot that plays for a moment, then hands back to the step's loop.
@@ -123,15 +115,11 @@ export function CreateTutorPage() {
     return () => {
       clearTimeout(t)
       clearTimeout(flashTimer.current)
-      clearTimeout(playTimer.current)
       studyAbort.current?.abort()
-      window.speechSynthesis?.cancel()
-      sample.current?.pause()
     }
   }, [flashPose])
 
   const accColor = (acc !== 'none' && (accColors[acc] || ACCESSORY_DEFAULT_COLORS[acc])) || ''
-  const voiceOption = VOICES.find((v) => v.id === voice) ?? VOICES[0]
   const canNext = step === 0 ? !!name.trim() : step === 1 ? files.length > 0 : true
 
   // ---- Notes
@@ -187,60 +175,9 @@ export function CreateTutorPage() {
     setLookTouched(true)
   }
 
-  // ---- Voice: the real ElevenLabs sample, or speechSynthesis when that is unavailable
-
-  const stopSample = () => {
-    window.speechSynthesis?.cancel()
-    sample.current?.pause()
-    sample.current = null
-  }
-
-  const playVoice = (v: VoiceOption) => {
-    const syn = window.speechSynthesis
-    clearTimeout(playTimer.current)
-    stopSample()
-    if (playing === v.id) {
-      setPlaying(null)
-      return
-    }
-    setPlaying(v.id)
-    setVoice(v.id)
-    const done = () => setPlaying((p) => (p === v.id ? null : p))
-    const line = `Hi, I'm ${v.name}. I've read your notes, and I'm ready when you are.`
-    void voiceUrl(line, v.eleven).then((url) => {
-      if (url) {
-        const audio = new Audio(url)
-        sample.current = audio
-        audio.onended = done
-        audio.onerror = done
-        void audio.play().catch(done)
-        return
-      }
-      if (!syn) {
-        playTimer.current = setTimeout(done, 2600)
-        return
-      }
-      speakFallback(syn, v, line, done)
-    })
-  }
-
-  const speakFallback = (syn: SpeechSynthesis, v: VoiceOption, line: string, done: () => void) => {
-    const u = new SpeechSynthesisUtterance(line)
-    const en = syn.getVoices().filter((x) => /^en/i.test(x.lang))
-    if (en.length) u.voice = en[v.vi % en.length]
-    u.pitch = v.pitch
-    u.rate = v.rate
-    u.onend = done
-    u.onerror = done
-    syn.speak(u)
-    playTimer.current = setTimeout(done, 9000)
-  }
-
   // ---- Studying
 
   const startStudy = async () => {
-    stopSample()
-    setPlaying(null)
     setStep(STUDY_STEP)
     setStudy({ lines: [], index: 0, total: 5, done: false })
     studyAbort.current?.abort()
@@ -261,7 +198,6 @@ export function CreateTutorPage() {
         cap,
         accessory: acc,
         accessoryColors: acc === 'none' ? accColors : { ...accColors, [acc]: accColor },
-        voice,
         files: files.map(({ id: fid, name: fname, size, pages, sample }) => ({ id: `${id}-${fid}`, name: fname, size, pages, sample })),
         outline: lesson.outline,
         sectionsDone: 0,
@@ -283,15 +219,13 @@ export function CreateTutorPage() {
 
   const next = () => {
     if (!canNext) return
-    if (step === 3) return void startStudy()
+    if (step === STUDY_STEP - 1) return void startStudy()
     setStep(step + 1)
     if (step + 1 === 2) flashPose('celebrate', 1300)
   }
 
   const back = () => {
     if (step === 0) return navigate('/')
-    window.speechSynthesis?.cancel()
-    setPlaying(null)
     setStep(step - 1)
   }
 
@@ -299,7 +233,6 @@ export function CreateTutorPage() {
 
   let loop: LoopClip = 'idle'
   if (step === 1 && drag) loop = 'listen'
-  else if (step === 3) loop = playing ? 'talk' : 'listen'
   else if (step === STUDY_STEP) loop = study.done ? 'idle' : 'read'
 
   const accName = ACCESSORY_OPTIONS.find((a) => a.value === acc)?.label ?? ''
@@ -471,49 +404,6 @@ export function CreateTutorPage() {
                 </>
               )}
 
-              {step === 3 && (
-                <>
-                  <Heading title="Pick a voice" sub="Tap play to hear a sample." />
-                  <div className={styles.voices}>
-                    {VOICES.map((v) => {
-                      const on = voice === v.id
-                      const isPlaying = playing === v.id
-                      return (
-                        <div key={v.id} className={styles.voiceCard} data-on={on} onClick={() => setVoice(v.id)}>
-                          <button
-                            type="button"
-                            aria-label={isPlaying ? `Stop ${v.name}` : `Play ${v.name} sample`}
-                            className={styles.play}
-                            data-on={on}
-                            data-playing={isPlaying}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              playVoice(v)
-                            }}
-                          >
-                            {isPlaying ? (
-                              <div className={styles.eq}>
-                                <div className={styles.eqBar} />
-                                <div className={styles.eqBar} style={{ animationDelay: '.15s' }} />
-                                <div className={styles.eqBar} style={{ animationDelay: '.3s' }} />
-                              </div>
-                            ) : (
-                              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M8 5.5v13l10.5-6.5z" fill={on ? '#ffffff' : '#24232a'} stroke={on ? '#ffffff' : '#24232a'} strokeWidth="3" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </button>
-                          <div className={styles.voiceText}>
-                            <div className={styles.voiceName}>{v.name}</div>
-                            <div className={styles.voiceDesc}>{v.desc}</div>
-                          </div>
-                          <div className={styles.radio} data-on={on} />
-                        </div>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
 
               {step === STUDY_STEP && (
                 <>
@@ -574,7 +464,7 @@ export function CreateTutorPage() {
                   Back
                 </button>
                 <button type="button" className={styles.next} data-can={canNext} disabled={!canNext} onClick={next}>
-                  {step === 3 ? 'Create tutor' : 'Continue'}
+                  {step === STUDY_STEP - 1 ? 'Create tutor' : 'Continue'}
                 </button>
               </div>
             )}
@@ -598,7 +488,7 @@ export function CreateTutorPage() {
             </div>
             <div className={styles.tag}>
               <div className={styles.tagName}>{name.trim() || 'Your tutor'}</div>
-              <div className={styles.tagSub}>{step >= 3 ? `${voiceOption.name} voice · ${subject}` : subject}</div>
+              <div className={styles.tagSub}>{subject}</div>
             </div>
           </div>
         </div>

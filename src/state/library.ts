@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { normalizeAccessory, type Accessory, type TutorLook } from '../character/look'
-import type { Subject, VoiceId } from '../data/catalog'
+import type { Subject } from '../data/catalog'
 import { notes as cs111Notes, script } from '../data/mockLesson'
 
 // The user's tutors, persisted to localStorage. File contents live in
@@ -34,7 +34,6 @@ export interface Tutor {
   cap: string
   accessory: Accessory
   accessoryColors: Partial<Record<Accessory, string>>
-  voice: VoiceId
   files: TutorFile[]
   outline: OutlineItem[]
   sectionsDone: number
@@ -77,7 +76,6 @@ function seedTutors(now: number): Tutor[] {
       cap: '',
       accessory: 'glasses',
       accessoryColors: { glasses: '#2b2b33' },
-      voice: 'juniper',
       files: [
         ...cs111Notes.map((n, i) => ({ id: `cs111-${i}`, name: n.name, size: n.pages * 0.13 * MB, pages: n.pages, sample: true })),
         { id: 'cs111-3', name: 'CS111 Lecture 2.pdf', size: 2.1 * MB, pages: 16, sample: true },
@@ -94,7 +92,6 @@ function seedTutors(now: number): Tutor[] {
       cap: '#4c9a6a',
       accessory: 'leaf',
       accessoryColors: { leaf: '#62b46e' },
-      voice: 'wren',
       files: files(
         [
           ['Genetics Lecture 1.pdf', 2.8 * MB, 24],
@@ -125,7 +122,6 @@ function seedTutors(now: number): Tutor[] {
       cap: '#d9824a',
       accessory: 'headphones',
       accessoryColors: { headphones: '#5cc4c9' },
-      voice: 'atlas',
       files: files(
         [
           ['Atomic structure.pdf', 2.2 * MB, 19],
@@ -151,7 +147,6 @@ function seedTutors(now: number): Tutor[] {
       cap: '#c4566e',
       accessory: 'scarf',
       accessoryColors: { scarf: '#f2b84b' },
-      voice: 'sol',
       files: files(
         [
           ['Vectors and spans.pdf', 1.4 * MB, 12],
