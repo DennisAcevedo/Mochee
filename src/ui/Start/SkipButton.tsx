@@ -1,14 +1,14 @@
 import '@fontsource/fredoka/700.css'
+import type { Ref } from 'react'
 import { skipIntro } from '../../intro/intro'
 import { useTutorStore } from '../../state/store'
 import styles from './StartScreen.module.css'
 
-// Skip the intro while it plays (Esc does the same).
-export function SkipButton() {
-  const phase = useTutorStore((s) => s.phase)
-  if (phase !== 'intro') return null
+// The yellow "Skip" pill in the bottom-right corner, for any animation the
+// learner can jump past (the intro, the walk to the shop and back).
+export function SkipPill({ onClick, label, buttonRef }: { onClick: () => void; label?: string; buttonRef?: Ref<HTMLButtonElement> }) {
   return (
-    <button type="button" className={styles.skip} onClick={skipIntro}>
+    <button ref={buttonRef} type="button" className={styles.skip} onClick={onClick} aria-label={label}>
       Skip
       <span className={styles.skipKey} aria-hidden="true">
         <svg viewBox="0 0 24 24">
@@ -18,4 +18,11 @@ export function SkipButton() {
       </span>
     </button>
   )
+}
+
+// Skip the intro while it plays (Esc does the same).
+export function SkipButton() {
+  const phase = useTutorStore((s) => s.phase)
+  if (phase !== 'intro') return null
+  return <SkipPill onClick={skipIntro} />
 }

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useWalkthrough } from '../../lesson/runner'
 import { useMode } from '../../state/mode'
 import { useShop } from '../../state/shop'
+import { SkipPill } from '../Start/SkipButton'
 import { Shop } from './Shop'
 import styles from './Shop.module.css'
 
@@ -13,6 +14,7 @@ export function ShopVisit() {
   const resumeLesson = useRef(false)
   const returnFocus = useRef<HTMLElement | null>(null)
   const travelButton = useRef<HTMLButtonElement>(null)
+  const skipButton = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (active && !wasActive.current) {
@@ -44,7 +46,12 @@ export function ShopVisit() {
     const key = (e: KeyboardEvent) => {
       e.stopImmediatePropagation()
       if (e.key === 'Escape') { e.preventDefault(); useShop.getState().leave() }
-      if (e.key === 'Tab') { e.preventDefault(); travelButton.current?.focus() }
+      if (e.key === 'Tab') {
+        // Focus stays on the trip's two buttons: Back and Skip.
+        e.preventDefault()
+        const next = document.activeElement === travelButton.current ? skipButton.current : travelButton.current
+        next?.focus()
+      }
     }
     window.addEventListener('keydown', key, true)
     return () => window.removeEventListener('keydown', key, true)
@@ -57,6 +64,7 @@ export function ShopVisit() {
         {phase !== 'open' && <button ref={travelButton} className={styles.travelBack} onClick={() => useShop.getState().leave()} aria-disabled={phase === 'returning'}>
           <span aria-hidden="true">←</span> {phase === 'returning' ? 'Back to your room' : 'Back to room'}
         </button>}
+        {phase !== 'open' && <SkipPill buttonRef={skipButton} onClick={() => useShop.getState().skip()} label={phase === 'returning' ? 'Skip the walk back' : 'Skip the walk to the shop'} />}
         <span className={styles.srOnly} role="status">{phase === 'approaching' ? 'Moving to the wooden shop' : phase === 'returning' ? 'Returning to your room' : 'Shop is open'}</span>
       </div>, document.body,
     )}

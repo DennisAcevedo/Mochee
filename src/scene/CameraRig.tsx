@@ -111,6 +111,11 @@ export function CameraRig() {
       // This deliberate trip is part of entering the shop: keep it visible
       // even when reduced motion disables decorative UI animations.
       const step = dt / duration
+      // Skip: land at the trip's end this frame, and open the shop without the arrival hold.
+      if (shop.skipping) {
+        visit.progress = returning ? 0 : 1
+        visit.arrivalHold = WALL_SHOP.arrivalHoldSeconds
+      }
       const wasAtShelves = visit.progress === 1
       visit.progress = MathUtils.clamp(visit.progress + (returning ? -step : step), 0, 1)
       const pose = shopCameraPose(visit.start, visit.progress)
