@@ -394,7 +394,17 @@ function onQuizAnswer(correct: boolean, text: string, revealed = false) {
     // quick-check keys): a walk back here would hold a right answer's dance
     // until he arrived, since one-shots wait out a walk.
     endHint()
-    if (!onQuizStep) return
+    // Answered from the board's Quick check tab outside the lesson's Quick check step
+    // (before it, or after the lesson ended): the questions still move on; the lesson doesn't.
+    if (!onQuizStep) {
+      if (!correct && !revealed) return
+      if (nextQuestion()) {
+        useTutorStore.setState({ answer: null })
+        const next = useQuickCheck.getState()
+        sayLine(`Next one! **Question ${next.index + 1} of ${next.questions.length}.**`)
+      } else sayLine(quickCheckRecap())
+      return
+    }
     if (correct || revealed) {
       // More questions: on to the next one, and wait for its answer.
       if (nextQuestion()) {
