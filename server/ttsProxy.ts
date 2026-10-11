@@ -1,3 +1,4 @@
+import { DEFAULT_TUTOR_VOICE, isTutorVoice, TUTOR_VOICES, type TutorVoice } from '../shared/voices.ts'
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -16,16 +17,15 @@ const CONFIG = {
   route: '/api/tts',
   keyFile: 'ElevenLabsAPI.txt',
   endpoint: 'https://api.elevenlabs.io/v1/text-to-speech',
-  // Will ("Relaxed Optimist"): young, warm, smooth and upbeat; fits a small cheerful tutor.
-  // Override with ELEVENLABS_VOICE_ID (e.g. Eric cjVigY5qzO86Huf0OWal for a smoother tenor).
-  defaultVoice: 'bIHbv24MWmeRgasZH58o',
+  // The voice is the tutor's pick (shared/voices.ts: 'female' / 'male'); ELEVENLABS_VOICE_ID
+  // overrides every request with one voice.
   // Turbo v2.5: natural and low latency; override with ELEVENLABS_MODEL.
   defaultModel: 'eleven_turbo_v2_5',
   outputFormat: 'mp3_44100_128',
   voiceSettings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 1.04 },
   cacheDir: 'tmp/tts-cache',
   maxChars: 600, // one spoken line; longer text is refused so the client uses the browser voice
-  budgetChars: 6_000, // billed characters per local day (the account has 10k)
+  budgetChars: 40_000, // billed characters per local day (the Creator plan has 100k a month)
   budgetFile: 'budget.json', // in cacheDir, so a dev-server restart does not reset the count
   timeoutMs: 12_000,
   maxBodyBytes: 8_192,
@@ -181,8 +181,14 @@ async function handleTts(root: string, req: IncomingMessage, res: ServerResponse
   if (refused) return sendJson(res, refused.status, { error: refused.error })
 
   let text = ''
+  let picked: TutorVoice = DEFAULT_TUTOR_VOICE
   try {
-    text = speakable((JSON.parse(await readBody(req)) as Record<string, unknown>)?.text)
+    const body = JSON.parse(await readBody(req)) as Record<string, unknown>
+    text = speakable(body?.text)
+    if (body?.voice !== undefined) {
+      if (!isTutorVoice(body.voice)) return sendJson(res, 400, { error: 'bad-voice' })
+      picked = body.voice
+    }
   } catch {
     return sendJson(res, 400, { error: 'bad-request' })
   }
@@ -190,7 +196,7 @@ async function handleTts(root: string, req: IncomingMessage, res: ServerResponse
   if (text.length > CONFIG.maxChars) return sendJson(res, 413, { error: 'too-long' })
   if (res.destroyed) return
 
-  const voice = process.env.ELEVENLABS_VOICE_ID?.trim() || CONFIG.defaultVoice
+  const voice = process.env.ELEVENLABS_VOICE_ID?.trim() || TUTOR_VOICES[picked]
   const model = process.env.ELEVENLABS_MODEL?.trim() || CONFIG.defaultModel
   const id = createHash('sha256').update(JSON.stringify([voice, model, CONFIG.voiceSettings, text])).digest('hex').slice(0, 32)
   const dir = join(root, CONFIG.cacheDir)

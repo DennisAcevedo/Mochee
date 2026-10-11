@@ -14,6 +14,8 @@ import { Stage } from '../scene/Stage'
 import { bringLessonControlsForward, bringTranscriptForward, registerLessonControls, registerPanel } from '../scene/windows/windowStack'
 import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
+import { tutorVoiceOf } from '../data/catalog'
+import { setTutorVoice } from '../lesson/voiceEleven'
 import { useHidden, useIsHidden } from '../state/hidden'
 import { useMode } from '../state/mode'
 import { useShop } from '../state/shop'
@@ -145,6 +147,8 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const transcriptHidden = useIsHidden('transcript')
   // Every tutor opens with the transcript closed, even if it was open on the last one.
   useEffect(() => useHidden.getState().hide('transcript'), [tutor.id])
+  // He speaks with the voice picked for this tutor (female or male, ElevenLabs).
+  useEffect(() => setTutorVoice(tutorVoiceOf(tutor.voice)), [tutor.voice])
   // Focus: a maximized browser window takes the stage. The cards fold into a
   // rail on the left (a button peeks one back out) and the dock's talk
   // control shrinks to the mic, so the window can be as big as it gets.

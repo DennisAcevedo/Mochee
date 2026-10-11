@@ -1,3 +1,4 @@
+import type { TutorVoice } from '../../shared/voices'
 import type { Accessory } from '../character/look'
 
 // Choices offered by the Create Tutor wizard, lifted from design/Create Tutor.dc.html.
@@ -45,12 +46,14 @@ export const ACCESSORY_PALETTE: { value: string; label: string }[] = [
   { value: '#f7f5f0', label: 'Cream' },
 ]
 
-// Voice ids are stored on the tutor; `gemini` is where the Gemini Live voice
-// name will go. pitch/rate/vi drive the speechSynthesis stand-in sample.
+// Voice ids are stored on the tutor; `eleven` is the ElevenLabs voice he
+// speaks with (shared/voices.ts). `gemini` is where a Gemini Live voice name
+// would go. pitch/rate/vi drive the speechSynthesis fallback sample.
 export interface VoiceOption {
   id: VoiceId
   name: string
   desc: string
+  eleven: TutorVoice
   pitch: number
   rate: number
   vi: number
@@ -58,9 +61,14 @@ export interface VoiceOption {
 }
 export type VoiceId = 'juniper' | 'atlas' | 'wren' | 'sol'
 
+// Two voices to pick from: a female and a male ElevenLabs voice.
 export const VOICES: VoiceOption[] = [
-  { id: 'juniper', name: 'Juniper', desc: 'Warm and unhurried', pitch: 1.05, rate: 0.92, vi: 0, gemini: null },
-  { id: 'atlas', name: 'Atlas', desc: 'Clear and upbeat', pitch: 0.85, rate: 1.0, vi: 1, gemini: null },
-  { id: 'wren', name: 'Wren', desc: 'Bright and quick', pitch: 1.35, rate: 1.12, vi: 2, gemini: null },
-  { id: 'sol', name: 'Sol', desc: 'Low and calm', pitch: 0.7, rate: 0.88, vi: 3, gemini: null },
+  { id: 'juniper', name: 'Juniper', desc: 'Female voice', eleven: 'female', pitch: 1.05, rate: 0.92, vi: 0, gemini: null },
+  { id: 'atlas', name: 'Atlas', desc: 'Male voice', eleven: 'male', pitch: 0.85, rate: 1.0, vi: 1, gemini: null },
 ]
+
+// The ElevenLabs voice a tutor speaks with. Tutors saved with the retired
+// Wren / Sol picks keep a voice: Wren the female one, Sol the male one.
+export function tutorVoiceOf(id: VoiceId | undefined): TutorVoice {
+  return id === 'atlas' || id === 'sol' ? 'male' : 'female'
+}

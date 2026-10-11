@@ -21,11 +21,14 @@ try {
 } finally {
   await loader.close()
 }
+// Every line in both tutor voices (shared/voices.ts), since a tutor can have either.
+const VOICES = ['female', 'male']
+const jobs = VOICES.flatMap((voice) => lines.map((text) => ({ voice, text })))
 let hits = 0
-for (const [index, text] of lines.entries()) {
+for (const [index, { voice, text }] of jobs.entries()) {
   const response = await fetch(new URL('/api/tts', base), {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text }), signal: AbortSignal.timeout(15_000),
+    body: JSON.stringify({ text, voice }), signal: AbortSignal.timeout(15_000),
   })
   if (!response.ok) {
     await response.body?.cancel()
@@ -33,6 +36,6 @@ for (const [index, text] of lines.entries()) {
   }
   await response.arrayBuffer() // Only complete clips become cache entries.
   if (response.headers.get('x-tts-cache') === 'hit') hits++
-  console.log(`Prepared ${index + 1}/${lines.length}`)
+  console.log(`Prepared ${index + 1}/${jobs.length} (${voice})`)
 }
-console.log(`Ready: ${lines.length} lines (${hits} already cached, ${lines.length - hits} synthesized).`)
+console.log(`Ready: ${jobs.length} clips (${hits} already cached, ${jobs.length - hits} synthesized).`)

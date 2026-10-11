@@ -17,6 +17,7 @@ import {
   type VoiceOption,
 } from '../data/catalog'
 import { formatLabel, UPLOAD_ACCEPT, uploadFormat } from '../../shared/docsTypes'
+import { voiceUrl } from '../lesson/voiceEleven'
 import { generateLesson, type StudyFile } from '../lesson/generateLesson'
 import { Lights } from '../scene/Lights'
 import { addTutorFiles } from '../state/fileStore'
@@ -106,6 +107,7 @@ export function CreateTutorPage() {
   const previewRef = useRef<HTMLDivElement>(null)
   const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const playTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const sample = useRef<HTMLAudioElement | null>(null) // the voice sample playing now
   const studyAbort = useRef<AbortController | null>(null)
 
   // A one-shot that plays for a moment, then hands back to the step's loop.
@@ -124,6 +126,7 @@ export function CreateTutorPage() {
       clearTimeout(playTimer.current)
       studyAbort.current?.abort()
       window.speechSynthesis?.cancel()
+      sample.current?.pause()
     }
   }, [flashPose])
 
@@ -184,25 +187,45 @@ export function CreateTutorPage() {
     setLookTouched(true)
   }
 
-  // ---- Voice (speechSynthesis stands in until Gemini voices)
+  // ---- Voice: the real ElevenLabs sample, or speechSynthesis when that is unavailable
+
+  const stopSample = () => {
+    window.speechSynthesis?.cancel()
+    sample.current?.pause()
+    sample.current = null
+  }
 
   const playVoice = (v: VoiceOption) => {
     const syn = window.speechSynthesis
     clearTimeout(playTimer.current)
+    stopSample()
     if (playing === v.id) {
-      syn?.cancel()
       setPlaying(null)
       return
     }
     setPlaying(v.id)
     setVoice(v.id)
     const done = () => setPlaying((p) => (p === v.id ? null : p))
-    if (!syn) {
-      playTimer.current = setTimeout(done, 2600)
-      return
-    }
-    syn.cancel()
-    const u = new SpeechSynthesisUtterance(`Hi, I'm ${v.name}. I've read your notes, and I'm ready when you are.`)
+    const line = `Hi, I'm ${v.name}. I've read your notes, and I'm ready when you are.`
+    void voiceUrl(line, v.eleven).then((url) => {
+      if (url) {
+        const audio = new Audio(url)
+        sample.current = audio
+        audio.onended = done
+        audio.onerror = done
+        void audio.play().catch(done)
+        return
+      }
+      if (!syn) {
+        playTimer.current = setTimeout(done, 2600)
+        return
+      }
+      speakFallback(syn, v, line, done)
+    })
+  }
+
+  const speakFallback = (syn: SpeechSynthesis, v: VoiceOption, line: string, done: () => void) => {
+    const u = new SpeechSynthesisUtterance(line)
     const en = syn.getVoices().filter((x) => /^en/i.test(x.lang))
     if (en.length) u.voice = en[v.vi % en.length]
     u.pitch = v.pitch
@@ -216,7 +239,7 @@ export function CreateTutorPage() {
   // ---- Studying
 
   const startStudy = async () => {
-    window.speechSynthesis?.cancel()
+    stopSample()
     setPlaying(null)
     setStep(STUDY_STEP)
     setStudy({ lines: [], index: 0, total: 5, done: false })

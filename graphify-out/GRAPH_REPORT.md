@@ -1,12 +1,12 @@
 # Graph Report - .  (2026-10-11)
 
 ## Corpus Check
-- 321 files · ~480,051 words
+- 327 files · ~482,668 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2216 nodes · 4695 edges · 150 communities detected
-- Extraction: 68% EXTRACTED · 32% INFERRED · 0% AMBIGUOUS · INFERRED: 1497 edges (avg confidence: 0.8)
+- 2235 nodes · 4732 edges · 159 communities detected
+- Extraction: 68% EXTRACTED · 32% INFERRED · 0% AMBIGUOUS · INFERRED: 1514 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -160,15 +160,24 @@
 - [[_COMMUNITY_Community 147|Community 147]]
 - [[_COMMUNITY_Community 148|Community 148]]
 - [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `MIN()` - 99 edges
+1. `MIN()` - 100 edges
 2. `range()` - 61 edges
 3. `set()` - 56 edges
 4. `K()` - 53 edges
 5. `join()` - 51 edges
-6. `hand()` - 49 edges
-7. `trim()` - 49 edges
+6. `trim()` - 50 edges
+7. `hand()` - 49 edges
 8. `Run` - 46 edges
 9. `get()` - 38 edges
 10. `find()` - 35 edges
@@ -176,167 +185,167 @@
 ## Surprising Connections (you probably didn't know these)
 - `hoop()` --calls--> `Row()`  [INFERRED]
   BLENDER\rooms\build_play_room.py → src\ui\Shop\Shop.tsx
-- `join()` --calls--> `drawingParas()`  [INFERRED]
-  BLENDER\rooms\build_study_room.py → tests\server\fixtureOffice.ts
+- `join()` --calls--> `show()`  [INFERRED]
+  BLENDER\rooms\build_study_room.py → lab\voice-streaming.ts
 - `keys()` --calls--> `shallowEqual()`  [INFERRED]
   BLENDER\tutor\author_emotes.py → design\study-play\claude-design\support.js
-- `add()` --calls--> `aimPoint()`  [INFERRED]
-  BLENDER\tutor\author_tumbles.py → src\debug\GGHooks.tsx
 - `hump()` --calls--> `MIN()`  [INFERRED]
   BLENDER\tutor\author_tumbles.py → tests\ui\windowPlace.test.ts
+- `render_previews()` --calls--> `empty()`  [INFERRED]
+  BLENDER\tutor\build_tutor.py → src\state\growth.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (174): Gate(), TutorBoundary, build(), A room's props without its shell, for the app's white-box room.  The white box, _size(), gemini(), searchable(), DunkHoopState (+166 more)
+Nodes (159): askGemini(), sanitizeReply(), build(), A room's props without its shell, for the app's white-box room.  The white box, _size(), join(), Joins prop parts into one named node mesh (a trophy the app may bounce).     ori, CoinIcon() (+151 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.04
-Nodes (146): dribbleBall(), dunkBall(), juggleBall(), kickBall(), shootHoops(), startBallMove(), body(), cap() (+138 more)
+Cohesion: 0.02
+Nodes (208): arc(), ball(), blocks(), circle(), court(), floor_strip(), hoop(), join() (+200 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.03
-Nodes (80): abilityForTopic(), abilityToLearn(), escape(), hits(), rankAbilities(), topicText(), AnimationController, stateOfClip() (+72 more)
+Cohesion: 0.02
+Nodes (102): abilityForTopic(), abilityToLearn(), escape(), hits(), rankAbilities(), topicText(), AnimationController, stateOfClip() (+94 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.03
-Nodes (116): abilityById(), after(), claim(), cycleCap(), danceParty(), director(), feedSnack(), highFive() (+108 more)
+Nodes (122): abilityById(), after(), claim(), cycleCap(), danceParty(), director(), feedSnack(), highFive() (+114 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.03
-Nodes (142): arc(), ball(), blocks(), circle(), court(), floor_strip(), hoop(), join() (+134 more)
+Cohesion: 0.05
+Nodes (143): body(), cap(), catch(), celebrate(), clip(), dance_bounce(), dance_robot(), dance_spin() (+135 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.02
-Nodes (95): clamp01(), envelope(), routine(), rowX(), smooth(), sortedWidth(), tada(), clamp() (+87 more)
+Nodes (100): clamp01(), envelope(), routine(), rowX(), smooth(), sortedWidth(), tada(), BrowserWindow3D() (+92 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.03
-Nodes (68): step(), asStudent(), boardOrQuiz(), needNotes(), onDirector(), onMode(), onPack(), onStep() (+60 more)
+Cohesion: 0.04
+Nodes (72): onKey(), answer(), _expected(), main(), Opens a room GLB in lab/rooms.html (the app's camera, platform, window and tutor, A console error the check itself causes: the TTS route's 503., check_played(), drops_since() (+64 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (73): sleep(), onKey(), _expected(), main(), Opens a room GLB in lab/rooms.html (the app's camera, platform, window and tutor, A console error the check itself causes: the TTS route's 503., canvas_has_content(), check_played() (+65 more)
+Cohesion: 0.03
+Nodes (75): make(), add(), blend(), _body_shape(), bonk(), _cap_frame(), _cap_shape(), _capsule() (+67 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.03
-Nodes (65): findRig(), armWatch(), boxDistance(), disarmWatch(), hdist(), newWatch(), segmentHitsBox(), stepWatch() (+57 more)
+Nodes (68): findRig(), armWatch(), boxDistance(), disarmWatch(), hdist(), newWatch(), segmentHitsBox(), stepWatch() (+60 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.04
-Nodes (56): exposeDev(), archetypeFor(), hash(), attemptId(), beat(), bindFight(), clearTimers(), downed() (+48 more)
+Nodes (51): step(), asStudent(), boardOrQuiz(), needNotes(), onDirector(), onMode(), onPack(), onStep() (+43 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.04
-Nodes (49): askGemini(), sanitizeReply(), join(), Joins prop parts into one named node mesh (a trophy the app may bounce).     ori, CoinIcon(), freshService(), freshService(), buildPdf() (+41 more)
+Cohesion: 0.05
+Nodes (53): Gate(), TutorBoundary, stamp(), boot(), cdnScriptFor(), collectProps(), compileAttr(), compileTemplate() (+45 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.04
-Nodes (67): add(), blend(), _body_shape(), bonk(), _cap_frame(), _cap_shape(), _capsule(), dizzy() (+59 more)
+Cohesion: 0.06
+Nodes (59): add_box(), add_capsule(), add_cone(), add_cylinder(), add_plane(), add_slab(), add_sparkle(), add_sphere() (+51 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.05
-Nodes (66): check_window(), check_window_walls(), check_zones(), _clip(), _overlap(), Build-time checks on a modelled room (before the bake): props in the keep-out (C, The floating window as the lesson camera sees it, at rest and focused     (camer, Warns (ROOM WARN lines) about: props inside the keep-out (CLEAR) or calm     (CA (+58 more)
+Cohesion: 0.06
+Nodes (31): projectRect(), quadTransform(), fallbackGreeting(), registerTranscript(), chipPlace(), chipReveal(), closeScale(), maximizeWin() (+23 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.06
-Nodes (60): emote_clips(), main(), add_box(), add_capsule(), add_cone(), add_cylinder(), add_plane(), add_slab() (+52 more)
+Nodes (24): Board(), isAccepted(), useCurrentTutor(), typesOf(), uploadFormat(), generateLesson(), lessonForPack(), studyLabels() (+16 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.05
-Nodes (28): lerp(), buildBoardGeometry(), buildSkullGeometry(), clamp(), radialTexture(), tint(), at(), lane() (+20 more)
+Cohesion: 0.07
+Nodes (22): addFiles(), back(), next(), onDrop(), onPick(), playVoice(), speakFallback(), startStudy() (+14 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.04
-Nodes (29): Board(), addFiles(), back(), isAccepted(), next(), onDrop(), onPick(), playVoice() (+21 more)
-
-### Community 16 - "Community 16"
-Cohesion: 0.09
-Nodes (33): setRoomBuild(), call(), deck(), fake(), isPaperCall(), refuse(), section(), upload() (+25 more)
-
-### Community 17 - "Community 17"
 Cohesion: 0.09
 Nodes (28): bezier(), glowTexture(), paint(), place(), sparkTexture(), canvasTexture(), confettiGeometry(), glowTexture() (+20 more)
 
-### Community 18 - "Community 18"
-Cohesion: 0.07
-Nodes (23): asideX(), CharacterDirector(), clock(), useChatThink(), useIntroBeats(), useRoam(), move(), onKey() (+15 more)
-
-### Community 19 - "Community 19"
+### Community 16 - "Community 16"
 Cohesion: 0.1
 Nodes (11): defaultFace(), fallbackOf(), hasLoop(), hasOneShot(), loopOr(), oneShotOr(), angleDiff(), dampAngle() (+3 more)
 
-### Community 20 - "Community 20"
-Cohesion: 0.1
-Nodes (23): askDocument(), checkFile(), codeFrom(), errorText(), fetchLessonPack(), fetchPage(), fetchQuiz(), listDocuments() (+15 more)
-
-### Community 21 - "Community 21"
+### Community 17 - "Community 17"
 Cohesion: 0.09
 Nodes (16): loadBallClips(), Move, BlenderTutor(), flingHand(), manifestUrl(), parseClip(), parseFx(), parseManifest() (+8 more)
 
+### Community 18 - "Community 18"
+Cohesion: 0.11
+Nodes (23): askDocument(), checkFile(), codeFrom(), errorText(), fetchLessonPack(), fetchPage(), fetchQuiz(), listDocuments() (+15 more)
+
+### Community 19 - "Community 19"
+Cohesion: 0.18
+Nodes (21): setRoomBuild(), call(), buildFull(), buildReduced(), disposeIntro(), els(), focusStart(), goLive() (+13 more)
+
+### Community 20 - "Community 20"
+Cohesion: 0.22
+Nodes (18): beatDone(), beatTime(), boltProgress(), bossBeatEnd(), bossIdle(), bossPose(), clamp01(), guyPose() (+10 more)
+
+### Community 21 - "Community 21"
+Cohesion: 0.12
+Nodes (12): asideX(), CharacterDirector(), clock(), useChatThink(), useIntroBeats(), useRoam(), clamp(), damp() (+4 more)
+
 ### Community 22 - "Community 22"
+Cohesion: 0.15
+Nodes (12): move(), onKey(), onWheel(), play(), run(), act(), base(), move() (+4 more)
+
+### Community 23 - "Community 23"
+Cohesion: 0.16
+Nodes (8): addDoc(), since(), refresh(), allDocuments(), allTopics(), keywordsFor(), refreshDocuments(), sampleDocument()
+
+### Community 24 - "Community 24"
+Cohesion: 0.21
+Nodes (5): selectAnsweredRight(), selectAnsweredWrong(), selectExpression(), selectPose(), selectSection()
+
+### Community 25 - "Community 25"
+Cohesion: 0.33
+Nodes (6): cleanAbility(), cleanExperiment(), cleanTopic(), empty(), isNum(), isStr()
+
+### Community 26 - "Community 26"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 23 - "Community 23"
+### Community 27 - "Community 27"
+Cohesion: 0.52
+Nodes (6): dribbleBall(), dunkBall(), juggleBall(), kickBall(), shootHoops(), startBallMove()
+
+### Community 28 - "Community 28"
 Cohesion: 0.38
 Nodes (3): PlayRoomProps(), StudyRoomProps(), useRoom()
 
-### Community 24 - "Community 24"
+### Community 29 - "Community 29"
 Cohesion: 0.4
 Nodes (3): deleteTutor(), isField(), onKey()
 
-### Community 25 - "Community 25"
-Cohesion: 0.4
-Nodes (0): 
-
-### Community 26 - "Community 26"
-Cohesion: 0.4
-Nodes (0): 
-
-### Community 27 - "Community 27"
-Cohesion: 0.8
-Nodes (4): isTypingTarget(), live(), onDown(), onUp()
-
-### Community 28 - "Community 28"
-Cohesion: 0.4
-Nodes (2): createLessonMode(), setup()
-
-### Community 29 - "Community 29"
-Cohesion: 0.67
-Nodes (2): buildLane(), order()
-
 ### Community 30 - "Community 30"
-Cohesion: 0.5
-Nodes (2): UnlockWatcher(), useLessonMode()
+Cohesion: 0.4
+Nodes (0): 
 
 ### Community 31 - "Community 31"
-Cohesion: 0.5
+Cohesion: 0.4
 Nodes (0): 
 
 ### Community 32 - "Community 32"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 0.8
+Nodes (4): isTypingTarget(), live(), onDown(), onUp()
 
 ### Community 33 - "Community 33"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 0.4
+Nodes (2): createLessonMode(), setup()
 
 ### Community 34 - "Community 34"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (2): buildLane(), order()
 
 ### Community 35 - "Community 35"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 0.5
+Nodes (2): UnlockWatcher(), useLessonMode()
 
 ### Community 36 - "Community 36"
-Cohesion: 0.67
+Cohesion: 0.5
 Nodes (0): 
 
 ### Community 37 - "Community 37"
-Cohesion: 0.67
+Cohesion: 0.5
 Nodes (0): 
 
 ### Community 38 - "Community 38"
@@ -368,32 +377,32 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 45 - "Community 45"
-Cohesion: 1.0
-Nodes (1): Smoke test for the room kit: a bare shell, a plank floor, one bevelled box and o
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 46 - "Community 46"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 47 - "Community 47"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 48 - "Community 48"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 49 - "Community 49"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 50 - "Community 50"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 51 - "Community 51"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Smoke test for the room kit: a bare shell, a plank floor, one bevelled box and o
 
 ### Community 52 - "Community 52"
 Cohesion: 1.0
@@ -709,309 +718,351 @@ Nodes (0):
 
 ### Community 130 - "Community 130"
 Cohesion: 1.0
-Nodes (1): The director only records what was asked for; the tutor's animation state     ma
+Nodes (0): 
 
 ### Community 131 - "Community 131"
 Cohesion: 1.0
-Nodes (1): Until the tutor plays no one-shot and has none queued: a tickle (priority 50)
+Nodes (0): 
 
 ### Community 132 - "Community 132"
 Cohesion: 1.0
-Nodes (1): s = +1 points to the viewer's right (his left hand), -1 to the viewer's left.
+Nodes (0): 
 
 ### Community 133 - "Community 133"
 Cohesion: 1.0
-Nodes (1): Held up by the cursor: stretched, swinging, feet kicking, hands flapping.
+Nodes (0): 
 
 ### Community 134 - "Community 134"
 Cohesion: 1.0
-Nodes (1): Tucked ball while the physics body spins him; limbs stay clear of the body.
+Nodes (0): 
 
 ### Community 135 - "Community 135"
 Cohesion: 1.0
-Nodes (1): Lands dizzy, wobbles, shakes it off, ta-da.
+Nodes (0): 
 
 ### Community 136 - "Community 136"
 Cohesion: 1.0
-Nodes (1): Startle: jumps back, hands up, eyes wide.
+Nodes (0): 
 
 ### Community 137 - "Community 137"
 Cohesion: 1.0
-Nodes (1): Aha!': mitten shoots up like a raised finger, then he leans in and wags it.
+Nodes (0): 
 
 ### Community 138 - "Community 138"
 Cohesion: 1.0
-Nodes (1): Grabs something from above, pulls it onto the cap, proud pose.
+Nodes (0): 
 
 ### Community 139 - "Community 139"
 Cohesion: 1.0
-Nodes (1): A three-space 4x4 transform as a Blender-space transform.
+Nodes (1): The director only records what was asked for; the tutor's animation state     ma
 
 ### Community 140 - "Community 140"
 Cohesion: 1.0
-Nodes (1): A three-space point in Blender axes.
+Nodes (1): Until the tutor plays no one-shot and has none queued: a tickle (priority 50)
 
 ### Community 141 - "Community 141"
 Cohesion: 1.0
-Nodes (1): three.js Euler 'XYZ' (radians) as a 4x4: Rx @ Ry @ Rz.
+Nodes (1): s = +1 points to the viewer's right (his left hand), -1 to the viewer's left.
 
 ### Community 142 - "Community 142"
 Cohesion: 1.0
-Nodes (1): placeOnSphere() from geometry.ts: on the body sphere, facing out, then spun abou
+Nodes (1): Held up by the cursor: stretched, swinging, feet kicking, hands flapping.
 
 ### Community 143 - "Community 143"
 Cohesion: 1.0
-Nodes (1): three's TorusGeometry(R, tube, radial, tubular, arc) with round end caps.
+Nodes (1): Tucked ball while the physics body spins him; limbs stay clear of the body.
 
 ### Community 144 - "Community 144"
 Cohesion: 1.0
-Nodes (1): The four-point sparkle from geometry.ts (bezier outline), extruded and bevelled.
+Nodes (1): Lands dizzy, wobbles, shakes it off, ta-da.
 
 ### Community 145 - "Community 145"
 Cohesion: 1.0
-Nodes (1): Mesh object from a three-space bmesh, placed at `world3`, rigidly parented to `b
+Nodes (1): Startle: jumps back, hands up, eyes wide.
 
 ### Community 146 - "Community 146"
 Cohesion: 1.0
-Nodes (1): Rest positions (three space, floor origin) of every bone and the cap frame.
+Nodes (1): Aha!': mitten shoots up like a raised finger, then he leans in and wags it.
 
 ### Community 147 - "Community 147"
 Cohesion: 1.0
-Nodes (1): 3x3 maps three-axes vectors into each bone's rest-local axes.
+Nodes (1): Grabs something from above, pulls it onto the cap, proud pose.
 
 ### Community 148 - "Community 148"
 Cohesion: 1.0
-Nodes (1): Per key: (time, loc, euler, scale) in bone-local channels.
+Nodes (1): A three-space 4x4 transform as a Blender-space transform.
 
 ### Community 149 - "Community 149"
+Cohesion: 1.0
+Nodes (1): A three-space point in Blender axes.
+
+### Community 150 - "Community 150"
+Cohesion: 1.0
+Nodes (1): three.js Euler 'XYZ' (radians) as a 4x4: Rx @ Ry @ Rz.
+
+### Community 151 - "Community 151"
+Cohesion: 1.0
+Nodes (1): placeOnSphere() from geometry.ts: on the body sphere, facing out, then spun abou
+
+### Community 152 - "Community 152"
+Cohesion: 1.0
+Nodes (1): three's TorusGeometry(R, tube, radial, tubular, arc) with round end caps.
+
+### Community 153 - "Community 153"
+Cohesion: 1.0
+Nodes (1): The four-point sparkle from geometry.ts (bezier outline), extruded and bevelled.
+
+### Community 154 - "Community 154"
+Cohesion: 1.0
+Nodes (1): Mesh object from a three-space bmesh, placed at `world3`, rigidly parented to `b
+
+### Community 155 - "Community 155"
+Cohesion: 1.0
+Nodes (1): Rest positions (three space, floor origin) of every bone and the cap frame.
+
+### Community 156 - "Community 156"
+Cohesion: 1.0
+Nodes (1): 3x3 maps three-axes vectors into each bone's rest-local axes.
+
+### Community 157 - "Community 157"
+Cohesion: 1.0
+Nodes (1): Per key: (time, loc, euler, scale) in bone-local channels.
+
+### Community 158 - "Community 158"
 Cohesion: 1.0
 Nodes (1): Rest-pose height (floor to cap top) in model units, from evaluated meshes.
 
 ## Knowledge Gaps
 - **221 isolated node(s):** `The Play room: a sunny toy gym behind the tutor, built with the rooms kit.    "C`, `Sweeps a circle along Blender points (a seam, a net strand). ref anchors the`, `n Blender points on a circle around `axis` (Blender) through `center` (Blender).`, `Joins objects into one mesh named `name` (one node the app can find and move).`, `A seam: a band SEAM['width'] wide with its corners on the sphere of radius     r` (+216 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 45`** (2 nodes): `smoke.py`, `Smoke test for the room kit: a bare shell, a plank floor, one bevelled box and o`
+- **Thin community `Community 51`** (2 nodes): `smoke.py`, `Smoke test for the room kit: a bare shell, a plank floor, one bevelled box and o`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (2 nodes): `lesson.tsx`, `tabStyle()`
+- **Thin community `Community 52`** (2 nodes): `lesson.tsx`, `tabStyle()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (2 nodes): `physics.tsx`, `ExposeProjection()`
+- **Thin community `Community 53`** (2 nodes): `physics.tsx`, `ExposeProjection()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (2 nodes): `App()`, `App.tsx`
+- **Thin community `Community 54`** (2 nodes): `App()`, `App.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 49`** (2 nodes): `AnimatedRoutes()`, `AnimatedRoutes.tsx`
+- **Thin community `Community 55`** (2 nodes): `AnimatedRoutes()`, `AnimatedRoutes.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (2 nodes): `SourcePage()`, `SourcePage.tsx`
+- **Thin community `Community 56`** (2 nodes): `SourcePage()`, `SourcePage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (2 nodes): `newBossRig()`, `BossModel.tsx`
+- **Thin community `Community 57`** (2 nodes): `newBossRig()`, `BossModel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 52`** (2 nodes): `createRigState()`, `rig.ts`
+- **Thin community `Community 58`** (2 nodes): `createRigState()`, `rig.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 53`** (2 nodes): `Shadow()`, `Shadow.tsx`
+- **Thin community `Community 59`** (2 nodes): `Shadow()`, `Shadow.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 54`** (2 nodes): `stageContent.ts`, `boardShows()`
+- **Thin community `Community 60`** (2 nodes): `tutorVoiceOf()`, `catalog.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 55`** (2 nodes): `paletteVars()`, `accents.ts`
+- **Thin community `Community 61`** (2 nodes): `stageContent.ts`, `boardShows()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 56`** (2 nodes): `PackDirector()`, `PackDirector.tsx`
+- **Thin community `Community 62`** (2 nodes): `paletteVars()`, `accents.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 57`** (2 nodes): `IntroTutor()`, `IntroTutor.tsx`
+- **Thin community `Community 63`** (2 nodes): `PackDirector()`, `PackDirector.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 58`** (2 nodes): `ViewCamera.tsx`, `ViewCamera()`
+- **Thin community `Community 64`** (2 nodes): `IntroTutor()`, `IntroTutor.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 59`** (2 nodes): `Text.tsx`, `Text()`
+- **Thin community `Community 65`** (2 nodes): `ViewCamera.tsx`, `ViewCamera()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (2 nodes): `CapTint()`, `CapTint.tsx`
+- **Thin community `Community 66`** (2 nodes): `Text.tsx`, `Text()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (2 nodes): `Basketball()`, `Basketball.tsx`
+- **Thin community `Community 67`** (2 nodes): `CapTint()`, `CapTint.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (2 nodes): `LessonRoom()`, `LessonRoom.tsx`
+- **Thin community `Community 68`** (2 nodes): `Basketball()`, `Basketball.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (2 nodes): `Option()`, `BoardQuiz.tsx`
+- **Thin community `Community 69`** (2 nodes): `LessonRoom()`, `LessonRoom.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (2 nodes): `NotesWindow()`, `NotesWindow.tsx`
+- **Thin community `Community 70`** (2 nodes): `Option()`, `BoardQuiz.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (2 nodes): `ScratchPage()`, `ScratchPage.tsx`
+- **Thin community `Community 71`** (2 nodes): `NotesWindow()`, `NotesWindow.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 66`** (2 nodes): `WindowControls.tsx`, `controlParts()`
+- **Thin community `Community 72`** (2 nodes): `ScratchPage()`, `ScratchPage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 67`** (2 nodes): `Plate()`, `parts.tsx`
+- **Thin community `Community 73`** (2 nodes): `WindowControls.tsx`, `controlParts()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 68`** (2 nodes): `PlayWorld()`, `PlayWorld.tsx`
+- **Thin community `Community 74`** (2 nodes): `Plate()`, `parts.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 69`** (2 nodes): `StudyWorld.tsx`, `drift()`
+- **Thin community `Community 75`** (2 nodes): `PlayWorld()`, `PlayWorld.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 70`** (2 nodes): `initialStage()`, `director.ts`
+- **Thin community `Community 76`** (2 nodes): `StudyWorld.tsx`, `drift()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 71`** (2 nodes): `useIsHidden()`, `hidden.ts`
+- **Thin community `Community 77`** (2 nodes): `initialStage()`, `director.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 72`** (2 nodes): `BackButton()`, `BackButton.tsx`
+- **Thin community `Community 78`** (2 nodes): `useIsHidden()`, `hidden.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 73`** (2 nodes): `CloseButton()`, `Closeable.tsx`
+- **Thin community `Community 79`** (2 nodes): `BackButton()`, `BackButton.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 74`** (2 nodes): `MicButton()`, `MicButton.tsx`
+- **Thin community `Community 80`** (2 nodes): `CloseButton()`, `Closeable.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 75`** (2 nodes): `ModeSwitch()`, `ModeSwitch.tsx`
+- **Thin community `Community 81`** (2 nodes): `MicButton()`, `MicButton.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 76`** (2 nodes): `UnlockBanner.tsx`, `UnlockBanner()`
+- **Thin community `Community 82`** (2 nodes): `ModeSwitch()`, `ModeSwitch.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 77`** (2 nodes): `QuizCard()`, `QuizCard.tsx`
+- **Thin community `Community 83`** (2 nodes): `UnlockBanner.tsx`, `UnlockBanner()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 78`** (2 nodes): `SkipButton()`, `SkipButton.tsx`
+- **Thin community `Community 84`** (2 nodes): `QuizCard()`, `QuizCard.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 79`** (2 nodes): `Toast.tsx`, `Toast()`
+- **Thin community `Community 85`** (2 nodes): `ShopVisit()`, `ShopVisit.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 80`** (2 nodes): `json()`, `dances.test.ts`
+- **Thin community `Community 86`** (2 nodes): `SkipButton()`, `SkipButton.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 81`** (2 nodes): `v()`, `hoopsLesson.test.ts`
+- **Thin community `Community 87`** (2 nodes): `Toast.tsx`, `Toast()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 82`** (1 nodes): `vite.config.ts`
+- **Thin community `Community 88`** (2 nodes): `json()`, `dances.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 83`** (1 nodes): `drawers.tsx`
+- **Thin community `Community 89`** (2 nodes): `v()`, `hoopsLesson.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 84`** (1 nodes): `play.tsx`
+- **Thin community `Community 90`** (1 nodes): `vite.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 85`** (1 nodes): `lessonPack.ts`
+- **Thin community `Community 91`** (1 nodes): `drawers.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 86`** (1 nodes): `main.tsx`
+- **Thin community `Community 92`** (1 nodes): `play.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 87`** (1 nodes): `theme.ts`
+- **Thin community `Community 93`** (1 nodes): `lessonPack.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 88`** (1 nodes): `config.ts`
+- **Thin community `Community 94`** (1 nodes): `main.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 89`** (1 nodes): `introState.ts`
+- **Thin community `Community 95`** (1 nodes): `theme.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 90`** (1 nodes): `mastery.ts`
+- **Thin community `Community 96`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 91`** (1 nodes): `config.ts`
+- **Thin community `Community 97`** (1 nodes): `introState.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 92`** (1 nodes): `frame.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 93`** (1 nodes): `Character.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 94`** (1 nodes): `Accessories.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 95`** (1 nodes): `Face.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 96`** (1 nodes): `Hands.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 97`** (1 nodes): `catalog.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 98`** (1 nodes): `mockLesson.ts`
+- **Thin community `Community 98`** (1 nodes): `mastery.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 99`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 100`** (1 nodes): `index.ts`
+- **Thin community `Community 100`** (1 nodes): `frame.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 101`** (1 nodes): `config.ts`
+- **Thin community `Community 101`** (1 nodes): `Character.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 102`** (1 nodes): `Stage.tsx`
+- **Thin community `Community 102`** (1 nodes): `Accessories.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 103`** (1 nodes): `config.ts`
+- **Thin community `Community 103`** (1 nodes): `Face.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 104`** (1 nodes): `index.ts`
+- **Thin community `Community 104`** (1 nodes): `Hands.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 105`** (1 nodes): `config.ts`
+- **Thin community `Community 105`** (1 nodes): `mockLesson.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 106`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 107`** (1 nodes): `hoopsStore.ts`
+- **Thin community `Community 107`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 108`** (1 nodes): `index.ts`
+- **Thin community `Community 108`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 109`** (1 nodes): `index.ts`
+- **Thin community `Community 109`** (1 nodes): `Stage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 110`** (1 nodes): `PhysicsRoom.tsx`
+- **Thin community `Community 110`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 111`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 112`** (1 nodes): `roomStyle.ts`
+- **Thin community `Community 112`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 113`** (1 nodes): `stageStyle.ts`
+- **Thin community `Community 113`** (1 nodes): `config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 114`** (1 nodes): `index.ts`
+- **Thin community `Community 114`** (1 nodes): `hoopsStore.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 115`** (1 nodes): `windowStyle.ts`
+- **Thin community `Community 115`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 116`** (1 nodes): `gymStore.ts`
+- **Thin community `Community 116`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 117`** (1 nodes): `index.ts`
+- **Thin community `Community 117`** (1 nodes): `PhysicsRoom.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 118`** (1 nodes): `drawers.ts`
+- **Thin community `Community 118`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 119`** (1 nodes): `mode.ts`
+- **Thin community `Community 119`** (1 nodes): `roomStyle.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 120`** (1 nodes): `tumbles.ts`
+- **Thin community `Community 120`** (1 nodes): `stageStyle.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 121`** (1 nodes): `LectureContent.tsx`
+- **Thin community `Community 121`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 122`** (1 nodes): `Caption.tsx`
+- **Thin community `Community 122`** (1 nodes): `windowStyle.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 123`** (1 nodes): `chatStore.ts`
+- **Thin community `Community 123`** (1 nodes): `gymStore.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 124`** (1 nodes): `Drawers.tsx`
+- **Thin community `Community 124`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 125`** (1 nodes): `FocusRail.tsx`
+- **Thin community `Community 125`** (1 nodes): `drawers.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 126`** (1 nodes): `PlayHud.tsx`
+- **Thin community `Community 126`** (1 nodes): `mode.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 127`** (1 nodes): `items.ts`
+- **Thin community `Community 127`** (1 nodes): `shop.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 128`** (1 nodes): `Transcript.tsx`
+- **Thin community `Community 128`** (1 nodes): `tumbles.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 129`** (1 nodes): `askPrompt.test.ts`
+- **Thin community `Community 129`** (1 nodes): `LectureContent.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 130`** (1 nodes): `The director only records what was asked for; the tutor's animation state     ma`
+- **Thin community `Community 130`** (1 nodes): `Caption.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 131`** (1 nodes): `Until the tutor plays no one-shot and has none queued: a tickle (priority 50)`
+- **Thin community `Community 131`** (1 nodes): `chatStore.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 132`** (1 nodes): `s = +1 points to the viewer's right (his left hand), -1 to the viewer's left.`
+- **Thin community `Community 132`** (1 nodes): `Drawers.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 133`** (1 nodes): `Held up by the cursor: stretched, swinging, feet kicking, hands flapping.`
+- **Thin community `Community 133`** (1 nodes): `FocusRail.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 134`** (1 nodes): `Tucked ball while the physics body spins him; limbs stay clear of the body.`
+- **Thin community `Community 134`** (1 nodes): `PlayHud.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 135`** (1 nodes): `Lands dizzy, wobbles, shakes it off, ta-da.`
+- **Thin community `Community 135`** (1 nodes): `items.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 136`** (1 nodes): `Startle: jumps back, hands up, eyes wide.`
+- **Thin community `Community 136`** (1 nodes): `Transcript.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 137`** (1 nodes): `Aha!': mitten shoots up like a raised finger, then he leans in and wags it.`
+- **Thin community `Community 137`** (1 nodes): `askPrompt.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 138`** (1 nodes): `Grabs something from above, pulls it onto the cap, proud pose.`
+- **Thin community `Community 138`** (1 nodes): `shopVisit.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 139`** (1 nodes): `A three-space 4x4 transform as a Blender-space transform.`
+- **Thin community `Community 139`** (1 nodes): `The director only records what was asked for; the tutor's animation state     ma`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 140`** (1 nodes): `A three-space point in Blender axes.`
+- **Thin community `Community 140`** (1 nodes): `Until the tutor plays no one-shot and has none queued: a tickle (priority 50)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 141`** (1 nodes): `three.js Euler 'XYZ' (radians) as a 4x4: Rx @ Ry @ Rz.`
+- **Thin community `Community 141`** (1 nodes): `s = +1 points to the viewer's right (his left hand), -1 to the viewer's left.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 142`** (1 nodes): `placeOnSphere() from geometry.ts: on the body sphere, facing out, then spun abou`
+- **Thin community `Community 142`** (1 nodes): `Held up by the cursor: stretched, swinging, feet kicking, hands flapping.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 143`** (1 nodes): `three's TorusGeometry(R, tube, radial, tubular, arc) with round end caps.`
+- **Thin community `Community 143`** (1 nodes): `Tucked ball while the physics body spins him; limbs stay clear of the body.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 144`** (1 nodes): `The four-point sparkle from geometry.ts (bezier outline), extruded and bevelled.`
+- **Thin community `Community 144`** (1 nodes): `Lands dizzy, wobbles, shakes it off, ta-da.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 145`** (1 nodes): `Mesh object from a three-space bmesh, placed at `world3`, rigidly parented to `b`
+- **Thin community `Community 145`** (1 nodes): `Startle: jumps back, hands up, eyes wide.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 146`** (1 nodes): `Rest positions (three space, floor origin) of every bone and the cap frame.`
+- **Thin community `Community 146`** (1 nodes): `Aha!': mitten shoots up like a raised finger, then he leans in and wags it.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 147`** (1 nodes): `3x3 maps three-axes vectors into each bone's rest-local axes.`
+- **Thin community `Community 147`** (1 nodes): `Grabs something from above, pulls it onto the cap, proud pose.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 148`** (1 nodes): `Per key: (time, loc, euler, scale) in bone-local channels.`
+- **Thin community `Community 148`** (1 nodes): `A three-space 4x4 transform as a Blender-space transform.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 149`** (1 nodes): `Rest-pose height (floor to cap top) in model units, from evaluated meshes.`
+- **Thin community `Community 149`** (1 nodes): `A three-space point in Blender axes.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 150`** (1 nodes): `three.js Euler 'XYZ' (radians) as a 4x4: Rx @ Ry @ Rz.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 151`** (1 nodes): `placeOnSphere() from geometry.ts: on the body sphere, facing out, then spun abou`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 152`** (1 nodes): `three's TorusGeometry(R, tube, radial, tubular, arc) with round end caps.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 153`** (1 nodes): `The four-point sparkle from geometry.ts (bezier outline), extruded and bevelled.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 154`** (1 nodes): `Mesh object from a three-space bmesh, placed at `world3`, rigidly parented to `b`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 155`** (1 nodes): `Rest positions (three space, floor origin) of every bone and the cap frame.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 156`** (1 nodes): `3x3 maps three-axes vectors into each bone's rest-local axes.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 157`** (1 nodes): `Per key: (time, loc, euler, scale) in bone-local channels.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 158`** (1 nodes): `Rest-pose height (floor to cap top) in model units, from evaluated meshes.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `MIN()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 17`, `Community 18`, `Community 19`, `Community 21`?**
-  _High betweenness centrality (0.224) - this node is a cross-community bridge._
-- **Why does `add()` connect `Community 11` to `Community 0`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 13`, `Community 14`, `Community 17`, `Community 19`?**
-  _High betweenness centrality (0.082) - this node is a cross-community bridge._
-- **Why does `range()` connect `Community 4` to `Community 1`, `Community 2`, `Community 7`, `Community 11`, `Community 12`, `Community 13`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
-- **Are the 94 inferred relationships involving `MIN()` (e.g. with `check_window_walls()` and `_overlap()`) actually correct?**
-  _`MIN()` has 94 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `MIN()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 11`, `Community 12`, `Community 13`, `Community 15`, `Community 16`, `Community 17`, `Community 20`, `Community 21`, `Community 24`?**
+  _High betweenness centrality (0.193) - this node is a cross-community bridge._
+- **Why does `find()` connect `Community 8` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 7`, `Community 9`, `Community 13`, `Community 23`?**
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Why does `add()` connect `Community 7` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 15`, `Community 16`, `Community 23`?**
+  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+- **Are the 95 inferred relationships involving `MIN()` (e.g. with `check_window_walls()` and `_overlap()`) actually correct?**
+  _`MIN()` has 95 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 54 inferred relationships involving `range()` (e.g. with `tube()` and `circle()`) actually correct?**
   _`range()` has 54 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 52 inferred relationships involving `set()` (e.g. with `add_cylinder()` and `add_box()`) actually correct?**
