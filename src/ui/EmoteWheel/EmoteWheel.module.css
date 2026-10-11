@@ -63,12 +63,6 @@
   border-top: 20px solid var(--ink);
   z-index: 2;
 }
-.guide {
-  position: absolute;
-  inset: 20px;
-  border: 2.5px dashed #cfc9bd;
-  border-radius: 50%;
-}
 .ring {
   position: absolute;
   inset: 0;
@@ -109,9 +103,10 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border: 2.5px solid var(--ink);
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background: var(--sand);
+  background: transparent;
   font-family: inherit;
   color: var(--ink);
   cursor: pointer;

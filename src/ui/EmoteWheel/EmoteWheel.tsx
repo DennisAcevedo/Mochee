@@ -85,7 +85,6 @@ export function EmoteWheel({ onClose }: { onClose: () => void }) {
         </button>
         <div className={styles.wheel} ref={wheel} style={{ width: WHEEL.size, height: WHEEL.size }}>
           <div className={styles.pointer} />
-          <div className={styles.guide} />
           <div className={styles.ring} style={{ transform: `rotate(${-pos * deg}deg)` }}>
             {items.map((item, i) => {
               const a = (i / n) * Math.PI * 2
