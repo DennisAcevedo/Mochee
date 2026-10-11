@@ -61,7 +61,11 @@ def ships(path):
 # src/scene/layout3d.ts, src/scene/physics/config.ts and the live LessonPage
 # frame; if those move, move these (and bump CONTRACT).
 
-CONTRACT = 2  # written into each GLB's root extras and the manifest. 2: one floating window
+# Written into each GLB's root extras and the manifest. History:
+# 2: one floating window (centre x -3.15, 3.0 wide, focused scale 1.06).
+# 3: the one window moved to centre x -3.06, 2.98 wide, unscaled when focused
+#    (focus scale 1.0), so its focus ring stays inside the left wall.
+CONTRACT = 3
 
 FLOOR_Y = -1.55  # world y of the floor (layout3d FLOOR_Y): the app mounts rooms at [0, FLOOR_Y, 0]
 TUTOR_SCALE = 0.8  # layout3d TUTOR_SCALE: model units -> world
@@ -74,8 +78,8 @@ APP = {
     # The visible shell runs past anything a full-bleed canvas shows (WORLD.shell).
     'shell': {'front_z': 11.4, 'top': 13.0},
     'tutor': {
-        'spot': (0.0, 0.0, 0.6),  # his centre spot (SPOTS.center); he roams x -1.05..1.05, z 0.6..1.0
-        'lane_x': (-1.05, 1.05),
+        'spot': (0.0, 0.0, 0.6),  # his centre spot (SPOTS.center); he roams x -0.2..1.05, z 0.6..1.0
+        'lane_x': (-0.2, 1.05),  # SPOTS.left.x .. SPOTS.right.x (CharacterDirector's laneMin, laneMax)
         'scale': TUTOR_SCALE,
         'height': 2.08,  # feet to cap top (2.6 model units)
         'radius': 0.64,  # body radius (0.8 model units)
@@ -88,14 +92,15 @@ APP = {
     # build's screen-space check and the preview ghost are all worked out from it.
     # If src/scene/layout3d.ts moves the window, refresh this dict and bump CONTRACT.
     'window': {
-        'center': (-3.15, 0.33 - FLOOR_Y, -0.45),  # WINDOW.position (world y 0.33 -> room y 1.88)
+        'center': (-3.06, 0.33 - FLOOR_Y, -0.45),  # WINDOW.position (world y 0.33 -> room y 1.88)
         'yaw': 0.26,  # WINDOW.yaw, about +y: turned toward the stage
-        'size': (3.0, 2.5),  # WINDOW.width x WINDOW.height
-        # Focused (the normal teaching state): turned flatter, scaled up, moved toward
-        # the camera, and the camera and its target pan left (cameraPan()).
+        'size': (2.98, 2.5),  # WINDOW.width x WINDOW.height
+        # Focused (the normal teaching state): turned flatter, not scaled, moved toward
+        # the camera, and the camera and its target pan left (cameraPan()). The focus
+        # ring then spans x -4.600..-1.520: inside the left wall and the study's rail.
         'focus': {
             'yaw': 0.14,  # WINDOWS.focusYaw
-            'scale': 1.06,  # WINDOWS.focusScale
+            'scale': 1.0,  # WINDOWS.focusScale
             'lift': 0.25,  # WINDOW_STYLE.focus.lift (src/scene/windows/windowStyle.ts), +z
             'pan': -0.9,  # cameraPan(): -LESSON_CAMERA.focusShift while any focus is on
         },

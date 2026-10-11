@@ -52,7 +52,7 @@ COURT = {
 }
 
 # Back RIGHT, not the mock's back left: the floating window hides the back wall
-# left of x -2.02 once focused (contract CALM['window_back']).
+# left of x -2.04 once focused (contract CALM['window_back']).
 RACK = {
     'x': (1.55, 3.07),  # post centres: 4 balls a row plus the old ~4 cm side clearance
     'z': -6.62,  # cradle midline
@@ -83,7 +83,7 @@ BALLS = {
 SEAM = {'width': 0.024, 'segments': 32, 'clear': 0.0005}
 
 # High on the back wall, left of the tutor: its left edge clears what the focused
-# window hides (x < -2.02) and its right edge stops short of x 0, where the shot
+# window hides (x < -2.04) and its right edge stops short of x 0, where the shot
 # starts to rise. label / digits: (height off the centre, size) of the baked text.
 SCOREBOARD = {'center': (-0.95, 3.7), 'size': (1.8, 1.4, 0.14), 'screen': (1.54, 1.08),
               'label': ('SHOTS', 0.32, 0.24), 'digits': ('7 / 10', -0.1, 0.48)}
@@ -100,7 +100,7 @@ BLOCKS = [
 FOAM = {'bevel': 0.07, 'segments': 4}
 
 # Folded gym mats back right, between the rack and the right wall: the back wall
-# left of x -2.02 is behind the focused window.
+# left of x -2.04 is behind the focused window.
 MATS = {'x': (3.25, 4.6), 'z': -6.5, 'depth': 0.85, 'fold': 0.13, 'folds': 3}
 
 

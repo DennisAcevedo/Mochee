@@ -61,12 +61,13 @@ def main():
                    lambda r: r.fulfill(status=200, body=body, headers={'content-type': 'model/gltf-binary'}))
         page.on('console', on_console)
         page.on('pageerror', lambda e: errors.append('pageerror: %s' % e))
-        for attempt in range(2):  # the dev server restarts itself on server/** edits: retry a reset once
+        tries = 5  # the dev server restarts itself on server/** edits: retry a reset a few times
+        for attempt in range(tries):
             try:
                 page.goto(url, wait_until='domcontentloaded')
                 break
             except PlaywrightError:
-                if attempt:
+                if attempt == tries - 1:
                     raise
                 page.wait_for_timeout(3000)
         page.wait_for_function('window.__rooms && (window.__rooms.ready || window.__rooms.error)', timeout=60000)

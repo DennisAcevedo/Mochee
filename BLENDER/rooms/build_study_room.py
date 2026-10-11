@@ -74,7 +74,7 @@ SHELF = {'x0': 1.95, 'x1': 3.28, 'y': 1.85, 'thick': 0.06, 'depth': 0.34}
 BOOKCASE = {'x0': -4.4, 'x1': -2.3, 'front': 2.32, 'depth': 0.3, 'h': 0.8, 'side': 0.06,
             'top': 0.05, 'plinth': 0.08, 'header': 0.15}
 # The stack of books and the mug on the back ledge. The books keep left of the
-# tutor but clear of what the focused window hides (CALM window_back, x < -2.02).
+# tutor but clear of what the focused window hides (CALM window_back, x < -2.04).
 LEDGE = {'books_x': -1.62, 'mug_x': 2.25}
 PLANT = {'x': 3.85, 'z': 2.35}
 RUG = {'center': C.APP['platform']['center'][::2], 'r': 2.3, 'ring': (1.93, 2.0)}
