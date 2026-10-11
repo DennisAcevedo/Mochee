@@ -22,8 +22,12 @@ import { QUIZ_FEEDBACK, RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 // Play mode shuts the lesson (the gate below, driven by src/play/lessonMode.ts).
 
 const RUNNER = {
-  walkMs: 950, // time to cross between spots before he starts talking
-  gapMs: 650, // breath between steps while playing
+  // Steps should flow like one talk, not stop and start: he starts the next
+  // line soon after the last one ends, and talks over the end of a walk.
+  walkMs: 450, // he starts talking this long into a walk between spots...
+  arriveMs: 950, // ...and keeps walking until he is there (then the step's own loop)
+  gapMs: 150, // breath between steps while playing
+  lookAhead: 2, // upcoming steps whose voice is fetched while this one plays
   autoStartMs: 1400, // after the intro hands over to the live lesson
   hintDelayMs: 1300, // a wrong answer: the shrug plays out (1.2 s clip), then he goes to the notes
 } as const
@@ -211,23 +215,28 @@ function apply(index: number) {
   // Synthesize during the walk and keep a small look-ahead; don't spend the
   // daily voice budget generating an entire lesson the student may never hear.
   prefetchSpeech(step.say)
-  const upcoming = s.steps[index + 1]
-  if (upcoming) prefetchSpeech(upcoming.say)
+  for (const upcoming of s.steps.slice(index + 1, index + 1 + RUNNER.lookAhead)) prefetchSpeech(upcoming.say)
   if (step.wait === 'quiz') {
     prefetchSpeech(QUIZ_FEEDBACK.correct)
     prefetchSpeech(QUIZ_FEEDBACK.wrong)
   }
-  if (moving) later(RUNNER.walkMs, () => speakStep(step))
-  else speakStep(step)
+  if (moving) {
+    later(RUNNER.walkMs, () => speakStep(step, true))
+    later(RUNNER.arriveMs, () => {
+      const w = useWalkthrough.getState()
+      if (w.steps[w.index]?.id === step.id && w.phase === 'speaking' && w.loopOverride === 'walk') useWalkthrough.setState({ loopOverride: step.loop })
+    })
+  } else speakStep(step)
 }
 
 // Steps whose gesture and fx already played this run: pressing play again
 // (or stepping back to one) replays the line, not the wave, hop or confetti.
 const performed = new Set<string>()
 
-function speakStep(step: ResolvedStep) {
+// `walking`: he is still crossing to the step's spot, so his legs keep the walk loop until he arrives.
+function speakStep(step: ResolvedStep, walking = false) {
   const d = useDirector.getState()
-  useWalkthrough.setState({ phase: 'speaking', loopOverride: step.loop })
+  useWalkthrough.setState({ phase: 'speaking', loopOverride: walking ? 'walk' : step.loop })
   const first = !performed.has(step.id)
   performed.add(step.id)
   if (first && step.gesture) d.play(step.gesture)
@@ -259,7 +268,7 @@ function advanceOrFinish() {
     useWalkthrough.setState({ phase: 'idle', loopOverride: null })
     return
   }
-  // Keep the step's loop through the gap: dropping to idle for 650 ms made him
+  // Keep the step's loop through the gap: dropping to idle between steps made him
   // lower his arm and restart the point clip between two board steps.
   useWalkthrough.setState({ phase: 'gap' })
   later(RUNNER.gapMs, () => apply(index + 1))
