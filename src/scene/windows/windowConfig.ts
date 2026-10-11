@@ -75,8 +75,12 @@ export const WINDOW_UI = {
     // the caption along the bottom. It sits at world z, in front of the tutor.
     // The 0.4 NDC left either side is where the tutor steps aside and waits:
     // hand to hand he spans ~0.38 NDC, so a wider box would hide half of him.
-    box: [-0.64, -0.72, 0.64, 0.6] as [number, number, number, number],
-    z: 2.3, // the tutor's spots reach z 1 and his body ~0.6 past that
+    // In focus mode (LessonPage) the cards fold into a rail on the left and the
+    // dock shrinks, so the box runs nearly top to bottom: 30% taller than when
+    // the cards stayed out. It sits left of centre, leaving the right gap
+    // (0.4 NDC) for the tutor, and the left one (~18 px clear) for the rail.
+    box: [-0.86, -0.86, 0.6, 0.86] as [number, number, number, number],
+    z: 3.5, // nearer the camera, so its world scale stays about 1 (the tutor's spots reach z 1 and his body ~0.6 past that)
     // No extra page zoom while maximized (the board's rows would leave the page):
     // the bigger box makes it bigger. While maximized only the active tab shows; the rest shrink out of the
     // strip and come back on restore (the tabs themselves are kept).

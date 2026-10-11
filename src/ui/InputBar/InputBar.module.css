@@ -18,6 +18,23 @@
   }
 }
 
+/* Compact (focus mode): a small mic beside the ask box, no status column. */
+.bar[data-compact] {
+  padding: 6px 8px 6px 6px;
+  gap: 10px;
+}
+.bar[data-compact] .status {
+  display: none;
+}
+.bar[data-compact] .micWrap,
+.bar[data-compact] .mic {
+  width: 44px;
+  height: 44px;
+}
+.bar[data-compact] .micGlyph {
+  transform: scale(0.7);
+}
+
 /* Mic */
 .micWrap {
   position: relative;

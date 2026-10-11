@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { BossLayer } from '../boss'
 import { preloadBlenderTutor } from '../character/blender/BlenderTutor'
@@ -27,6 +27,7 @@ import { ModeSwitch } from '../ui/ModeSwitch/ModeSwitch'
 import { LevelUpBanner } from '../ui/PlayHud/LevelUpBanner'
 import { LevelPill, PlayHud } from '../ui/PlayHud/PlayHud'
 import { SideTranscript } from '../ui/SideTranscript/SideTranscript'
+import { FocusRail, type RailItem } from '../ui/FocusRail/FocusRail'
 import { SkipButton } from '../ui/Start/SkipButton'
 import { StartScreen } from '../ui/Start/StartScreen'
 import { Toast } from '../ui/Toast/Toast'
@@ -135,8 +136,15 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // The red light closes the browser window with no chip of its own: this one brings it back.
   const browserClosed = useWindows((s) => s.closed)
   const transcriptHidden = useIsHidden('transcript')
-  // A maximized window sends him to wait in the gap on its right, where the transcript sits.
-  const maximized = useWindows((s) => s.maximized !== null)
+  // Focus: a maximized browser window takes the stage. The cards fold into a
+  // rail on the left (a button peeks one back out) and the dock's talk
+  // control shrinks to the mic, so the window can be as big as it gets.
+  const focus = useWindows((s) => s.maximized !== null) && live
+  const [peek, setPeek] = useState<RailItem | null>(null)
+  useEffect(() => {
+    if (!focus) setPeek(null)
+  }, [focus])
+  const folded = (item: RailItem) => focus && peek !== item
   const greeting = steps?.[0]?.say ?? fallbackGreeting(tutor)
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
@@ -174,17 +182,20 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // The top of the stage: the step bar in study (closed, a chip brings it
   // back), the play HUD in play. The step bar only exists in study: play
   // keeps the lesson silent, and its arrow keys go with it.
+  // Folded into the focus rail, the step bar stays mounted (display: none) for its arrow keys.
   const hud =
     live &&
     (study ? (
       <div className={`${lesson.hud} ${lesson.steps} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-        {walkHidden && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
-        <WalkthroughBar className={`${lesson.stepBar} ${walkHidden ? lesson.gone : ''}`} closeable />
+        {walkHidden && !folded('top') && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
+        <WalkthroughBar className={`${lesson.stepBar} ${walkHidden || folded('top') ? lesson.gone : ''}`} closeable />
       </div>
     ) : (
-      <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-        {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
-      </div>
+      !folded('top') && (
+        <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
+          {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
+        </div>
+      )
     ))
   const browserChip = live && browserClosed && (
     <div className={lesson.browserChip}>
@@ -192,12 +203,12 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     </div>
   )
   // The conversation so far, down the right side of the stage (closed: a chip in its corner).
-  const transcript = live && !maximized && (
+  const transcript = live && !folded('transcript') && (
     <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" style={{ '--enter-delay': '300ms' } as CSSProperties}>
       {transcriptHidden ? <ReopenChip id="transcript" label="Transcript" /> : <SideTranscript className={lesson.sidePanel} closeable />}
     </div>
   )
-  const caption = live && (
+  const caption = live && !folded('caption') && (
     <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
       {captionHidden ? <ReopenChip id="caption" label="Captions" icon="💬" /> : <Caption className={lesson.bubble} closeable />}
     </div>
@@ -221,12 +232,17 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <div ref={rowRef} className={lesson.row}>
           <div ref={frameRef} className={lesson.frame} data-gg-part="stage">
             <Stage>
-              {!narrow && (hud || caption || browserChip || transcript) && (
+              {!narrow && (hud || caption || browserChip || transcript || focus) && (
                 <div className={lesson.overlay}>
                   {hud}
                   {transcript}
                   {caption}
                   {browserChip}
+                  {focus && (
+                    <div className={lesson.rail}>
+                      <FocusRail study={study} peek={peek} onPeek={setPeek} />
+                    </div>
+                  )}
                 </div>
               )}
               {live && (
@@ -247,7 +263,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         )}
         <div ref={introRef('dock')} className={lesson.dock} data-live={live || undefined}>
           <div className={lesson.ask} data-gg-part="ask">
-            <InputBar />
+            <InputBar compact={focus} />
           </div>
         </div>
         {live && <Drawers />}

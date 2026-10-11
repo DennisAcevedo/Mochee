@@ -286,13 +286,15 @@ describe('maximized placement', () => {
   cam.updateMatrixWorld()
   cam.updateProjectionMatrix()
 
-  it('is centred, in front of the tutor, wider than a default window and as tall', () => {
-    assert.ok(Math.abs(mp.x) < 1e-6)
+  it('sits where its box is, in front of the tutor, wider than a default window and as tall', () => {
+    // Its centre projects to the box's centre (the box sits left of centre, leaving the tutor the right).
+    const c = new Vector3(mp.x, mp.y, mp.z).project(cam)
+    assert.ok(Math.abs(c.x - (M.box[0] + M.box[2]) / 2) < 0.02, `centre x ${c.x}`)
     assert.equal(mp.z, M.z)
     assert.equal(mp.h, M.height)
     assert.equal(M.height, W.height, 'as tall as a default window, so pages render at 1:1 when maximized')
     // Wider than a default window in its own units (pages reflow into more room);
-    // its world scale is about 1 (it is bigger on screen because it flies at z 2.3).
+    // its world scale is about 1 (it is bigger on screen because it flies near the camera).
     assert.ok(mp.w > W.width, `w ${mp.w}`)
     assert.ok(mp.scale > 0.9 && mp.scale < 1.1, `scale ${mp.scale}`)
   })

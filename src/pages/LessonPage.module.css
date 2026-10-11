@@ -133,6 +133,16 @@
   --enter-from: 18px 0;
 }
 
+/* Focus (the browser maximized): the folded cards' rail, down the stage's
+   left edge in the gap the maximized window leaves (WINDOW_UI.maximize.box). */
+.rail {
+  position: absolute;
+  z-index: 4;
+  left: 0.8%;
+  top: 50%;
+  translate: 0 -50%;
+}
+
 /* The closed browser window's way back: bottom left of the stage, beside the caption. */
 .browserChip {
   position: absolute;

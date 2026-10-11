@@ -11,7 +11,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
 }
 
-export function InputBar() {
+// compact: just the mic and the ask box (the lesson's focus mode, with the browser maximized).
+export function InputBar({ compact = false }: { compact?: boolean }) {
   const listening = useTutorStore(selectListening)
   const speaking = useTutorStore(selectSpeaking)
   const draft = useTutorStore((s) => s.draft)
@@ -46,7 +47,7 @@ export function InputBar() {
   const showBars = listening || speaking
 
   return (
-    <div ref={introRef('inputBar')} className={styles.bar}>
+    <div ref={introRef('inputBar')} className={styles.bar} data-compact={compact || undefined}>
       <MicButton />
 
       <div className={styles.status}>
