@@ -12,6 +12,10 @@ export default defineConfig({
   server: {
     port: 5176,
     strictPort: true,
+    // IPv4 loopback: Node resolves "localhost" to ::1 alone, which left
+    // http://127.0.0.1:5176 (and browsers that try IPv4 first) unanswered.
+    // Still local-only.
+    host: '127.0.0.1',
     // Pre-transform the app at startup so the first page load after a restart
     // is not ~260 on-demand transforms in a request waterfall.
     warmup: { clientFiles: ['./src/main.tsx'] }, // its static imports are crawled too
