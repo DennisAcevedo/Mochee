@@ -20,11 +20,7 @@
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --w: var(--drawer-w, 340px);
   --gutter: 16px;
-
-  /* Where the stage sits (published by LessonPage); the fallback parks the
-     closed handle at the screen edge, as on a page without a stage. */
-  --dock-gap: 10px; /* closed handle to the stage edge */
-  --stage-l: var(--stage-left, calc(var(--gutter) + 42px));
+  --handle-gap: 6px; /* handle to the panel's outer edge (right: -48px, 42px wide) */
 
   position: fixed;
   z-index: 30;
@@ -37,16 +33,16 @@
   transition: transform 420ms var(--ease);
 }
 
-/* Closed: the panel slides out so its handle (42px, 6px off the panel's
-   edge) docks just beside the stage. Its box never eats clicks meant for
-   the page; its handle does. */
+/* Closed: the panel slides off the left side until its handle sits flush
+   against the screen edge; opening slides it back right with the handle
+   riding on the panel's outer edge. The closed box never eats clicks meant
+   for the page; its handle does. */
 .panel[data-open='false'] {
-  transform: translateX(calc(var(--stage-l) - var(--dock-gap) - 48px - var(--gutter) - var(--w)));
+  transform: translateX(calc(-1 * (var(--gutter) + var(--w) + var(--handle-gap))));
   pointer-events: none;
 }
 .panel[data-open='false'] .handle {
   pointer-events: auto;
-  border-radius: 14px; /* free-standing beside the stage, so round all corners */
 }
 
 .inner {
@@ -69,8 +65,8 @@
   opacity: 0;
 }
 
-/* Handle tab on the panel's outer edge: peeks in from the screen edge while closed,
-   and stays beside the open panel as its collapse control (aria-label "Collapse X"). */
+/* Handle tab on the panel's outer edge: flush with the screen edge while closed,
+   and beside the open panel as its collapse control (aria-label "Collapse X"). */
 .handle {
   position: absolute;
   top: 20px;
@@ -90,6 +86,7 @@
   box-shadow:
     0 0 0 1px rgba(29, 27, 36, 0.06),
     0 12px 26px -12px rgba(61, 90, 214, 0.5);
+  transform-origin: left center; /* the hover grow never lifts it off the screen edge */
   transition: transform 200ms var(--spring);
 }
 .handle:hover {
