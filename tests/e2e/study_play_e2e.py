@@ -13,7 +13,7 @@ requests) and the same dev-only `window.__gg` hooks, plus the wave B ones:
     play { toss, shoot, room }                        physics actions + the room's inner box
     loops                                             base loops the tutor switched to
 Named 3D objects: tutor, physics-ball, physics-hoop, evo-book-<docId>,
-evo-poster-<topicId>, evo-trophy-<topicId>, evo-ability-<abilityId>.
+evo-trophy-<topicId>, evo-ability-<abilityId>.
 
 The voice is muted for the whole run: grounded answers vary, so speaking them
 would bill new ElevenLabs characters on every run. Each run uploads the fixture
@@ -329,10 +329,10 @@ def run(base: str, out: Path, headed: bool) -> int:
             r.check("open drawer's 'Collapse Learning' handle closes it", opened and poll(lambda: gg(page, "g.drawers.getState().learningOpen") is False, 3),
                     {"opened": opened, "open_after": gg(page, "g.drawers.getState().learningOpen")})
 
-        # 5. Room evolution: the built-in topic's poster, and now a trophy (books come only from uploads, checked below).
-        names = [f"evo-poster-{CONFIG['topic']}", f"evo-trophy-{CONFIG['topic']}"]
+        # 5. Room evolution: a trophy for the mastered topic (books come only from uploads, checked below).
+        names = [f"evo-trophy-{CONFIG['topic']}"]
         present = {n: has_object(page, n) for n in names}
-        r.check("room evolution: poster + trophy", all(present.values()), present)
+        r.check("room evolution: trophy", all(present.values()), present)
         page.get_by_role("button", name=re.compile(r"keep studying", re.I)).first.click()
         r.shot(page, "sp_08_room")
 

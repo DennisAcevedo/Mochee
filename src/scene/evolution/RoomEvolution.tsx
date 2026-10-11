@@ -203,7 +203,7 @@ function Evolution() {
 
   const keys = [...books.map((b) => b.key), ...mastered.map((t) => `trophy:${t.id}`)]
   const fresh = useFreshKeys(keys, status === 'ok' || status === 'unavailable')
-  const study = useMode((m) => m.mode === 'study') // the study room stays calm: no library shelf or posters there
+  const study = useMode((m) => m.mode === 'study') // the study room stays calm: no library shelf there
 
   return (
     <group name="room-evolution">

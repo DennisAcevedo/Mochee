@@ -15,7 +15,7 @@ import { safeStorage } from './progress'
 // - Abilities: each mastered topic teaches him a physical ability matched to
 //   it (e.g. FCFS -> "Queue juggle": he lines up P1/P2/P3 job blocks in
 //   arrival order). Abilities are new moves/props, never random rewards.
-// - Room evolution: documents become books on a shelf, topics become posters,
+// - Room evolution: documents become books on a shelf and
 //   mastered topics earn trophies. The room is built from the student's own
 //   material.
 // - Return experiments: on a later visit he presents something he built from a

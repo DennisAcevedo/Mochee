@@ -184,7 +184,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     useMode.setState({ mode: 'study' }) // a mastery celebration or play mode must not carry into the next lesson
   }, [])
 
-  // A finished upload puts the new document's book and posters on the stage
+  // A finished upload puts the new document's book on the stage
   // now (the stage otherwise re-reads the list on a slow poll).
   useEffect(
     () =>

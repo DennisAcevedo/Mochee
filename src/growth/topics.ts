@@ -6,7 +6,7 @@ import { GROWTH } from './config'
 // Where topics come from: the built-in CS111 lesson plus the student's own
 // documents (GET /api/documents). The documents backend lands in parallel, so
 // every fetch tolerates 404s, bad JSON and network errors by keeping what it
-// had. The room (books, posters) and ability matching read this store.
+// had. The room (books) and ability matching read this store.
 
 // The built-in lesson's topic (mockLesson / shared/lessonNotes: FCFS, P1 24 / P2 3 / P3 3).
 export const BUILTIN_TOPIC: { id: string; title: string; keywords: string[] } = {

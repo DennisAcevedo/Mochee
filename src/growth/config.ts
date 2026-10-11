@@ -15,7 +15,7 @@ export const GROWTH = {
   returnFlag: 'return',
 
   // How often the room re-reads GET /api/documents while it is mounted (ms),
-  // so books and posters for a fresh upload appear without a reload.
+  // so the books for a fresh upload appear without a reload.
   documentsPollMs: 15000,
   documentsTimeoutMs: 4000,
 
