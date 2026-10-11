@@ -61,10 +61,11 @@ export interface VoiceOption {
 }
 export type VoiceId = 'juniper' | 'atlas' | 'wren' | 'sol'
 
-// Two voices to pick from: a female and a male ElevenLabs voice.
+// Two voices to pick from: Eve (female) and Sam (male), both ElevenLabs. The
+// ids stay 'juniper' / 'atlas' because tutors are saved with them.
 export const VOICES: VoiceOption[] = [
-  { id: 'juniper', name: 'Juniper', desc: 'Female voice', eleven: 'female', pitch: 1.05, rate: 0.92, vi: 0, gemini: null },
-  { id: 'atlas', name: 'Atlas', desc: 'Male voice', eleven: 'male', pitch: 0.85, rate: 1.0, vi: 1, gemini: null },
+  { id: 'juniper', name: 'Eve', desc: 'Female voice', eleven: 'female', pitch: 1.05, rate: 0.92, vi: 0, gemini: null },
+  { id: 'atlas', name: 'Sam', desc: 'Male voice', eleven: 'male', pitch: 0.85, rate: 1.0, vi: 1, gemini: null },
 ]
 
 // The ElevenLabs voice a tutor speaks with. Tutors saved with the retired

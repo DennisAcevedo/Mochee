@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-10-11)
 
 ## Corpus Check
-- 327 files · ~482,668 words
+- 327 files · ~482,880 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -1056,11 +1056,11 @@ Nodes (1): Rest-pose height (floor to cap top) in model units, from evaluated me
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `MIN()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 11`, `Community 12`, `Community 13`, `Community 15`, `Community 16`, `Community 17`, `Community 20`, `Community 21`, `Community 24`?**
-  _High betweenness centrality (0.193) - this node is a cross-community bridge._
-- **Why does `find()` connect `Community 8` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 7`, `Community 9`, `Community 13`, `Community 23`?**
-  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+  _High betweenness centrality (0.217) - this node is a cross-community bridge._
+- **Why does `join()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`, `Community 6`, `Community 10`, `Community 11`, `Community 12`, `Community 13`?**
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
 - **Why does `add()` connect `Community 7` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 15`, `Community 16`, `Community 23`?**
-  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
 - **Are the 95 inferred relationships involving `MIN()` (e.g. with `check_window_walls()` and `_overlap()`) actually correct?**
   _`MIN()` has 95 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 54 inferred relationships involving `range()` (e.g. with `tube()` and `circle()`) actually correct?**
