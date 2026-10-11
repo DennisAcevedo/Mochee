@@ -1,17 +1,14 @@
-/* "Chunky toy": a cream pill with a thick ink outline and a hard offset
-   shadow, holding chunky round buttons in the stage's accent colours. The
+/* "Chunky toy": a stack of chunky pills in the stage's accent colours, each
+   with a thick ink outline and a hard offset shadow (no container around
+   them). The pills are right-aligned with the icon on the right, so a name
+   slides out to the left, away from the maximized window beside them. The
    button whose card is peeked out is pressed in (down into its shadow). */
 .rail {
   --ink: #1d1b24;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 12px;
-  padding: 12px 10px;
-  border: 3px solid var(--ink);
-  border-radius: 999px;
-  background: #fdfaf2;
-  box-shadow: 5px 5px 0 var(--ink);
   animation: railIn 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
@@ -20,6 +17,7 @@
   height: 44px;
   min-width: 44px;
   display: flex;
+  flex-direction: row-reverse; /* icon right, name to its left */
   align-items: center;
   padding: 0 9px;
   border: 2.5px solid var(--ink);
@@ -75,7 +73,7 @@
 .rail:focus-within .label,
 .rail[data-intro] .label {
   max-width: 130px;
-  margin: 0 5px 0 7px;
+  margin: 0 7px 0 5px;
   opacity: 1;
 }
 

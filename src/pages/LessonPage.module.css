@@ -134,13 +134,15 @@
 }
 
 /* Focus (the browser maximized): the folded cards' rail, down the stage's
-   left edge in the gap the maximized window leaves (WINDOW_UI.maximize.box). */
+   left edge in the gap the maximized window leaves (WINDOW_UI.maximize.box).
+   Pinned by its right edge (a collapsed pill, 44 px + its 3 px shadow, in
+   from 0.8%), so its pills grow leftward, out of the window's way. */
 .rail {
   position: absolute;
   z-index: 4;
-  left: 0.8%;
+  left: calc(0.8% + 47px);
   top: 50%;
-  translate: 0 -50%;
+  translate: -100% -50%;
   pointer-events: auto; /* the overlay passes clicks to the canvas; the rail takes its own */
 }
 
