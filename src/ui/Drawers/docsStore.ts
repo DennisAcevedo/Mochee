@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import type { DocKind, DocumentInfo, TopicInfo } from '../../../shared/docsTypes'
-import { listDocuments, uploadFile, type DocsErrorCode } from './docsClient'
+import { deleteDocument, listDocuments, uploadFile, type DocsErrorCode } from './docsClient'
+import { useDrawers } from '../../state/drawers'
+import { useLessonPack } from '../../lesson/packSession'
 
 // The student's uploaded documents as the drawer sees them, plus the backend's
 // readiness. The Learning drawer lists them, the quiz looks up topic titles
@@ -26,6 +28,7 @@ interface DocsState {
   setTutor: (tutorId: string | null) => void
   addDocument: (doc: DocumentInfo) => void
   refresh: () => Promise<void>
+  removeDocument: (documentId: string) => Promise<DocsErrorCode | null>
   addFile: (file: File, kind: DocKind) => Promise<DocumentInfo | null>
   clearUploadError: () => void
 }
@@ -86,6 +89,16 @@ export const useDocs = create<DocsState>((set, get) => ({
   },
 
   clearUploadError: () => set({ uploadError: null }),
+
+  removeDocument: async (documentId) => {
+    const res = await deleteDocument(documentId)
+    if (!res.ok && res.error !== 'not-found') return res.error
+    set((s) => ({ documents: s.documents.filter((d) => d.id !== documentId) }))
+    const drawer = useDrawers.getState()
+    if (drawer.documentId === documentId) drawer.selectDocument(null)
+    if (useLessonPack.getState().pack?.documentId === documentId) useLessonPack.getState().clear()
+    return null
+  },
 }))
 
 export const findDocument = (id: string | null) => (id ? (useDocs.getState().documents.find((d) => d.id === id) ?? null) : null)

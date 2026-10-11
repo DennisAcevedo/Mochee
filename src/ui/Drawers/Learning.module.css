@@ -160,16 +160,63 @@
 
 .docs {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.docWrap {
+  position: relative;
+  min-width: 0;
+}
+
+.docWrap[data-deletable='true'] .docTitle,
+.docWrap[data-deletable='true'] .docMeta {
+  padding-right: 32px;
+}
+
+.deleteDoc {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+.deleteDoc:hover {
+  color: #b2382b;
+  background: #ffebe8;
+}
+.deleteDoc:disabled { opacity: 0.5; cursor: wait; }
+.deleteDoc:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+
+.deleteConfirm {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #ffebe8;
+  color: #933529;
+  font-size: 13px;
+}
+.deleteConfirm p { margin: 0 0 8px; }
+.deleteConfirm > div { display: flex; justify-content: flex-end; gap: 8px; }
+.deleteConfirm button:last-child { background: #b2382b; color: white; }
+
 .doc {
   display: flex;
   gap: 12px;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 12px;
   border: 2px solid transparent;
   border-radius: 18px;
@@ -210,6 +257,8 @@
 
 .docMain {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
   gap: 3px;
   min-width: 0;
 }
@@ -231,10 +280,13 @@
   flex-wrap: wrap;
   gap: 5px;
   margin-top: 5px;
+  min-width: 0;
 }
 .chip,
 .chipMore {
   max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

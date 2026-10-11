@@ -195,6 +195,18 @@ export function createDocsService(opts: ServiceOptions) {
       return { status: 200, body: store.listDocuments(tutorId).map(info) }
     },
 
+    remove(documentId: string): Reply {
+      if (!DOC_ID.test(documentId)) return fail(400, 'bad-request')
+      const doc = store.getDocument(documentId)
+      if (!doc) return fail(404, 'not-found')
+      const path = resolve(opts.dataDir, doc.savedPath)
+      if (!path.startsWith(resolve(uploadsDir) + sep)) return fail(400, 'bad-request')
+      // Remove only this stored upload; never a directory or a client-supplied path.
+      rmSync(path, { force: true })
+      store.deleteDocument(documentId)
+      return { status: 200, body: { ok: true } }
+    },
+
     page(documentId: string, pageRaw: string): Reply {
       if (!DOC_ID.test(documentId) || !/^\d{1,4}$/.test(pageRaw)) return fail(400, 'bad-request')
       const doc = store.getDocument(documentId)

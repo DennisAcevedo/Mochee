@@ -9,6 +9,7 @@ import type { AskGesture } from './askTypes.ts'
 export const DOCS_ROUTES = {
   health: '/api/health', // GET -> Health
   documents: '/api/documents', // GET -> DocumentInfo[]; POST raw file bytes (x-filename, x-tutor-id, x-doc-kind headers) -> DocumentInfo
+  document: (documentId: string) => `/api/documents/${encodeURIComponent(documentId)}`, // DELETE -> { ok: true }
   page: (documentId: string, page: number) => `/api/documents/${encodeURIComponent(documentId)}/pages/${page}`, // GET -> PageText
   file: (documentId: string) => `/api/documents/${encodeURIComponent(documentId)}/file`, // GET -> the original upload: inline for PDF, text and images, a download otherwise
   chat: '/api/tutor/chat', // POST ChatRequest -> GroundedAnswer

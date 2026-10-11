@@ -7,6 +7,7 @@ import { useBossMastery } from './mastery'
 import { SourcePage } from './SourcePage'
 import { errorText } from '../ui/Drawers/docsClient'
 import { COIN_REWARD } from '../state/progress'
+import { CoinIcon } from '../ui/PlayHud/CoinIcon'
 import css from './Boss.module.css'
 
 // One overlay for the whole Beat the Boss flow. Mounted once (LessonPage);
@@ -38,6 +39,15 @@ function Spark({ className, fill }: { className: string; fill: string }) {
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
       <path d={SPARK} fill={fill} />
     </svg>
+  )
+}
+
+function BossReward({ className }: { className: string }) {
+  return (
+    <span className={className} data-testid="boss-reward">
+      <CoinIcon />
+      +{COIN_REWARD.bossWin} coins
+    </span>
   )
 }
 
@@ -153,6 +163,7 @@ function Picker() {
                 p. {t.firstPage}
                 {mastered[t.id] ? ' · mastered' : ''}
               </span>
+              <BossReward className={css.pickReward} />
             </button>
           )
         })}
@@ -235,6 +246,7 @@ function Battle() {
         <span className={css.bossGuards}>
           {shownHp} / {maxHp} HP
         </span>
+        <BossReward className={css.fightReward} />
       </div>
 
       {/* Over the fighters (positions written by the arena every frame) */}
@@ -327,7 +339,8 @@ function Battle() {
         <section className={css.endWon} data-testid="boss-won" data-arena-bottom>
           <span className={css.endTagWon}>BOSS BEATEN</span>
           <h2 className={css.endTitle}>{a.name} is down!</h2>
-          <span className={css.cardText}>{topic.title} mastered · +{COIN_REWARD.bossWin} coins</span>
+          <span className={css.cardText}>{topic.title} mastered</span>
+          <BossReward className={css.wonReward} />
           <span className={css.row}>
             <button type="button" className={css.primary} data-testid="boss-next" onClick={s.backToTopics}>
               Next boss

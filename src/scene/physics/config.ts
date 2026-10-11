@@ -97,26 +97,6 @@ export const PHYSICS = {
     shot: { apexBelowCeil: 0.3, minRise: 1.1, minApexGap: 0.3, launchGap: 0.18, lead: 0.12 }, // shootBall(): pops off his head (gap above the cap), apex under the ceiling, aims `lead` past the rim centre so the arc clears the near rim
   },
 
-  blocks: {
-    // FCFS job blocks; length is proportional to burst time (24 / 3 / 3).
-    unit: 0.065, // world units per burst unit
-    minLength: 0.2,
-    height: 0.34,
-    depth: 0.34,
-    density: 0.8,
-    friction: 0.8,
-    restitution: 0.15,
-    origin: [-2.35, FLOOR_Y, 1.25] as [number, number, number], // P1's centre on the floor; P2, P3 stack on it
-    labelSize: 0.13,
-    labelColor: '#ffffff',
-    jobs: [
-      { id: 'P1', burst: 24, color: PALETTE.teal },
-      { id: 'P2', burst: 3, color: PALETTE.sun },
-      { id: 'P3', burst: 3, color: PALETTE.violet },
-    ],
-    stackOffsetX: [0, -0.36, -0.36], // x of each block relative to the origin: P1 lies flat, P2 stands on it, P3 on P2
-  },
-
   // A thin collider for the floating browser window so toys bounce off it.
   windows: [WINDOW].map((w) => ({ position: w.position, yaw: w.yaw, half: [w.width / 2, w.height / 2, 0.05] as [number, number, number] })),
 

@@ -62,6 +62,10 @@
 .pickName { font-size: 18px; font-weight: 900; letter-spacing: 0.06em; }
 .pickTag { font-size: 14px; font-weight: 700; color: #4a4756; }
 .pickMeta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #77738a; }
+.pickReward, .fightReward, .wonReward { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.pickReward { margin-top: auto; padding: 5px 9px; border-radius: 999px; color: #7a4b00; background: #fff3d4; }
+.fightReward { color: #ffe6a0; }
+.wonReward { padding: 7px 11px; border-radius: 999px; color: #7a4b00; background: #fff3d4; }
 .status { position: relative; margin: 0; font-size: 15px; font-weight: 700; color: #4a4756; }
 .main > .status { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 18px; }
 .primary { padding: 10px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #7c5cf2, #3d5ad6); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; align-self: flex-start; }

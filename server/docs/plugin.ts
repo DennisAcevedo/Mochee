@@ -170,6 +170,16 @@ async function route(service: DocsService, root: string, maxBytes: number, maxAu
     if (method === 'POST') return upload(service, req, maxBytes)
     return methodNotAllowed
   }
+  const document = /^\/api\/documents\/([^/]+)$/.exec(path)
+  if (document) {
+    if (method !== 'DELETE') return methodNotAllowed
+    try {
+      return service.remove(decodeURIComponent(document[1]))
+    } catch (e) {
+      if (e instanceof URIError) return { status: 400, body: { error: 'bad-request' } }
+      throw e
+    }
+  }
   const page = /^\/api\/documents\/([^/]+)\/pages\/([^/]+)$/.exec(path)
   if (page) {
     if (method !== 'GET') return methodNotAllowed
@@ -227,11 +237,11 @@ export function docsMiddleware(options: DocsMiddlewareOptions): Connect.NextHand
     const url = req.url ?? ''
     if (isForbiddenPath(url)) return send(res, { status: 404, body: { error: 'not-found' } })
     if (!url.startsWith('/api/')) return next()
-    if (req.method === 'POST') {
+    if (req.method === 'POST' || req.method === 'DELETE') {
       // Uploads check their own content type (an UPLOAD_FORMATS type in upload(), audio/* in lectureUpload()).
       const postPath = url.split('?')[0]
       const isUpload = postPath === DOCS_ROUTES.documents || postPath === STUDY_ROUTES.lectures
-      const refused = refuseCrossSite(req, isUpload ? null : 'application/json')
+      const refused = refuseCrossSite(req, isUpload || req.method === 'DELETE' ? null : 'application/json')
       if (refused) return send(res, { status: refused.status, body: { error: refused.error } })
     }
     route(getService(), options.root, maxBytes, maxAudioBytes, req)

@@ -118,6 +118,16 @@ export function openStore(dbPath: string) {
   return {
     close: () => db.close(),
 
+    deleteDocument(documentId: string) {
+      inTransaction(() => {
+        db.prepare('DELETE FROM attempts WHERE questionId IN (SELECT id FROM questions WHERE documentId = ?)').run(documentId)
+        for (const table of ['questions', 'lesson_packs', 'topics', 'chunks_fts', 'chunks', 'pages']) {
+          db.prepare(`DELETE FROM ${table} WHERE documentId = ?`).run(documentId)
+        }
+        db.prepare('DELETE FROM documents WHERE id = ?').run(documentId)
+      })
+    },
+
     insertDocument(doc: DocumentRow, pages: string[], chunks: Chunk[], topics: TopicInfo[]) {
       inTransaction(() => {
         db.prepare('INSERT INTO documents (id, title, savedPath, pageCount, createdAt, tutorId, kind) VALUES (?, ?, ?, ?, ?, ?, ?)').run(doc.id, doc.title, doc.savedPath, doc.pageCount, doc.createdAt, doc.tutorId, doc.kind)

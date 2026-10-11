@@ -151,6 +151,37 @@ describe('ingest', () => {
   })
 })
 
+describe('deleting material', () => {
+  test('removes the upload, indexed text, lessons, questions and attempts, preserving other material', async () => {
+    const ctx = freshService()
+    try {
+      const doc = (await ctx.service.ingest(pdf, 'remove.pdf')).body as DocumentInfo
+      const keep = (await ctx.service.ingest(pdf, 'keep.pdf')).body as DocumentInfo
+      const quiz = (await ctx.service.quiz({ documentId: doc.id })).body as QuizSet
+      const q = quiz.questions[0]
+      ctx.service.submit({ questionId: q.id, choice: 0, attemptId: 'delete-test-0001' })
+      await ctx.service.lesson(doc.id)
+      assert.ok(ctx.service.store.getLessonPack(doc.id))
+      assert.deepEqual(ctx.service.remove(doc.id), { status: 200, body: { ok: true } })
+      assert.equal(ctx.service.file(doc.id).status, 404)
+      assert.equal(ctx.service.page(doc.id, '1').status, 404)
+      assert.equal(ctx.service.store.getLessonPack(doc.id), null)
+      assert.deepEqual(ctx.service.store.topics(doc.id), [])
+      assert.deepEqual(ctx.service.store.allChunks(doc.id), [])
+      assert.deepEqual(ctx.service.store.search(doc.id, ftsQuery('CPU')!, 5), [])
+      assert.equal(ctx.service.store.pageText(doc.id, 1), null)
+      assert.equal(ctx.service.store.getQuestion(q.id), null)
+      assert.equal(ctx.service.store.attemptCount(q.id), 0)
+      assert.deepEqual(readdirSync(join(ctx.dataDir, 'uploads')), [`${keep.id}.pdf`])
+      assert.equal(ctx.service.file(keep.id).status, 200)
+      assert.equal(ctx.service.remove(doc.id).status, 404)
+      assert.equal(ctx.service.remove('../outside').status, 400)
+    } finally {
+      ctx.dispose()
+    }
+  })
+})
+
 describe('grounded chat with a scripted Gemini', () => {
   test('a fabricated quote gets one stricter retry, then an honest abstain', async () => {
     const calls: GeminiCall[] = []
@@ -412,5 +443,18 @@ describe('HTTP middleware', () => {
   test('unknown routes fall through to the next middleware', async () => {
     const r = await send('/api/ask-something-else', 'GET', {})
     assert.equal(r.json, 'fallthrough')
+  })
+
+  test('DELETE removes one upload and rejects cross-site requests and invalid ids', async () => {
+    const uploaded = await send('/api/documents', 'POST', { 'content-type': 'application/pdf', 'x-filename': 'delete-test.pdf' }, pdf)
+    const doc = uploaded.json as DocumentInfo
+    const path = `/api/documents/${doc.id}`
+    assert.equal((await send(path, 'DELETE', { origin: 'https://evil.example' })).status, 403)
+    assert.equal((await getRaw(`${path}/file`)).status, 200)
+    assert.equal((await send(path, 'GET', {})).status, 405)
+    assert.equal((await send('/api/documents/%ZZ', 'DELETE', {})).status, 404)
+    assert.equal((await send('/api/documents/..%2Foutside', 'DELETE', {})).status, 400)
+    assert.deepEqual(await send(path, 'DELETE', {}), { status: 200, json: { ok: true } })
+    assert.equal((await getRaw(`${path}/file`)).status, 404)
   })
 })

@@ -1,9 +1,7 @@
-import figtree800 from '@fontsource/figtree/files/figtree-latin-800-normal.woff?url'
-import { RoundedBox, Text } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { BallCollider, CuboidCollider, RigidBody, useAfterPhysicsStep, type RapierRigidBody } from '@react-three/rapier'
 import type { RigidBodyType } from '@dimforge/rapier3d-compat'
-import { Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { DoubleSide, Quaternion, Vector3, type Group, type Object3D, type Vector3Tuple } from 'three'
 import { Basketball } from '../hoops/Basketball'
 import { armStudentShot, disarmStudentShot, HOOP_MAGNET, stepStudentShot } from '../hoops/studentShot'
@@ -14,17 +12,14 @@ import { clampLength, Grabber, spinFromVelocity, type GrabMagnet } from './grab'
 import { playHandlers, usePlayBody } from './playBody'
 
 // Play-mode toys: a basketball you can hold, carry, throw or drop, a hoop high
-// on the right wall that counts the student's own baskets (hoops/studentShot.ts),
-// and the three FCFS job blocks (P1 / P2 / P3, lengths 24 : 3 : 3) stacked so
-// the tutor can knock them down. Mounted only in play / celebrate mode; each
-// toy starts fresh.
+// on the right wall that counts the student's own baskets (hoops/studentShot.ts).
+// Mounted only in play / celebrate mode; each toy starts fresh.
 
 const KINEMATIC = 2 as RigidBodyType // RigidBodyType.KinematicPositionBased
 const DYNAMIC = 0 as RigidBodyType // RigidBodyType.Dynamic
 const IDENTITY = new Quaternion()
 const B = PHYSICS.ball
 const HOOP = PHYSICS.hoop
-const BLK = PHYSICS.blocks
 
 interface ToyProps {
   name: string
@@ -290,59 +285,6 @@ function HoopArt() {
   )
 }
 
-// One job block: a rounded bar, length proportional to its burst time, with
-// its id on the front and back faces.
-function JobBlock({ id, burst, color, spawn }: { id: string; burst: number; color: string; spawn: Vector3Tuple }) {
-  const len = Math.max(BLK.minLength, burst * BLK.unit)
-  const half: Vector3Tuple = [len / 2, BLK.height / 2, BLK.depth / 2]
-  return (
-    <GrabbableToy
-      name={`physics-block-${id}`}
-      spawn={spawn}
-      reach={Math.max(...half)}
-      spinPerSpeed={B.spinPerSpeed * 0.4}
-      linearDamping={0.05}
-      angularDamping={0.4}
-    >
-      <CuboidCollider args={half} density={BLK.density} restitution={BLK.restitution} friction={BLK.friction} />
-      <RoundedBox args={[len, BLK.height, BLK.depth]} radius={0.04} smoothness={3} castShadow>
-        <meshStandardMaterial color={color} roughness={0.42} />
-      </RoundedBox>
-      {[1, -1].map((side) => (
-        <Text
-          key={side}
-          font={figtree800}
-          fontSize={BLK.labelSize}
-          color={BLK.labelColor}
-          anchorX="center"
-          anchorY="middle"
-          position={[0, 0, side * (BLK.depth / 2 + 0.003)]}
-          rotation={[0, side > 0 ? 0 : Math.PI, 0]}
-        >
-          {id}
-        </Text>
-      ))}
-    </GrabbableToy>
-  )
-}
-
-// P1 lies on the floor; P2 and P3 stack on top of it, ready to be knocked down.
-const BLOCK_SPAWNS: Vector3Tuple[] = BLK.jobs.map((_, i) => [
-  BLK.origin[0] + BLK.stackOffsetX[i],
-  BLK.origin[1] + BLK.height * (i + 0.5),
-  BLK.origin[2],
-])
-
-export function Blocks() {
-  return (
-    <>
-      {BLK.jobs.map((j, i) => (
-        <JobBlock key={j.id} id={j.id} burst={j.burst} color={j.color} spawn={BLOCK_SPAWNS[i]} />
-      ))}
-    </>
-  )
-}
-
 // Every toy, live only in play / celebrate mode.
 export function Toys() {
   const playing = useMode((s) => s.mode !== 'study')
@@ -351,9 +293,6 @@ export function Toys() {
     <>
       <Ball />
       <Hoop drawn={false} />
-      <Suspense fallback={null}>
-        <Blocks />
-      </Suspense>
     </>
   )
 }

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { DocumentInfo, QuizQuestion, QuizResult, TopicInfo } from '../../shared/docsTypes'
 import { fetchQuiz, listDocuments, submitQuiz, type DocsErrorCode } from '../ui/Drawers/docsClient'
-import { useProgress } from '../state/progress'
+import { COIN_REWARD, useProgress } from '../state/progress'
 import { useBossMastery } from './mastery'
 import { onBossHit, onBossStrike } from './cues'
 
@@ -142,7 +142,7 @@ export const useBoss = create<BossState>((set, get) => ({
           if (my !== session) return
           const topic = get().topic
           if (topic) useBossMastery.getState().master(topic.id)
-          useProgress.getState().award('bossWin')
+          useProgress.getState().award('bossWin', COIN_REWARD.bossWin)
           set({ phase: 'won' })
         })
       }

@@ -90,6 +90,8 @@ const postJson = <T>(url: string, body: unknown, timeoutMs?: number) =>
 // No tutorId = every class (back-compat); with one = that class only.
 export const listDocuments = (tutorId?: string) =>
   request<DocumentInfo[]>(tutorId ? `${DOCS_ROUTES.documents}?tutorId=${encodeURIComponent(tutorId)}` : DOCS_ROUTES.documents)
+export const deleteDocument = (documentId: string) =>
+  request<{ ok: true }>(DOCS_ROUTES.document(documentId), { method: 'DELETE' })
 // Built on the first call (one Gemini call, or an outline from the pages), cached after.
 export const fetchLessonPack = (documentId: string) =>
   postJson<LessonPack>(STUDY_ROUTES.lesson(documentId), {}, CLIENT.lessonTimeoutMs)

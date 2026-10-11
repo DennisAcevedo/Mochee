@@ -186,8 +186,22 @@ function DocList() {
   const error = useDocs((d) => d.error)
   const documents = useDocs((d) => d.documents)
   const refresh = useDocs((d) => d.refresh)
+  const removeDocument = useDocs((d) => d.removeDocument)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<DocumentInfo | null>(null)
   const documentId = useDrawers((d) => d.documentId)
   const selectDocument = useDrawers((d) => d.selectDocument)
+
+  const remove = async (doc: DocumentInfo) => {
+    if (deleting) return
+    setDeleting(doc.id)
+    setDeleteError(null)
+    const error = await removeDocument(doc.id)
+    if (error) setDeleteError(errorText(error))
+    else setDeleteTarget(null)
+    setDeleting(null)
+  }
 
   return (
     <ul className={s.docs}>
@@ -211,10 +225,23 @@ function DocList() {
             chips={doc.topics.map((t) => t.title)}
             selected={documentId === doc.id}
             onSelect={() => selectDocument(doc.id)}
+            onDelete={() => { setDeleteTarget(doc); setDeleteError(null) }}
+            deleting={deleting === doc.id}
+            deleteDisabled={deleting !== null}
             accent={LEARNING.chipColors[(i + 1) % LEARNING.chipColors.length]}
           />
+          {deleteTarget?.id === doc.id && (
+            <div className={s.deleteConfirm} role="group" aria-label={`Confirm deleting ${doc.title}`}>
+              <p>Delete this material and its generated quizzes? This cannot be undone.</p>
+              <div>
+                <button type="button" className={s.linkBtn} disabled={deleting !== null} onClick={() => { setDeleteTarget(null); setDeleteError(null) }}>Cancel</button>
+                <button type="button" className={s.linkBtn} disabled={deleting !== null} onClick={() => void remove(doc)}>{deleting === doc.id ? 'Deleting…' : 'Delete material'}</button>
+              </div>
+            </div>
+          )}
         </li>
       ))}
+      {deleteError && <li className={s.notice} data-tone="error" role="alert">{deleteError}</li>}
       {status === 'loading' && documents.length === 0 && (
         <li className={s.docSkeleton} aria-label="Loading documents">
           <span />
@@ -248,30 +275,42 @@ interface DocRowProps {
   selected: boolean
   onSelect: () => void
   accent: string
+  onDelete?: () => void
+  deleting?: boolean
+  deleteDisabled?: boolean
 }
 
-function DocRow({ title, badge, meta, chips, selected, onSelect, accent }: DocRowProps) {
+function DocRow({ title, badge, meta, chips, selected, onSelect, accent, onDelete, deleting, deleteDisabled }: DocRowProps) {
   const shown = chips.slice(0, LEARNING.maxChips)
   const more = chips.length - shown.length
   return (
-    <button type="button" className={s.doc} aria-pressed={selected} onClick={onSelect} style={{ '--c': accent } as CSSProperties}>
-      <span className={s.docIcon} aria-hidden>
-        {badge}
-      </span>
-      <span className={s.docMain}>
-        <span className={s.docTitle}>{title}</span>
-        <span className={s.docMeta}>{meta}</span>
-        {shown.length > 0 && (
-          <span className={s.chips}>
-            {shown.map((c, i) => (
-              <span key={c} className={s.chip} style={{ '--c': LEARNING.chipColors[i % LEARNING.chipColors.length] } as CSSProperties}>
-                {c}
-              </span>
-            ))}
-            {more > 0 && <span className={s.chipMore}>+{more}</span>}
-          </span>
-        )}
-      </span>
-    </button>
+    <div className={s.docWrap} data-deletable={!!onDelete} aria-busy={deleting || undefined}>
+      <button type="button" className={s.doc} aria-pressed={selected} onClick={onSelect} style={{ '--c': accent } as CSSProperties}>
+        <span className={s.docIcon} aria-hidden>
+          {badge}
+        </span>
+        <span className={s.docMain}>
+          <span className={s.docTitle}>{title}</span>
+          <span className={s.docMeta}>{meta}</span>
+          {shown.length > 0 && (
+            <span className={s.chips}>
+              {shown.map((c, i) => (
+                <span key={c} className={s.chip} title={c} style={{ '--c': LEARNING.chipColors[i % LEARNING.chipColors.length] } as CSSProperties}>
+                  {c}
+                </span>
+              ))}
+              {more > 0 && <span className={s.chipMore}>+{more}</span>}
+            </span>
+          )}
+        </span>
+      </button>
+      {onDelete && (
+        <button type="button" className={s.deleteDoc} onClick={onDelete} disabled={deleteDisabled} aria-label={`Delete ${title}`} title={deleting ? 'Deleting…' : 'Delete material'}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+          </svg>
+        </button>
+      )}
+    </div>
   )
 }
