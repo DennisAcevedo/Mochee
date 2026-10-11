@@ -36,6 +36,7 @@ export interface Tutor {
   accessoryColors: Partial<Record<Accessory, string>>
   files: TutorFile[]
   outline: OutlineItem[]
+  lessonDoc?: string // the uploaded document its guided lesson is built from; none = the built-in CS111 lesson
   sectionsDone: number
   lastStudied: number | null // ms epoch
   createdAt: number

@@ -601,6 +601,28 @@
 }
 
 /* Footer */
+.check[data-failed] {
+  background: #ffe1dc;
+  color: #b3261e;
+}
+
+/* Studying failed: the reason, then Back and Try again. */
+.studyError {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+.studyError p {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff3e7;
+  color: #773d20;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .footer {
   display: flex;
   align-items: center;

@@ -309,7 +309,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <IntroDirector session={session} />
         <StageDirector />
         <UnlockWatcher />
-        <PackDirector />
+        <PackDirector lessonDoc={tutor.lessonDoc} />
         <BossLayer tutorId={tutor.id} />
       </div>
       {live && !study && <ShopVisit />}

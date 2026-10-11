@@ -14,7 +14,7 @@ import {
   type Subject,
 } from '../data/catalog'
 import { formatLabel, UPLOAD_ACCEPT, uploadFormat } from '../../shared/docsTypes'
-import { generateLesson, type StudyFile } from '../lesson/generateLesson'
+import { generateLesson, StudyError, studyErrorText, type StudyFile } from '../lesson/generateLesson'
 import { Lights } from '../scene/Lights'
 import { addTutorFiles } from '../state/fileStore'
 import type { Gesture, LoopClip } from '../state/director'
@@ -78,6 +78,7 @@ interface Study {
   index: number // line in progress; equals lines total once done
   total: number
   done: boolean
+  error?: string // studying failed: shown with Try again and Back
 }
 
 export function CreateTutorPage() {
@@ -179,18 +180,20 @@ export function CreateTutorPage() {
 
   const startStudy = async () => {
     setStep(STUDY_STEP)
-    setStudy({ lines: [], index: 0, total: 5, done: false })
+    setStudy({ lines: [], index: 0, total: files.length + 1, done: false })
     studyAbort.current?.abort()
     const abort = (studyAbort.current = new AbortController())
     const draftName = name.trim()
+    // The id comes first: the notes are uploaded into this tutor's class.
+    const id = newTutorId(draftName)
     try {
       const lesson = await generateLesson(
         { name: draftName, subject },
         files,
+        id,
         (p) => setStudy((s) => ({ ...s, index: p.index, total: p.total, lines: [...s.lines.slice(0, p.index), p.label] })),
         abort.signal,
       )
-      const id = newTutorId(draftName)
       const tutor: Tutor = {
         id,
         name: draftName,
@@ -198,8 +201,9 @@ export function CreateTutorPage() {
         cap,
         accessory: acc,
         accessoryColors: acc === 'none' ? accColors : { ...accColors, [acc]: accColor },
-        files: files.map(({ id: fid, name: fname, size, pages, sample }) => ({ id: `${id}-${fid}`, name: fname, size, pages, sample })),
+        files: files.map(({ id: fid, name: fname, size, pages, sample }) => ({ id: `${id}-${fid}`, name: fname, size, pages: lesson.pages[fname] ?? pages, sample })),
         outline: lesson.outline,
+        ...(lesson.lessonDoc ? { lessonDoc: lesson.lessonDoc } : {}),
         sectionsDone: 0,
         lastStudied: null,
         createdAt: Date.now(),
@@ -213,7 +217,9 @@ export function CreateTutorPage() {
       setStudy((s) => ({ ...s, index: s.total, done: true }))
       flashPose('celebrate', 2400)
     } catch (e) {
-      if ((e as DOMException).name !== 'AbortError') throw e
+      if ((e as DOMException).name === 'AbortError') return
+      if (!(e instanceof StudyError)) throw e
+      setStudy((s) => ({ ...s, error: studyErrorText(e) }))
     }
   }
 
@@ -233,7 +239,7 @@ export function CreateTutorPage() {
 
   let loop: LoopClip = 'idle'
   if (step === 1 && drag) loop = 'listen'
-  else if (step === STUDY_STEP) loop = study.done ? 'idle' : 'read'
+  else if (step === STUDY_STEP) loop = study.done || study.error ? 'idle' : 'read'
 
   const accName = ACCESSORY_OPTIONS.find((a) => a.value === acc)?.label ?? ''
   const studyBar = Math.round((Math.min(study.index + (study.done ? 0 : 0.5), study.total) / study.total) * 100)
@@ -408,11 +414,13 @@ export function CreateTutorPage() {
               {step === STUDY_STEP && (
                 <>
                   <Heading
-                    title={study.done ? 'Your lesson is ready' : 'Studying your notes…'}
+                    title={study.error ? 'I couldn’t read your notes' : study.done ? 'Your lesson is ready' : 'Studying your notes…'}
                     sub={
-                      study.done
-                        ? `${name.trim() || 'Your tutor'} turned ${plural(files.length, 'file')} into ${result?.outline.length ?? 0} sections.`
-                        : 'This takes a few seconds.'
+                      study.error
+                        ? 'Nothing was saved. Fix the file or try again.'
+                        : study.done
+                          ? `${name.trim() || 'Your tutor'} turned ${plural(files.length, 'file')} into ${result?.outline.length ?? 0} sections.`
+                          : 'Reading every page takes a little while.'
                     }
                   />
                   <div className={styles.studyTrack}>
@@ -421,14 +429,28 @@ export function CreateTutorPage() {
                   <div className={styles.studyLines}>
                     {study.lines.map((text, i) => {
                       const done = study.done || i < study.index
+                      const failed = !done && !!study.error
                       return (
                         <div key={i} className={styles.studyLine}>
-                          {done ? <div className={styles.check}>✓</div> : <div className={styles.spinner} />}
+                          {done ? <div className={styles.check}>✓</div> : failed ? <div className={styles.check} data-failed>!</div> : <div className={styles.spinner} />}
                           <span data-done={done}>{text}</span>
                         </div>
                       )
                     })}
                   </div>
+                  {study.error && (
+                    <div className={styles.studyError}>
+                      <p role="alert">{study.error}</p>
+                      <div className={styles.footer}>
+                        <button type="button" className={styles.back} onClick={() => setStep(STUDY_STEP - 1)}>
+                          Back
+                        </button>
+                        <button type="button" className={styles.next} data-can onClick={() => void startStudy()}>
+                          Try again
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {study.done && result && (
                     <div className={styles.outlineBlock}>
                       <div className={styles.label}>Lesson outline</div>
