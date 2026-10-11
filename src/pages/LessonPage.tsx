@@ -145,7 +145,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // Focus: a maximized browser window takes the stage. The cards fold into a
   // rail on the left (a button peeks one back out) and the dock's talk
   // control shrinks to the mic, so the window can be as big as it gets.
-  const focus = useWindows((s) => s.maximized !== null) && live
+  const focus = useWindows((s) => s.maximized !== null) && live && study // Play has no browser to maximize
   const [peek, setPeek] = useState<RailItem | null>(null)
   useEffect(() => {
     if (!focus) setPeek(null)
@@ -204,26 +204,29 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
       )
     ))
   // The ways back for a closed browser and closed captions: small chips in a
-  // row just above the talk bar, lined up with its left edge.
-  const browserChip = live && browserClosed && <ReopenChip label="Browser" icon="browser" small onOpen={() => useWindows.getState().restore('notes')} />
+  // row just above the talk bar, lined up with its left edge. Play is the talk
+  // bar, Emotes / Shop and the captions only: no browser, transcript or Learning.
+  const browserChip = live && study && browserClosed && <ReopenChip label="Browser" icon="browser" small onOpen={() => useWindows.getState().restore('notes')} />
   const captionChip = live && captionHidden && !folded('caption') && <ReopenChip id="caption" label="Captions" icon="caption" small />
   // The conversation so far, down the right side of the stage; the learner can
-  // drag it about. Closed, its chip goes to the screen's top-right corner, not
-  // wherever the card was dragged.
-  const transcript = live && !folded('transcript') && (
+  // drag it about. Closed, its chip sits in the top-right corner beside the
+  // coins, not wherever the card was dragged.
+  const transcript = live && study && !folded('transcript') && !transcriptHidden && (
     <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" onPointerDownCapture={bringTranscriptForward} onFocusCapture={bringTranscriptForward} style={{ '--enter-delay': '300ms' } as CSSProperties}>
-      {transcriptHidden ? (
-        createPortal(
-          <div className={lesson.transcriptChip}>
-            <ReopenChip id="transcript" label="Transcript" icon="transcript" />
-          </div>,
-          document.body,
-        )
-      ) : (
-        <SideTranscript className={lesson.sidePanel} closeable panelRef={registerTranscript} />
-      )}
+      <SideTranscript className={lesson.sidePanel} closeable panelRef={registerTranscript} />
     </div>
   )
+  // The screen's top-right corner: the coins (Study and Play alike) and the
+  // closed transcript's chip, all the same small pill size.
+  const corner =
+    live &&
+    createPortal(
+      <div className={lesson.cornerTools}>
+        <CoinPill />
+        {study && transcriptHidden && !folded('transcript') && <ReopenChip id="transcript" label="Transcript" icon="transcript" small />}
+      </div>,
+      document.body,
+    )
   const caption = live && !folded('caption') && !captionHidden && (
     <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
       <Caption className={lesson.bubble} closeable />
@@ -238,7 +241,6 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             extra={
               live ? (
                 <div className={`${lesson.enter} ${lesson.headerTools}`} data-enter="down" style={{ '--enter-delay': '80ms' } as CSSProperties}>
-                  <CoinPill />
                   <ModeSwitch />
                 </div>
               ) : null
@@ -286,7 +288,8 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             <InputBar compact={focus} />
           </div>
         </div>
-        {live && <Drawers />}
+        {corner}
+        {live && study && <Drawers />}
         {live && <UnlockBanner />}
         <StartScreen />
         <SkipButton />

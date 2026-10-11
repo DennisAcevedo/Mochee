@@ -13858,7 +13858,7 @@
       "label": "LessonRoom()",
       "file_type": "code",
       "source_file": "src\\scene\\room\\LessonRoom.tsx",
-      "source_location": "L13",
+      "source_location": "L15",
       "id": "lessonroom_lessonroom",
       "community": 62,
       "norm_label": "lessonroom()"
@@ -64233,7 +64233,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src\\scene\\room\\LessonRoom.tsx",
-      "source_location": "L13",
+      "source_location": "L15",
       "weight": 1.0,
       "_src": "src_scene_room_lessonroom_tsx",
       "_tgt": "lessonroom_lessonroom",

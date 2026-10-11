@@ -79,8 +79,8 @@ export function PlayHud({ banner = true, className }: Props) {
       }}
     >
       <div className={styles.pills}>
-        <ReopenChip label="Emotes" icon="emotes" onOpen={() => setWheel(true)} />
-        <ReopenChip label="Shop" icon="shop" onOpen={() => setShop(true)} />
+        <ReopenChip label="Emotes" icon="emotes" small onOpen={() => setWheel(true)} />
+        <ReopenChip label="Shop" icon="shop" small onOpen={() => setShop(true)} />
       </div>
 
       {!hintSeen && (

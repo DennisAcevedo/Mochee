@@ -33,11 +33,14 @@
   justify-content: center;
 }
 
-/* The closed transcript's chip sits in the screen's top-right corner: the
-   header's right end steps in by however much of the chip overlaps it. */
-body:has(.transcriptChip) .header {
+/* The coins (and a closed transcript's chip) sit in the screen's top-right
+   corner: the header's right end steps in by however much of them overlaps it. */
+body:has(.cornerTools) .header {
   box-sizing: border-box;
-  padding-right: max(0px, calc(176px - (100vw - var(--row-w)) / 2));
+  padding-right: max(0px, calc(var(--corner-w, 140px) - (100vw - var(--row-w)) / 2));
+}
+body:has(.cornerTools [aria-label='Show Transcript']) .header {
+  --corner-w: 270px;
 }
 
 /* The stage row: the frame is centred in it at the size LessonPage fits. */
@@ -98,7 +101,7 @@ body:has(.transcriptChip) .header {
   width: 100%;
 }
 
-/* The header's right group in study: the level pill beside the mode switch. */
+/* The header's right group: the mode switch. */
 .headerTools {
   display: flex;
   align-items: center;
@@ -125,12 +128,15 @@ body:has(.transcriptChip) .header {
   pointer-events: auto;
 }
 
-/* The closed transcript's chip: pinned to the screen's top-right corner. */
-.transcriptChip {
+/* The coins and the closed transcript's chip, pinned to the screen's top-right corner. */
+.cornerTools {
   position: fixed;
   top: 12px;
   right: 12px;
   z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .sidePanel {
