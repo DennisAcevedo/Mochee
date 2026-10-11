@@ -34,7 +34,7 @@ const ICONS: Record<'steps' | 'coins' | 'caption' | 'transcript', ReactNode> = {
 
 export function FocusRail({ study, peek, onPeek }: { study: boolean; peek: RailItem | null; onPeek: (item: RailItem | null) => void }) {
   const items: { id: RailItem; icon: keyof typeof ICONS; label: string }[] = [
-    { id: 'top', icon: study ? 'steps' : 'coins', label: study ? 'Lesson controls' : 'Coins' },
+    { id: 'top', icon: study ? 'steps' : 'coins', label: study ? 'Lesson controls' : 'Shop' },
     { id: 'caption', icon: 'caption', label: 'Captions' },
     { id: 'transcript', icon: 'transcript', label: 'Transcript' },
   ]

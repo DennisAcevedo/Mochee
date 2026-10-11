@@ -47,7 +47,13 @@ function useDrag() {
 // The conversation so far, beside the stage: every line Gemini Guy said and
 // everything the learner asked, typed or spoken (the tutor store's `lines`).
 // New lines scroll into view, unless the learner has scrolled up to reread.
-export function SideTranscript({ className, closeable = false }: { className?: string; closeable?: boolean }) {
+interface Props {
+  className?: string
+  closeable?: boolean
+  panelRef?: (el: HTMLElement | null) => void // the card element (the lesson page stacks it with the browser and the controls)
+}
+
+export function SideTranscript({ className, closeable = false, panelRef }: Props) {
   const lines = useTutorStore((s) => s.lines)
   const scroll = useRef<HTMLDivElement>(null)
   const pinned = useRef(true) // following the newest line
@@ -66,6 +72,7 @@ export function SideTranscript({ className, closeable = false }: { className?: s
   const shown = lines.filter((l) => l.text.trim())
   return (
     <section
+      ref={panelRef}
       className={[styles.panel, className].filter(Boolean).join(' ')}
       style={offset.x || offset.y ? { translate: `${offset.x}px ${offset.y}px` } : undefined}
       aria-label="Transcript"

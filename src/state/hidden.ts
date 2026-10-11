@@ -4,7 +4,7 @@ import { create } from 'zustand'
 // purpose: kept in memory only, so a reload brings everything back. Each
 // closed card leaves a small chip in its place that reopens it.
 
-export type PanelId = 'hud' | 'caption' | 'walkthrough' | 'transcript'
+export type PanelId = 'caption' | 'walkthrough' | 'transcript'
 
 interface HiddenState {
   hidden: Partial<Record<PanelId, true>>

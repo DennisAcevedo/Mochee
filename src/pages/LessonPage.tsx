@@ -11,7 +11,7 @@ import { StageDirector } from '../lesson/StageDirector'
 import { UnlockWatcher } from '../play/UnlockWatcher'
 import { LESSON_CAMERA } from '../scene/layout3d'
 import { Stage } from '../scene/Stage'
-import { bringLessonControlsForward, registerLessonControls } from '../scene/windows/windowStack'
+import { bringLessonControlsForward, bringTranscriptForward, registerLessonControls, registerPanel } from '../scene/windows/windowStack'
 import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
 import { useIsHidden } from '../state/hidden'
@@ -123,13 +123,15 @@ function useStageFrame(page: RefObject<HTMLDivElement | null>, row: RefObject<HT
 // behind all of them. The Learning drawer's handle sits beside the stage on
 // the left. On phones the HUD and caption move below the stage and the
 // drawer opens from a dock at the end of the page.
+// The transcript card is cut by the browser; its side column carries the z-index.
+const registerTranscript = (el: HTMLElement | null) => registerPanel('transcript', el, el?.parentElement ?? null)
+
 function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefined }) {
   const touchStudied = useLibrary((s) => s.touchStudied)
   const phase = useTutorStore((s) => s.phase)
   const live = phase === 'live'
   const narrow = useNarrow()
   // Cards the learner closed for now; each leaves a chip that reopens it.
-  const hudHidden = useIsHidden('hud')
   const captionHidden = useIsHidden('caption')
   const walkHidden = useIsHidden('walkthrough')
   // Study: the step bar takes the top of the stage and the level shrinks to a
@@ -195,7 +197,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     ) : (
       !folded('top') && (
         <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-          {hudHidden ? <ReopenChip id="hud" label="Coins" icon="coins" /> : <PlayHud banner={false} closeable />}
+          <PlayHud banner={false} />
         </div>
       )
     ))
@@ -208,7 +210,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // drag it about. Closed, its chip goes to the screen's top-right corner, not
   // wherever the card was dragged.
   const transcript = live && !folded('transcript') && (
-    <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" style={{ '--enter-delay': '300ms' } as CSSProperties}>
+    <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" onPointerDownCapture={bringTranscriptForward} onFocusCapture={bringTranscriptForward} style={{ '--enter-delay': '300ms' } as CSSProperties}>
       {transcriptHidden ? (
         createPortal(
           <div className={lesson.transcriptChip}>
@@ -217,7 +219,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
           document.body,
         )
       ) : (
-        <SideTranscript className={lesson.sidePanel} closeable />
+        <SideTranscript className={lesson.sidePanel} closeable panelRef={registerTranscript} />
       )}
     </div>
   )
@@ -235,7 +237,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             extra={
               live ? (
                 <div className={`${lesson.enter} ${lesson.headerTools}`} data-enter="down" style={{ '--enter-delay': '80ms' } as CSSProperties}>
-                  {study && <CoinPill />}
+                  <CoinPill />
                   <ModeSwitch />
                 </div>
               ) : null

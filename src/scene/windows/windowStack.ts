@@ -1,11 +1,21 @@
 import { Vector3, type Camera, type Object3D } from 'three'
 import { WINDOW_UI } from './windowConfig'
 
-// The lesson controls are DOM above the 3D canvas. When the student selects
-// the browser, cut its projected frame out of the controls so the browser
-// shows through. The remaining controls stay clickable to bring them forward.
-let controls: HTMLElement | null = null
-let browserFront = false
+// The overlapping things on the stage: the browser (3D, in the canvas) and
+// two DOM panels above the canvas, the lesson controls and the transcript.
+// They form one front-to-back stack; pressing any of them brings it to the
+// front. The DOM panels are reordered by z-index; every DOM panel the browser
+// is in front of has the browser's projected frame cut out of it, so the
+// browser shows through. What is left of a cut panel stays clickable to bring
+// it forward again.
+export type Layer = 'browser' | 'controls' | 'transcript'
+type Panel = Exclude<Layer, 'browser'>
+
+// `clip` is what gets the hole; `layer` is the element whose z-index orders it
+// among the stage's overlays (the same element, unless the panel sits inside a
+// positioned wrapper, like the transcript in its side column).
+const panels: Record<Panel, { clip: HTMLElement; layer: HTMLElement } | null> = { controls: null, transcript: null }
+let order: Layer[] = ['browser', 'transcript', 'controls'] // back to front
 const corner = new Vector3()
 // Match the outer edge of the focus ring. The browser fills this cutout with
 // an opaque backing, so no part of the room shows through beside the frame.
@@ -46,51 +56,104 @@ function clipToBox(poly: Pt[], lo: Pt, hi: Pt): Pt[] {
   return out
 }
 
+function restack() {
+  let z = 0
+  for (const id of order) {
+    if (id === 'browser') continue
+    const p = panels[id]
+    if (p) p.layer.style.zIndex = String(z)
+    z++
+  }
+}
+
+export function bringForward(id: Layer) {
+  if (order[order.length - 1] === id) return
+  order = [...order.filter((l) => l !== id), id]
+  restack()
+  if (id !== 'browser') {
+    const p = panels[id]
+    if (p) p.clip.style.clipPath = ''
+  }
+}
+
+// The browser drops to the back (it was hidden, or it left the view).
+function sendBrowserBack() {
+  if (order[0] === 'browser') return
+  order = ['browser', ...order.filter((l) => l !== 'browser')]
+  for (const id of ['controls', 'transcript'] as const) {
+    const p = panels[id]
+    if (p) p.clip.style.clipPath = ''
+  }
+}
+
+export function registerPanel(id: Panel, clip: HTMLElement | null, layer: HTMLElement | null = clip) {
+  const old = panels[id]
+  if (old?.clip === clip && old?.layer === layer) return
+  if (old) {
+    old.clip.style.clipPath = ''
+    old.layer.style.zIndex = ''
+  }
+  panels[id] = clip && layer ? { clip, layer } : null
+  restack()
+}
+
 export function registerLessonControls(element: HTMLElement | null) {
-  if (controls === element) return
-  if (controls) controls.style.clipPath = ''
-  controls = element
-  browserFront = false
+  registerPanel('controls', element)
 }
 
 export function bringBrowserForward() {
-  browserFront = true
+  bringForward('browser')
 }
 
 export function bringLessonControlsForward() {
-  browserFront = false
-  if (controls) controls.style.clipPath = ''
+  bringForward('controls')
 }
 
+export function bringTranscriptForward() {
+  bringForward('transcript')
+}
+
+// Cuts the browser's frame out of every DOM panel it is in front of. Returns
+// whether any panel was cut, so the browser shows its opaque backing.
 export function placeBrowserAboveControls(pivot: Object3D, width: number, height: number, camera: Camera, canvas: HTMLCanvasElement, visible: boolean): boolean {
-  if (!controls || !browserFront) return false
+  const at = order.indexOf('browser')
+  const below = order.slice(0, at).filter((l): l is Panel => l !== 'browser' && !!panels[l])
+  if (!below.length) return false
   if (!visible) {
-    bringLessonControlsForward()
+    sendBrowserBack()
     return false
   }
-  const bar = controls.getBoundingClientRect()
   const view = canvas.getBoundingClientRect()
-  if (!bar.width || !bar.height || !view.width || !view.height) return false
+  if (!view.width || !view.height) return false
   pivot.updateWorldMatrix(true, false)
   camera.updateMatrixWorld()
-  const quad: Pt[] = []
+  const screen: Pt[] = []
   for (let i = 0; i < 4; i++) {
     corner.set(i === 1 || i === 2 ? width / 2 + browserCutoutPad : -width / 2 - browserCutoutPad, i >= 2 ? -height / 2 - browserCutoutPad : height / 2 + browserCutoutPad, 0)
     corner.applyMatrix4(pivot.matrixWorld).project(camera)
     if (corner.z < -1 || corner.z > 1) {
-      bringLessonControlsForward()
+      sendBrowserBack()
       return false
     }
-    const x = view.left + ((corner.x + 1) / 2) * view.width - bar.left
-    const y = view.top + ((1 - corner.y) / 2) * view.height - bar.top
-    quad.push([x, y])
+    screen.push([view.left + ((corner.x + 1) / 2) * view.width, view.top + ((1 - corner.y) / 2) * view.height])
   }
-  const lo: Pt = [-SHADOW_PAD, -SHADOW_PAD]
-  const hi: Pt = [bar.width + SHADOW_PAD, bar.height + SHADOW_PAD]
-  const hole = clipToBox(quad, lo, hi).map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`)
-  const box = [`${lo[0]}px ${lo[1]}px`, `${hi[0]}px ${lo[1]}px`, `${hi[0]}px ${hi[1]}px`, `${lo[0]}px ${hi[1]}px`, `${lo[0]}px ${lo[1]}px`]
-  // An even-odd polygon leaves a hole shaped like the perspective window (the
-  // part of it over the controls).
-  controls.style.clipPath = hole.length ? `polygon(evenodd, ${box.join(', ')}, ${hole.join(', ')}, ${hole[0]})` : ''
-  return true
+  let cut = false
+  for (const id of below) {
+    const el = panels[id]!.clip
+    const bar = el.getBoundingClientRect()
+    if (!bar.width || !bar.height) continue
+    const lo: Pt = [-SHADOW_PAD, -SHADOW_PAD]
+    const hi: Pt = [bar.width + SHADOW_PAD, bar.height + SHADOW_PAD]
+    const hole = clipToBox(
+      screen.map(([x, y]) => [x - bar.left, y - bar.top] as Pt),
+      lo,
+      hi,
+    ).map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`)
+    const box = [`${lo[0]}px ${lo[1]}px`, `${hi[0]}px ${lo[1]}px`, `${hi[0]}px ${hi[1]}px`, `${lo[0]}px ${hi[1]}px`, `${lo[0]}px ${lo[1]}px`]
+    // An even-odd polygon leaves a hole shaped like the perspective window (the
+    // part of it over the panel).
+    el.style.clipPath = hole.length ? `polygon(evenodd, ${box.join(', ')}, ${hole.join(', ')}, ${hole[0]})` : ''
+    cut ||= hole.length > 0
+  }
+  return cut
 }

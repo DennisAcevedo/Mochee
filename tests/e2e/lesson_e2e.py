@@ -149,11 +149,11 @@ def check_played(r: "Run", page: Page, name: str, g, since_ms: float) -> None:
 
 
 def shop_pick(page: Page, name: str):
-    """Opens the animation shop (if shut), scrolls it to the item whose name matches
+    """Opens the shop (if shut) on its Animations tab, scrolls it to the item whose name matches
     `name` and returns its action button ("Play it" or "Buy")."""
-    shop = page.get_by_role("dialog", name="Animations")
+    shop = page.get_by_role("dialog", name="Shop")
     if not shop.count():
-        page.get_by_role("button", name=re.compile(r"^show animations$", re.I)).click()
+        page.get_by_role("button", name=re.compile(r"^show shop$", re.I)).click()
         shop.wait_for(timeout=5000)
     current = shop.get_by_test_id("shop-current")
     for _ in range(24):
