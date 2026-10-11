@@ -4,6 +4,7 @@ import { nextCelebration, useWalkthrough } from '../../lesson/runner'
 import { readingMs, speak } from '../../lesson/speech'
 import { useDirector } from '../../state/director'
 import type { LatencyTrace } from '../../lesson/latency'
+import { startLoop } from '../../scene/windows/pointGate'
 
 // How the tutor on stage reacts to what happens in the drawers: he thinks
 // while a document question is pending, says the answer (voice + caption)
@@ -54,10 +55,15 @@ export function performAnswer(answer: GroundedAnswer, trace?: LatencyTrace) {
   thinking = false // the answer replaces the think
   const d = useDirector.getState()
   useWalkthrough.getState().hold()
-  const loop = isLoopGesture(answer.cue) ? answer.cue : 'talk'
-  if (!isLoopGesture(answer.cue)) d.play(answer.cue)
-  useWalkthrough.getState().setLoopOverride(loop)
-  d.setLoop(loop)
+  // Everything he can point at is the window on his left: a 'point_right' cue means it too.
+  const cue = answer.cue === 'point_right' ? 'point_left' : answer.cue
+  const loop = isLoopGesture(cue) ? cue : 'talk'
+  if (!isLoopGesture(cue)) d.play(cue)
+  // A point waits for the camera to settle on the focused window, talking until then; with none focused he talks.
+  startLoop(loop, (l) => {
+    useWalkthrough.getState().setLoopOverride(l)
+    useDirector.getState().setLoop(l)
+  }, () => my === turn && useWalkthrough.getState().loopOverride === 'talk')
   d.setCaption(answer.answer)
   speak(answer.answer, () => finish(my), trace)
   setTimeout(() => finish(my), readingMs(answer.answer) + CUES.safetyMs)

@@ -207,17 +207,11 @@ export function PdfPage({ win, tab, box }: { win: WinId; tab: PdfTab; box: Conte
     )
   }
 
-  // Behind the maximized window the page ignores the wheel and drags.
-  const veiled = () => {
-    const m = useWindows.getState().maximized
-    return m !== null && m !== win
-  }
-
   const onWheel = (e: ThreeEvent<WheelEvent>) => {
     e.stopPropagation()
     const s = scroll.current
     const g = geo.current
-    if (!s || g.kind === 'loading' || veiled()) return
+    if (!s || g.kind === 'loading') return
     const ne = e.nativeEvent
     const dy = ne.deltaMode === 1 ? ne.deltaY * PV.linePx : ne.deltaMode === 2 ? ne.deltaY * g.vh * ppu.current : ne.deltaY
     if (!dy) return
@@ -245,7 +239,7 @@ export function PdfPage({ win, tab, box }: { win: WinId; tab: PdfTab; box: Conte
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     const s = scroll.current
     const t = drag.current
-    if (!s || !t || e.nativeEvent.button !== 0 || !(geo.current.max ?? 0) || veiled()) return
+    if (!s || !t || e.nativeEvent.button !== 0 || !(geo.current.max ?? 0)) return
     e.stopPropagation()
     s.from = s.target
     t.press(e.nativeEvent, gl.domElement)

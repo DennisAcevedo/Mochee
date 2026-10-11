@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { PerspectiveCamera, Vector3 } from 'three'
-import { FLOOR_Y, LESSON_CAMERA, SPOTS, TUTOR_OUTLINE_LEFT, WINDOW, WINDOWS } from '../../src/scene/layout3d.ts'
+import { FLOOR_Y, LESSON_CAMERA, POINTING, ROOM, SPOTS, TUTOR_OUTLINES, WINDOW, WINDOW_TIGHT_POSES, WINDOWS } from '../../src/scene/layout3d.ts'
+import { pointReadyAt } from '../../src/scene/windows/pointReady.ts'
 import { WINDOW_UI } from '../../src/scene/windows/windowConfig.ts'
-import { clampOffset, defaultSize, maximizedPlace, yawAt } from '../../src/scene/windows/windowPlace.ts'
+import { clampOffset, defaultSize, focusYawAt, maximizedPlace, RING_PAD, ringLeftX, yawAt } from '../../src/scene/windows/windowPlace.ts'
 
 // Window placement: moves clamp to the stage box (no bounce back inward when
 // dragged far past an edge) and the maximized window fills its box.
@@ -37,8 +38,7 @@ describe('window move clamp', () => {
     assert.ok(Math.abs(yawAt(W.position[0] / 2)) < Math.abs(W.yaw))
     assert.equal(yawAt(W.position[0] * 3), W.yaw) // capped
     assert.deepEqual(defaultSize(), [W.width, W.height])
-    assert.equal(WINDOWS.notes, WINDOW)
-    assert.equal(WINDOWS.board, WINDOW, 'the old right window name is the one window')
+    assert.equal(focusYawAt(W.position[0]), WINDOWS.focusYaw)
   })
 })
 
@@ -51,12 +51,13 @@ describe('resting placement (one window, left of the tutor)', () => {
     c.updateProjectionMatrix()
     return c
   }
-  // The window's NDC box: at rest, or focused (turned to focusYaw, scaled, lifted W.focus.lift 0.25 toward the camera).
+  const LIFT = WINDOW_UI.focus.lift
+  // The window's NDC box: at rest, or focused (turned to focusYaw, scaled, lifted toward the camera).
   const box = (cam: PerspectiveCamera, focused: boolean) => {
     const yaw = focused ? WINDOWS.focusYaw : W.yaw
     const s = focused ? WINDOWS.focusScale : 1
     const [px, py, pz] = W.position
-    const z = pz + (focused ? 0.25 : 0)
+    const z = pz + (focused ? LIFT : 0)
     let x0 = Infinity
     let x1 = -Infinity
     let y0 = Infinity
@@ -82,29 +83,45 @@ describe('resting placement (one window, left of the tutor)', () => {
     assert.ok(b.y1 < HUD && b.y0 > CAPTION, JSON.stringify(b))
   })
 
-  // The drawn window's outline on screen in the focused pose: the focus ring
-  // (the outermost thing drawn: gap 0.03 + stroke 0.035 past the frame, whose
-  // corner radius is 0.1, pinned from windowStyle.ts, which Node cannot load)
-  // with its rounded corners sampled. Convex, in order around the window.
-  const RING_PAD = 0.03 + 0.035
-  const outline = (cam: PerspectiveCamera): [number, number][] => {
-    const hw = W.width / 2 + RING_PAD
-    const hh = W.height / 2 + RING_PAD
-    const r = 0.1 + RING_PAD
-    const s = WINDOWS.focusScale
-    const yaw = WINDOWS.focusYaw
-    const [px, py, pz] = W.position
-    const z = pz + 0.25 // focus lift
-    const pts: [number, number][] = []
+  // The drawn window's outline: by default the focus ring (the outermost
+  // thing drawn, RING_PAD past the frame, whose corner radius is
+  // WINDOW_UI.window.radius) with its rounded corners sampled; with pad 0 and
+  // a depth offset along its normal, one face of the frame (the ring is
+  // invisible while the window is not focused). Convex, in order around the
+  // window. `wf` is how far the focus pose has eased in (1 = focused, 0 =
+  // resting); `ox` / `w` a moved or resized window. `lay` defaults to today's
+  // layout; the regression tests pass the old one.
+  type Lay = { position: readonly [number, number, number]; width: number; height: number; focusScale: number; focusYaw: number }
+  const NOW: Lay = { position: W.position, width: W.width, height: W.height, focusScale: WINDOWS.focusScale, focusYaw: WINDOWS.focusYaw }
+  // The layout before the wall / pointing-hand fix (window x -3.15, 3.0 wide, zoomed 1.06 when focused).
+  const OLD: Lay = { position: [-3.15, 0.33, -0.45], width: 3.0, height: 2.5, focusScale: 1.06, focusYaw: 0.14 }
+  type Opts = { wf?: number; ox?: number; w?: number; pad?: number; zoff?: number }
+  const ringWorld = (lay: Lay = NOW, { wf = 1, ox = 0, w = lay.width, pad = RING_PAD, zoff = 0 }: Opts = {}): Vector3[] => {
+    const [px, py, pz] = lay.position
+    const x = px + ox
+    const rest = lay === NOW ? yawAt(x) : W.yaw
+    const yaw = rest + (rest * (lay.focusYaw / Math.abs(W.yaw)) - rest) * wf
+    const s = 1 + (lay.focusScale - 1) * wf
+    const hw = w / 2 + pad
+    const hh = lay.height / 2 + pad
+    const r = WINDOW_UI.window.radius + pad
+    const z = pz + LIFT * wf
+    const pts: Vector3[] = []
     for (let k = 0; k < 96; k++) {
       const a = ((k + 0.5) / 96) * Math.PI * 2
       const lx = s * (Math.sign(Math.cos(a)) * (hw - r) + r * Math.cos(a))
       const ly = s * (Math.sign(Math.sin(a)) * (hh - r) + r * Math.sin(a))
-      const p = new Vector3(px + lx * Math.cos(yaw), py + ly, z - lx * Math.sin(yaw)).project(cam)
-      pts.push([p.x, p.y])
+      pts.push(new Vector3(x + lx * Math.cos(yaw) + zoff * Math.sin(yaw), py + ly, z - lx * Math.sin(yaw) + zoff * Math.cos(yaw)))
     }
     return pts
   }
+  // Both faces of the frame (no ring), for the window when it is not focused.
+  const frameFaces = (lay: Lay = NOW, wf = 0) => [1, -1].map((side) => ringWorld(lay, { wf, pad: 0, zoff: (side * WINDOW_UI.window.depth) / 2 }))
+  const project = (pts: Vector3[], cam: PerspectiveCamera): [number, number][] =>
+    pts.map((v) => {
+      const p = v.clone().project(cam)
+      return [p.x, p.y]
+    })
   // Signed distance from a point to a convex polygon: > 0 outside, < 0 inside.
   const signedDistance = (poly: [number, number][], [x, y]: [number, number]) => {
     let area = 0
@@ -127,35 +144,129 @@ describe('resting placement (one window, left of the tutor)', () => {
     return inside ? -d : d
   }
 
-  // How far (NDC) the tutor's left outline, standing at root x, stays outside the window; < 0 = overlap.
-  const clearance = (x: number, cam: PerspectiveCamera) => {
-    const poly = outline(cam)
-    return Math.min(...TUTOR_OUTLINE_LEFT.map((o) => {
-      const p = new Vector3(x + o.dx, FLOOR_Y + o.up, SPOTS.left.z + o.dz).project(cam)
-      return signedDistance(poly, [p.x, p.y])
+  // How far (NDC) a pose's left outline, his root at x, stays outside the
+  // window's outlines (the focused ring unless given); < 0 = overlap. 0.001
+  // NDC is about 0.58 px at 1456 x 785 (stage frame 1170 px wide).
+  type Pose = keyof typeof TUTOR_OUTLINES
+  const clearance = (x: number, cam: PerspectiveCamera, pose: Pose, lay: Lay = NOW, shapes: Vector3[][] = [ringWorld(lay)]) =>
+    Math.min(...shapes.map((shape) => {
+      const poly = project(shape, cam)
+      return Math.min(...TUTOR_OUTLINES[pose].map((o) => {
+        const p = new Vector3(x + o.dx, FLOOR_Y + o.up, SPOTS.left.z + o.dz).project(cam)
+        return signedDistance(poly, [p.x, p.y])
+      }))
     }))
-  }
+  const focusedCam = () => camAt(-LESSON_CAMERA.focusShift)
 
-  it('focused (the camera pans to it), it still clears the tutor at the left spot', () => {
-    const cam = camAt(-LESSON_CAMERA.focusShift)
-    const b = box(cam, true)
-    // His real outline at several heights, not one floor point under his
-    // root: his side is widest at mid height, level with the window's
-    // bottom-right corner (the resize grip). 0.004 NDC is about 2.3 px at
-    // 1456 x 785 (stage frame 1170 px wide).
-    const d = clearance(SPOTS.left.x, cam)
-    assert.ok(d >= 0.004, `the tutor's outline is ${d} NDC clear of the window`)
+  it('focused (the camera pans to it), it stays on screen between the play HUD and the caption', () => {
+    const b = box(focusedCam(), true)
     assert.ok(b.x0 >= -0.98 && b.y1 < HUD && b.y0 > CAPTION, JSON.stringify(b))
   })
 
-  it('the outline check catches the overlap the browser saw from the old left spot (x -0.8)', () => {
-    const cam = camAt(-LESSON_CAMERA.focusShift)
-    assert.ok(clearance(-0.8, cam) < 0, 'x -0.8 overlaps the corner (3.8-4 px deep in the real render)')
-    // The old model (one floor point 0.64 left of his root) called x -0.8 clear.
-    const floorPoint = new Vector3(-0.8 - 0.64, 0, SPOTS.left.z).project(cam).x
-    assert.ok(box(cam, true).x1 <= floorPoint + 0.005)
+  // He teaches from the left spot with the point_left loop; between lines he
+  // idles or talks; the hop, levelup and celebrate one-shots, the dances and
+  // the wrong-answer shrugs play there too. Each measured outline must stay
+  // outside the focused window's ring: 0.02 NDC, point_left (the hand reaches
+  // about 1.2 left of his root) 0.004. WINDOW_TIGHT_POSES are the known
+  // exceptions: checked against their own floor, and the list must match.
+  const tight = WINDOW_TIGHT_POSES.poses as readonly string[]
+  const MIN = (pose: Pose) => (pose === 'point_left' ? 0.004 : 0.02)
+  for (const pose of Object.keys(TUTOR_OUTLINES) as Pose[]) {
+    const floor = tight.includes(pose) ? -0.002 : MIN(pose)
+    it(`focused, his ${pose} outline at the left spot clears the window (>= ${floor} NDC)`, () => {
+      const d = clearance(SPOTS.left.x, focusedCam(), pose)
+      assert.ok(d >= floor, `${pose} is ${d.toFixed(4)} NDC clear of the window`)
+    })
+  }
+
+  it('WINDOW_TIGHT_POSES lists exactly the outlines under the margin, and they clear `near` to the right', () => {
+    const cam = focusedCam()
+    const under = (Object.keys(TUTOR_OUTLINES) as Pose[]).filter((p) => clearance(SPOTS.left.x, cam, p) < MIN(p))
+    assert.deepEqual(under.sort(), [...tight].sort())
+    for (const p of tight as Pose[]) {
+      const d = clearance(SPOTS.left.x + WINDOW_TIGHT_POSES.near, cam, p)
+      assert.ok(d >= 0.02, `${p} ${d.toFixed(4)} NDC clear from the left spot + near`)
+      // ... and with the window unfocused, the camera centred (the frame only).
+      const rest = clearance(SPOTS.left.x + WINDOW_TIGHT_POSES.near, camAt(0), p, NOW, frameFaces())
+      assert.ok(rest >= 0.01, `${p} ${rest.toFixed(4)} NDC clear of the resting frame from the left spot + near`)
+    }
   })
 
+  // Pointing waits for the camera to settle on the focused window
+  // (pointGate.ts, pointReadyAt): mid-pan the window sits further right on
+  // screen and his hand reaches into it. The window's own focus pose eases at
+  // 7/s against the camera's 3/s, so by the time the camera is in the gate's
+  // band it has finished turning (wf 1; 0.99 checked too).
+  const panFor = (f: number) => -LESSON_CAMERA.focusShift * f
+  it('mid-pan his point_left hand reaches into the window: the gate holds him until the pan settles', () => {
+    const half = panFor(0.5)
+    assert.ok(clearance(SPOTS.left.x, camAt(half), 'point_left') < 0)
+    assert.equal(pointReadyAt(LESSON_CAMERA.position[0] + half, 'notes', null), false)
+  })
+
+  it('once the gate lets him point, the hand clears the window for the rest of the pan', () => {
+    const from = 1 - (POINTING.panTolerance - 1e-9) / LESSON_CAMERA.focusShift // the band's far edge
+    for (let f = from; f <= 1.0001; f += (1 - from) / 8) {
+      const camX = LESSON_CAMERA.position[0] + panFor(Math.min(f, 1))
+      assert.ok(pointReadyAt(camX, 'notes', null), `gate at pan ${f.toFixed(3)}`)
+      for (const wf of [0.99, 1]) {
+        const d = clearance(SPOTS.left.x, camAt(panFor(Math.min(f, 1))), 'point_left', NOW, [ringWorld(NOW, { wf })])
+        assert.ok(d >= 0.004, `pan ${f.toFixed(3)} wf ${wf}: ${d.toFixed(4)} NDC`)
+      }
+    }
+    assert.equal(pointReadyAt(LESSON_CAMERA.position[0] + panFor(from) + 0.01, 'notes', null), false, 'outside the band')
+  })
+
+  it('unfocused, with the camera centred, he does not point: talk and idle clear the resting frame', () => {
+    const cam = camAt(0)
+    // Pointing there would cover the frame's corner ...
+    assert.ok(clearance(SPOTS.left.x, cam, 'point_left', NOW, frameFaces()) < 0)
+    // ... so with no window focused the gate never lets him point (he talks instead) ...
+    assert.equal(pointReadyAt(LESSON_CAMERA.position[0], 'none', null), false)
+    // ... and talk and idle keep 0.02 NDC off it.
+    for (const pose of ['talk', 'idle'] as const) {
+      const d = clearance(SPOTS.left.x, cam, pose, NOW, frameFaces())
+      assert.ok(d >= 0.02, `${pose} ${d.toFixed(4)} NDC clear of the resting frame`)
+    }
+  })
+
+  it('the outline check catches the overlaps the browser saw under the old layout', () => {
+    const cam = focusedCam()
+    // From the old spot x -0.74 the point_left hand covered the window's
+    // bottom-right corner by 24 px and hop by 41 px (round-3 probes) ...
+    assert.ok(clearance(-0.74, cam, 'point_left', OLD) < -0.03)
+    assert.ok(clearance(-0.74, cam, 'hop', OLD) < -0.05)
+    // ... and from x -0.8 his idle side sat 4 px inside it (round 1).
+    assert.ok(clearance(-0.8, cam, 'idle', OLD) < 0)
+    // Today's window still catches a hand one step left of the spot.
+    assert.ok(clearance(SPOTS.left.x - 0.1, cam, 'point_left') < 0)
+  })
+
+  // The room's left wall is at -ROOM.width / 2 (-4.70); the Blender study
+  // room's left rail face sits at x -4.62 (BLENDER/rooms, rail_left).
+  const insideRoom = (minX: number, what: string) => {
+    assert.ok(minX >= -ROOM.width / 2 + 0.03, `${what}: ring min x ${minX}`)
+    assert.ok(minX >= -4.62 + 0.01, `${what}: ring min x ${minX} vs the study rail`)
+    assert.ok(minX >= WINDOW_UI.window.minRingX - 1e-6, `${what}: ring min x ${minX} vs minRingX`)
+  }
+  const ringMinX = (opts: Opts = {}) => Math.min(...ringWorld(NOW, opts).map((v) => v.x))
+
+  it('focused, its ring stays inside the room: clear of the left wall and the study rail', () => {
+    insideRoom(ringMinX(), 'default')
+    assert.ok(Math.abs(ringMinX() - ringLeftX(W.position[0], W.width)) < 1e-3, 'ringLeftX matches the drawn ring')
+    // The old layout crossed the wall (the regression this guards).
+    assert.ok(Math.min(...ringWorld(OLD).map((v) => v.x)) < -ROOM.width / 2)
+  })
+
+  it('dragged as far left as the clamp allows, focused, its ring stays inside the room (default and widest)', () => {
+    for (const w of [W.width, WINDOW_UI.window.maxSize[0]]) {
+      const [ox] = clamp(-6, 0, w, W.height)
+      insideRoom(ringMinX({ ox, w }), `w ${w}`)
+      // The frame-only NDC box alone used to let this drag reach x -4.76.
+      const [ex] = clamp(-6, 0.5, w, W.height)
+      insideRoom(ringMinX({ ox: ex, w }), `w ${w}, raised`)
+    }
+  })
 
   it('is bigger than either of the old two windows (2.6 x 2.35)', () => {
     assert.ok(W.width * W.height > 2.6 * 2.35 * 1.2)

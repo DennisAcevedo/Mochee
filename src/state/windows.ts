@@ -90,18 +90,110 @@ function readLayout(raw: unknown): WinLayout {
   }
 }
 
-function load(): Pick<WindowsState, 'tabs' | 'layout'> {
-  try {
-    const text = window.localStorage.getItem(WINDOW_UI.storageKey)
-    if (!text) throw new Error('empty')
-    const raw = JSON.parse(text) as Partial<Stored>
-    if (raw?.v !== 2) throw new Error('version')
-    const tabs = validateTabs(raw.tabs)
-    if (!tabs) throw new Error('tabs')
-    return { tabs, layout: readLayout(raw.layout) }
-  } catch {
-    return { tabs: initialTabs(), layout: defaultLayout() }
+type Loaded = Pick<WindowsState, 'tabs' | 'layout'>
+
+// A save from the two-window layout (v1: tabs.notes + tabs.board, layout per
+// window): both tab strips go into the one window. The one window keeps one
+// scratch note: the left window's scratch tab if it had one; else, when no
+// note is saved under the one window's key yet (`hasNote`), the right
+// window's first scratch tab, whose note load() then moves over (moveNote);
+// any other scratch tab is dropped. The left window's size carries over but
+// not its move: v1 offsets were from the old left window's default place, not
+// today's WINDOW, so the window comes back at its default. Null when there is none.
+function fromV1(text: string, hasNote: boolean): (Loaded & { moveNote: boolean }) | null {
+  const raw = JSON.parse(text) as { v?: unknown; tabs?: Record<string, { tabs?: unknown; active?: unknown } | number>; layout?: Record<string, unknown> } | null
+  if (raw?.v !== 1 || !raw.tabs) return null
+  const strip = (w: unknown) => {
+    const t = (w as { tabs?: unknown } | undefined)?.tabs
+    return Array.isArray(t) ? (t as unknown[]) : []
   }
+  const isScratch = (t: unknown) => (t as { kind?: unknown } | null)?.kind === 'scratch'
+  const left = raw.tabs.notes as { active?: unknown } | undefined
+  const leftTabs = strip(left)
+  let take = !hasNote && !leftTabs.some(isScratch)
+  const moveNote = take && strip(raw.tabs.board).some(isScratch)
+  const right = strip(raw.tabs.board).filter((t) => {
+    if (!isScratch(t)) return true
+    const keep = take
+    take = false
+    return keep
+  })
+  const tabs = validateTabs({ notes: { tabs: [...leftTabs, ...right], active: left?.active }, seq: raw.tabs.seq })
+  return tabs ? { tabs, layout: { offset: [0, 0], size: readLayout(raw.layout?.notes).size }, moveNote } : null
+}
+
+function load(): Loaded {
+  const fresh = (): Loaded => ({ tabs: initialTabs(), layout: defaultLayout() })
+  let store: Storage
+  try {
+    store = window.localStorage
+  } catch {
+    return fresh()
+  }
+  const L = WINDOW_UI.legacy
+  const noteKey = WINDOW_UI.scratchKey + WIN
+  // The old right window's scratch note becomes the one window's when that has none yet.
+  const moveNote = () => {
+    try {
+      const board = store.getItem(L.boardScratchKey)
+      if (board && !store.getItem(noteKey)) store.setItem(noteKey, board)
+    } catch {
+      // Storage blocked: the note stays where it was.
+    }
+  }
+  const dropLegacy = () => {
+    try {
+      store.removeItem(L.storageKey)
+      store.removeItem(L.boardScratchKey)
+    } catch {
+      // Storage blocked: the next load tries again.
+    }
+  }
+  try {
+    const text = store.getItem(WINDOW_UI.storageKey)
+    if (text) {
+      const raw = JSON.parse(text) as Partial<Stored>
+      const tabs = raw?.v === 2 ? validateTabs(raw.tabs) : null
+      if (tabs) {
+        // A v2 save wins; an old two-window save left beside it is stale (its note is kept if ours is empty).
+        moveNote()
+        dropLegacy()
+        return { tabs, layout: readLayout(raw.layout) }
+      }
+    }
+  } catch {
+    // Unreadable v2 save: try the old one, else start fresh.
+  }
+  let old: string | null = null
+  let hasNote = false
+  try {
+    old = store.getItem(L.storageKey)
+    hasNote = !!store.getItem(noteKey)
+  } catch {
+    return fresh()
+  }
+  if (!old) return fresh()
+  let migrated: ReturnType<typeof fromV1> = null
+  try {
+    migrated = fromV1(old, hasNote)
+  } catch {
+    // A broken old save: dropped below.
+  }
+  if (!migrated) {
+    dropLegacy()
+    return fresh()
+  }
+  const { moveNote: carry, ...loaded } = migrated
+  if (carry) moveNote()
+  // The old keys go only once the v2 save is written; else the next load migrates again.
+  try {
+    const data: Stored = { v: 2, ...loaded }
+    store.setItem(WINDOW_UI.storageKey, JSON.stringify(data))
+    dropLegacy()
+  } catch {
+    // Private mode or a full quota: this session runs on the migrated tabs.
+  }
+  return loaded
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined

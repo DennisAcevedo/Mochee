@@ -1,5 +1,5 @@
 import { LOOP_CLIPS, ONESHOT_CLIPS, type LoopClip, type OneShotClip } from '../../state/director'
-import { FLOOR_Y, PALETTE, ROOM, TUTOR_SCALE, WINDOWS } from '../layout3d'
+import { FLOOR_Y, PALETTE, ROOM, TUTOR_SCALE, WINDOW } from '../layout3d'
 
 // Every number for physics play (drag, throw, bounce, toys) lives here. World
 // units are the room's (layout3d.ts); the tutor's model units are the classic
@@ -117,8 +117,8 @@ export const PHYSICS = {
     stackOffsetX: [0, -0.36, -0.36], // x of each block relative to the origin: P1 lies flat, P2 stands on it, P3 on P2
   },
 
-  // Thin colliders for the two floating windows so toys bounce off them.
-  windows: [WINDOWS.notes, WINDOWS.board].map((w) => ({ position: w.position, yaw: w.yaw, half: [w.width / 2, w.height / 2, 0.05] as [number, number, number] })),
+  // A thin collider for the floating browser window so toys bounce off it.
+  windows: [WINDOW].map((w) => ({ position: w.position, yaw: w.yaw, half: [w.width / 2, w.height / 2, 0.05] as [number, number, number] })),
 
   respawnMargin: 1.2, // a body this far outside the room is put back
 } as const

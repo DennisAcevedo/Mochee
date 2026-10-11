@@ -11,7 +11,8 @@ import { useWalkthrough } from '../lesson/runner'
 import { RESOLVED_STEPS } from '../lesson/walkthrough'
 import { anchors } from '../scene/anchors'
 import { ROOM_BOX, shootBall, tossTutor, usePlayBody } from '../scene/physics'
-import { windowRects } from '../scene/windows/registry'
+import { shown, windowRects } from '../scene/windows/registry'
+import { WIN } from '../scene/windows/tabModel'
 import { useDirector } from '../state/director'
 import { useDrawers } from '../state/drawers'
 import { useGrowth } from '../state/growth'
@@ -151,6 +152,17 @@ export function GGHooks() {
       steps: RESOLVED_STEPS,
       model,
       screenOf: (name) => {
+        // Off the stage when it or any ancestor is hidden, and anything in a
+        // closed or folded window (its group stays put, hidden inside; the
+        // store flips before the fold's animation hides it).
+        const obj = scene.getObjectByName(name)
+        if (!obj || !shown(obj)) return null
+        let inWindow = false
+        for (let o: Object3D | null = obj; o && !inWindow; o = o.parent) inWindow = o.name === `${WIN}-window`
+        if (inWindow) {
+          const w = useWindows.getState()
+          if (w.closed || w.minimized) return null
+        }
         const p = aimPoint(scene, name, v)
         return p ? project(p, camera, canvas) : null
       },

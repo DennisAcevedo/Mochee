@@ -37,15 +37,15 @@ const tutorWorld = { windows: useWindows, frame: sceneFrame }
 
 const asideView = { camX: 0, camZ: LESSON_CAMERA.position[2], fov: LESSON_CAMERA.fov, aspect: LESSON_CAMERA.aspect }
 
-// Where he waits beside a maximized window: in the screen gap beside it (the
-// side away from its home), against the window's live frame and the pan the
-// camera is easing to (CameraRig), so he stays clear of it and in frame.
+// Where he waits beside a maximized window: in the screen gap beside it,
+// against the window's live frame and the pan the camera is easing to
+// (CameraRig), so he stays clear of it and in frame. The window's home is
+// left, so on a tie he waits in the gap to its right (past the lane's right
+// end its depth is flat: the right spot's z).
 function asideX(from: AsideFrom, focus: Focus): number {
-  const home = from === 'notes' ? 1 : -1
   asideView.camX = cameraPan(focus, from)
   const f = windowFrames[from]
-  // Past the lane's ends its depth is flat: the end spot's z.
-  return asideSpot({ cx: f.center.x, halfW: f.halfW, z: f.center.z }, home, home > 0 ? SPOTS.right.z : SPOTS.left.z, asideView)
+  return asideSpot({ cx: f.center.x, halfW: f.halfW, z: f.center.z }, 1, SPOTS.right.z, asideView)
 }
 
 function logAction(a: RoamAction, now: number) {

@@ -4,7 +4,7 @@ import { DOCS_ROUTES, type DocumentInfo, type PageText } from '../../../shared/d
 import { useDirector } from '../../state/director'
 import { useDrawers } from '../../state/drawers'
 import { useWindows } from '../../state/windows'
-import { WIN_IDS, type WinId } from '../../scene/windows/tabModel'
+import { WIN, type WinId } from '../../scene/windows/tabModel'
 import { errorText, fetchPage, type DocsErrorCode } from './docsClient'
 import s from './Learning.module.css'
 
@@ -36,21 +36,15 @@ const WINDOW_TITLE_MAX = 64 // characters of the title a window tab keeps (as th
 // first), else an empty New tab, else a fresh tab. Null when the window's
 // tab strip is full.
 function tabFor(docId: string): [WinId, string] | null {
-  const w = useWindows.getState()
-  for (const win of WIN_IDS) {
-    const wt = w.tabs[win]
-    const t = [wt.tabs.find((x) => x.id === wt.active), ...wt.tabs].find((x) => x?.kind === 'pdf' && x.docId === docId)
-    if (t) return [win, t.id]
-  }
-  for (const win of WIN_IDS) {
-    const blank = useWindows.getState().tabs[win].tabs.find((x) => x.kind === 'newtab')
-    if (blank) return [win, blank.id]
-    const before = useWindows.getState().tabs[win]
-    useWindows.getState().openTab(win)
-    const after = useWindows.getState().tabs[win]
-    if (after !== before) return [win, after.active]
-  }
-  return null
+  const win = WIN
+  const wt = useWindows.getState().tabs[win]
+  const t = [wt.tabs.find((x) => x.id === wt.active), ...wt.tabs].find((x) => x?.kind === 'pdf' && x.docId === docId)
+  if (t) return [win, t.id]
+  const blank = wt.tabs.find((x) => x.kind === 'newtab')
+  if (blank) return [win, blank.id]
+  useWindows.getState().openTab(win)
+  const after = useWindows.getState().tabs[win]
+  return after !== wt ? [win, after.active] : null
 }
 
 // The primary action: the page pops out into the stage's browser window, in

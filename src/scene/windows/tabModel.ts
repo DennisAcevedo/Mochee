@@ -14,7 +14,6 @@ import { WINDOW_UI } from './windowConfig.ts'
 // in (WinRef) and means this same window.
 export type WinId = 'notes'
 export const WIN: WinId = 'notes'
-export const WIN_IDS: readonly WinId[] = [WIN]
 export type WinRef = WinId | 'board'
 
 export type TabContent =
@@ -190,11 +189,47 @@ function lessonIndex(tabs: Tab[], content: LessonContent): number {
   return before >= 0 ? before : tabs.length
 }
 
+// The indexes of the student's own tabs in the order a full strip gives them
+// up: New tabs right to left, then PDF pages oldest first (smallest t<n> id;
+// any other id counts as older; they can be reopened from the Reader), each
+// kind's `active` tab after every tab not on screen; with `scratch`, the
+// scratch note (the student's own words) last of all. Never a lesson tab.
+function spareOrder(tabs: Tab[], active: string | null, scratch: boolean): number[] {
+  const age = (t: Tab) => {
+    const n = /^t(\d+)$/.exec(t.id)
+    return n ? Number(n[1]) : -1
+  }
+  const kind = (t: Tab) => (t.kind === 'newtab' ? 0 : t.kind === 'pdf' ? 1 : 2)
+  return tabs
+    .map((_, i) => i)
+    .filter((i) => tabs[i].kind === 'newtab' || tabs[i].kind === 'pdf' || (scratch && tabs[i].kind === 'scratch'))
+    .sort((a, b) => {
+      const ta = tabs[a]
+      const tb = tabs[b]
+      return (
+        Number(ta.kind === 'scratch') - Number(tb.kind === 'scratch') ||
+        Number(ta.id === active) - Number(tb.id === active) ||
+        kind(ta) - kind(tb) ||
+        (ta.kind === 'newtab' ? b - a : age(ta) - age(tb) || a - b)
+      )
+    })
+}
+
+// The tab a full strip gives up for lesson content (spareOrder, never the
+// scratch note). -1 if none.
+const spareIndex = (tabs: Tab[], active: string): number => spareOrder(tabs, active, false)[0] ?? -1
+
 // The walkthrough needs `content` on screen: reopen it in its lesson slot if
-// it was closed, and activate it.
+// it was closed, and activate it. A full strip (WINDOW_UI.tabs.maxPerWindow)
+// turns a spare tab into it instead of growing past the cap, which a reload
+// would cut back (validateTabs).
 export function ensureLessonTab(s: TabsState, content: LessonContent): TabsState {
   const found = findLesson(s, lessonKey(content) as string)
   if (found) return activateTab(s, found.tab.id)
+  if (s.notes.tabs.length >= WINDOW_UI.tabs.maxPerWindow) {
+    const spare = spareIndex(s.notes.tabs, s.notes.active)
+    if (spare >= 0) return turnInto(s, s.notes.tabs[spare].id, content)
+  }
   const [id, seq] = nextId(s)
   return insertAt({ ...s, seq }, withId(content, id), lessonIndex(s.notes.tabs, content))
 }
@@ -239,7 +274,8 @@ function readContent(raw: unknown): TabContent | null {
 }
 
 // Rebuilds a TabsState from untrusted JSON: drops unknown kinds and bad
-// fields, duplicate ids and duplicate lesson tabs, caps the tab count, fixes
+// fields, duplicate ids and duplicate lesson tabs, caps the tab count
+// (keeping lesson tabs ahead of the student's own), fixes
 // the active tab, refills an empty window with a New tab. Any other key (a
 // second window's tabs from an older layout) is ignored. Null if the shape is unusable.
 export function validateTabs(raw: unknown): TabsState | null {
@@ -250,9 +286,9 @@ export function validateTabs(raw: unknown): TabsState | null {
   const ids = new Set<string>()
   const keys = new Set<string>()
   let seq = Number.isInteger(r.seq) && (r.seq as number) >= 0 ? (r.seq as number) : 0
-  const tabs: Tab[] = []
-  for (const t of w.tabs as unknown[]) {
-    if (tabs.length >= WINDOW_UI.tabs.maxPerWindow) break
+  const cap = WINDOW_UI.tabs.maxPerWindow
+  let tabs: Tab[] = []
+  for (const t of (w.tabs as unknown[]).slice(0, cap * 4)) {
     const id = (t as { id?: unknown } | null)?.id
     const content = readContent(t)
     if (typeof id !== 'string' || !id || id.length > MAX_ID || ids.has(id) || !content) continue
@@ -264,6 +300,13 @@ export function validateTabs(raw: unknown): TabsState | null {
     if (n) seq = Math.max(seq, Number(n[1]))
     tabs.push(withId(content, id))
   }
+  // Over the cap: the student's own tabs go in spareOrder (New tabs, then the
+  // oldest PDF pages, the scratch note last), so the lesson tabs stay.
+  if (tabs.length > cap) {
+    const drop = new Set(spareOrder(tabs, typeof w.active === 'string' ? w.active : null, true).slice(0, tabs.length - cap))
+    tabs = tabs.filter((_, i) => !drop.has(i))
+  }
+  tabs = tabs.slice(0, cap)
   if (!tabs.length) {
     seq += 1
     const id = `t${seq}`

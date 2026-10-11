@@ -252,7 +252,7 @@ describe('facing and approach', () => {
 })
 
 describe('staging: where a move starts, and the beat after it', () => {
-  const SPOTS = { left: { x: -0.74, z: 1.0 }, center: { x: 0, z: 0.6 }, right: { x: 1.05, z: 1.0 } }
+  const SPOTS = { left: { x: -0.2, z: 1.0 }, center: { x: 0, z: 0.6 }, right: { x: 1.05, z: 1.0 } }
 
   it('starts from where his walk is taking him: aside > roaming > the lesson spot', () => {
     // The lesson crossing from center to right when the move is asked: the right spot, not where he is.

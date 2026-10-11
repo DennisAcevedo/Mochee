@@ -5,9 +5,11 @@
 // exponential damping rates (1/s); a rate of 20 settles ~95% in 150 ms.
 
 export const WINDOW_UI = {
-  // Tabs, offset and size. v2 = one window; a v1 (two-window) save is ignored.
+  // Tabs, offset and size. v2 = one window; a v1 (two-window) save is
+  // migrated into it once on load, then its keys are removed.
   storageKey: 'gg.windows.v2',
   scratchKey: 'gg.scratch.v1.', // + window id: the scratch note text
+  legacy: { storageKey: 'gg.windows.v1', boardScratchKey: 'gg.scratch.v1.board' },
   saveDebounceMs: 250,
   deadZonePx: 4, // a press that moves less than this is a click, not a drag
   doubleClickMs: 400, // two strip presses this close toggle maximize
@@ -38,8 +40,24 @@ export const WINDOW_UI = {
     // below the play HUD band along the top and above the caption, so its strip
     // and grip never end up under the DOM overlays.
     clampBox: [-0.98, -0.76, 0.98, 0.66] as [number, number, number, number],
+    // And in the room: a moved or widened window's focus ring (focused, it turns
+    // to focusYaw) keeps its left edge at or right of this world x, inside the
+    // room's left wall (-4.70) and the Blender study room's left rail (face at
+    // x -4.62). The NDC box alone let a drag reach x -4.76.
+    minRingX: -4.61,
+    radius: 0.1, // frame corner radius (windowStyle.ts draws with it)
+    depth: 0.06, // frame thickness (windowStyle.ts draws with it)
     moveRate: 26, // settle after a drag or a restore
     yawFollowsX: true, // a window turns toward the stage centre wherever it is
+  },
+
+  // The focused look's geometry (windowStyle.ts adds colours and rates): the
+  // window lifts toward the camera and a ring is drawn `gap` outside the frame,
+  // `stroke` wide. Plain numbers here so the placement code and the Node tests
+  // (tests/ui/windowPlace.test.ts) read the same values the window draws with.
+  focus: {
+    lift: 0.25,
+    ring: { gap: 0.03, stroke: 0.035 },
   },
 
   maximize: {

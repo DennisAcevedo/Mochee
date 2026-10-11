@@ -5,6 +5,7 @@ import { lectureBoard } from '../../data/mockLesson'
 import { BOARD_PARTS, boardShows, type BoardPart } from '../../data/stageContent'
 import { useDirector } from '../../state/director'
 import { PALETTE } from '../layout3d'
+import { asStudent } from './lessonNeed'
 import { damp, Flat, Label, usePop } from './primitives'
 import { ellipseStroke } from './shapes'
 import type { ContentBox } from './WindowContent'
@@ -161,7 +162,11 @@ export function LectureBoard({ box, reveal }: { box: ContentBox; reveal: number 
 }
 
 // The toolbar's reload on the board tab: replays the reveal from empty back
-// to where it was, one part per step.
+// to where it was, one part per step. The student's own action (asStudent):
+// if they switch tabs, minimize or close mid-replay, the next step leaves the
+// window alone instead of pulling it back open on the Board tab. If the
+// lesson moves the board on mid-replay (a reveal it did not write), the
+// replay stops there, and it never ends below where the board got to.
 export function useBoardReplay() {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -170,10 +175,14 @@ export function useBoardReplay() {
     const end = Math.min(boardReveal, BOARD_PARTS.length)
     clearTimeout(timer.current)
     let n = 0
-    setBoardReveal(0)
+    let last = 0 // what the replay last wrote
+    asStudent(() => setBoardReveal(0))
     const step = () => {
+      const now = useDirector.getState().boardReveal
+      if (now !== last) return // the lesson took the board over
       n++
-      setBoardReveal(n >= end ? boardReveal : n)
+      last = n >= end ? Math.max(boardReveal, now) : n
+      asStudent(() => setBoardReveal(last))
       if (n < end) timer.current = setTimeout(step, B.replayStepMs)
     }
     timer.current = setTimeout(step, B.replayStepMs)

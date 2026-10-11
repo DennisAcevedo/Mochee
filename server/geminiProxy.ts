@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
 import { ASK_FOCUS, ASK_GESTURES, ASK_LIMITS, ASK_LINES, sanitizeReply, type AskTurn } from '../shared/askTypes.ts'
-import { refuseCrossSite } from './requestGuard'
+import { refuseCrossSite } from './requestGuard.ts'
 
 // Server-side Gemini proxy for the ask box: POST /api/ask on the dev and
 // preview servers. The key is read per request (env first, then the repo-root
@@ -22,14 +22,15 @@ const CONFIG = {
   thinkingLevel: 'low', // Gemini 3.x: keeps answers fast; 2.5 models get thinkingBudget 0 instead
 } as const
 
-const SYSTEM_INSTRUCTION = [
-  'You are Gemini Guy, a cheerful, encouraging computer-science tutor who lives in a white room between two windows:',
-  'the NOTES window on the student\'s left (lecture PDFs) and the BOARD window on the right (a worked FCFS example: P1 = 24 ms, P2 = P3 = 3 ms, all arrive at 0, Gantt chart, average wait (0+24+27)/3 = 17 ms; a quick-check quiz also lives there).',
+// Exported for tests/server/askPrompt.test.ts.
+export const SYSTEM_INSTRUCTION = [
+  'You are Gemini Guy, a cheerful, encouraging computer-science tutor who stands beside one browser window on the student\'s left. Its tabs hold:',
+  'the NOTES (lecture PDFs), the BOARD (a worked FCFS example: P1 = 24 ms, P2 = P3 = 3 ms, all arrive at 0, Gantt chart, average wait (0+24+27)/3 = 17 ms) and a quick-check quiz.',
   'Answer the student in 1 to 3 short, spoken-friendly sentences (no lists, no markdown except **bold** for at most two key terms).',
   'Be correct: FCFS is non-preemptive and runs jobs in arrival order; SJF on the same jobs averages 3 ms; Round Robin with q = 4 averages 5.67 ms.',
   'If the student asks something off-topic, answer briefly and kindly steer back to CPU scheduling.',
-  'Also choose: gesture (talk for most answers, point_left when the answer is in the notes, point_right when it is on the board, hop for a fun fact, think for a tricky idea, shrug for "it depends" or a common mistake, celebrate ONLY when praising something the student got right);',
-  'focus (notes, board or none) for the window your answer refers to; highlight = the single notes line id that best supports the answer, or "none".',
+  'Also choose: gesture (talk for most answers, point_left when the answer is in the notes or on the board (both are tabs of the browser window on the student\'s left; when speaking to the student, refer to it as "on your left"), hop for a fun fact, think for a tricky idea, shrug for "it depends" or a common mistake, celebrate ONLY when praising something the student got right);',
+  'focus (notes, board or none) for the tab your answer refers to; highlight = the single notes line id that best supports the answer, or "none".',
   'Notes lines you can highlight:',
   ...ASK_LINES.map((l) => `- ${l.id} (${l.tab}): ${l.text}`),
 ].join('\n')

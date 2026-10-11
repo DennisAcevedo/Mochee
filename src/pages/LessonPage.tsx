@@ -32,7 +32,7 @@ import lesson from './LessonPage.module.css'
 // Stage frame sizing. The frame is letterboxed at the 3D camera's aspect into
 // the space the header and the dock leave; maxWidth only stops it growing
 // silly on very wide screens. It draws nothing (the scene is full-bleed): it
-// is where the lesson shot lands, so both windows and the tutor fit between
+// is where the lesson shot lands, so the browser window and the tutor fit between
 // the bars at any window size, and the scene carries on past it to the edges.
 const FRAME = {
   aspect: LESSON_CAMERA.aspect,
@@ -133,7 +133,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   }, [phase, tutor.id, touchStudied])
 
   // Fetch the GLB while the start screen and the intro play. The drawer
-  // starts folded to its handle so both windows show.
+  // starts folded to its handle so the browser window shows.
   useEffect(() => {
     preloadBlenderTutor()
     useTutorStore.setState({ panelOpen: false })

@@ -6,11 +6,12 @@ import { CELEBRATIONS } from '../character/blender/config.ts'
 // the play system write. Components never talk to each other directly; they
 // go through this store.
 
-// Where he stands on the floor. left = in front of the notes window (viewer's
-// left), right = in front of the board window (viewer's right).
+// Where he stands on the floor. left = beside the browser window (viewer's
+// left), where he teaches from; right = the free side of the stage.
 export type Spot = 'left' | 'center' | 'right'
 
-// Which window is "on": it tilts toward the camera, glows, and the camera eases toward it.
+// Which tab the window is showing for him (notes or board/quiz); either one lights the one
+// window: it tilts toward the camera, glows, and the camera eases toward it.
 export type Focus = 'none' | 'notes' | 'board'
 
 // Animation clip names baked into public/models/tutor.glb. Keep in sync with
@@ -119,8 +120,8 @@ export interface DirectorState {
   loop: LoopClip // what he does when no one-shot is playing
   gesture: Gesture | null
   fx: FxEvent[]
-  notesTab: number // index into the notes window's tabs
-  highlight: string | null // id of the highlighted line in the notes window
+  notesTab: number // index into the browser window's notes tabs
+  highlight: string | null // id of the highlighted line in the browser window's notes tab
   boardReveal: number // how many board elements are shown, for step-by-step reveals
   caption: string | null // what he is saying right now, shown as a caption
   // Roaming (src/lesson/roam.ts): a free x in the lane between the windows,

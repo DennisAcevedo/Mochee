@@ -11,6 +11,7 @@ import { isLoopGesture, isOneShotGesture } from './askGestures'
 import { stripMarks } from './markup'
 import { startLatency, type LatencyTrace } from './latency'
 import { sayLine, useWalkthrough } from './runner'
+import { startLoop } from '../scene/windows/pointGate'
 import { isRecognizing, startRecognition, stopRecognition, stopSpeaking } from './speech'
 
 // The ask box and the mic, end to end: the student's line goes in the
@@ -86,16 +87,22 @@ function deliver(reply: AskReply, trace: LatencyTrace) {
     d.setNotesTab(line.tabIndex)
     d.setHighlight(line.id)
   }
-  if (focus === 'notes') d.walkTo('left')
-  if (focus === 'board') d.walkTo('right')
-  if (focus !== 'none') d.setFocus(focus)
+  // Notes, board and quick check are all tabs of the one window on his left.
+  if (focus !== 'none') {
+    d.walkTo('left')
+    d.setFocus(focus)
+  }
 
-  const pointing = focus === 'notes' ? 'point_left' : focus === 'board' ? 'point_right' : 'talk'
-  const loop = isLoopGesture(reply.gesture) && reply.gesture !== 'talk' ? reply.gesture : pointing
+  const pointing = focus === 'none' ? 'talk' : 'point_left'
+  // Everything he can point at lives in the window on his left: a model 'point_right' means that window too.
+  const g = reply.gesture === 'point_right' ? 'point_left' : reply.gesture
+  const loop = isLoopGesture(g) && g !== 'talk' ? g : pointing
   if (isOneShotGesture(reply.gesture)) d.play(reply.gesture, { vary: true })
 
-  const w = useWalkthrough.getState()
-  w.setLoopOverride(loop)
+  // A point waits for the camera to settle on the focused window (talk until
+  // then), and with no window focused he talks instead (pointGate.ts).
+  const my = seq
+  startLoop(loop, (l) => useWalkthrough.getState().setLoopOverride(l), () => my === seq && useWalkthrough.getState().loopOverride === 'talk')
   sayLine(reply.answer, () => {
     useWalkthrough.getState().setLoopOverride(null)
     useWalkthrough.getState().release()

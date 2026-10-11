@@ -14,7 +14,7 @@ import {
   turnInto,
   validateTabs,
   WIN,
-  WIN_IDS,
+  type Tab,
   type TabsState,
 } from '../../src/scene/windows/tabModel.ts'
 import { closeShown, ellipsize, slotIndex, tabLook, tabTargetWidth, clampSize } from '../../src/scene/windows/tabLayout.ts'
@@ -28,7 +28,6 @@ const LESSON = ['notes0', 'notes1', 'notes2', 'board', 'quiz']
 describe('tab model', () => {
   it('is one window, keyed by the old left window id', () => {
     assert.equal(WIN, 'notes')
-    assert.deepEqual(WIN_IDS, ['notes'])
     assert.deepEqual(Object.keys(initialTabs()).sort(), ['notes', 'seq'])
   })
 
@@ -125,6 +124,55 @@ describe('tab model', () => {
     s = ensureLessonTab(s, { kind: 'board' })
     assert.deepEqual(kinds(s), ['notes0', 'notes1', 'notes2', 'board', 'quiz', 'newtab'])
     assert.equal(s.notes.active, findLesson(s, 'board')?.tab.id)
+  })
+
+  it('ensureLessonTab on a full strip turns a spare tab into the lesson content, never past the cap', () => {
+    const cap = WINDOW_UI.tabs.maxPerWindow
+    let s = closeTab(initialTabs(), 'q0')
+    s = openNewTab(s)
+    s = turnInto(s, s.notes.active, { kind: 'pdf', docId: 'd1', page: 1, title: 'a.pdf' })
+    s = openNewTab(s)
+    s = turnInto(s, s.notes.active, { kind: 'scratch' })
+    while (s.notes.tabs.length < cap) s = openNewTab(s)
+    const lastBlank = s.notes.tabs[cap - 2].id
+    // The right-most New tab not on screen becomes the Quick check (the last one opened is the active tab).
+    let q = ensureLessonTab(s, { kind: 'quiz' })
+    assert.equal(q.notes.tabs.length, cap)
+    assert.equal(findLesson(q, 'quiz')?.tab.id, lastBlank)
+    assert.equal(q.notes.active, lastBlank)
+    // No New tab left: the PDF page gives way; the scratch note never does.
+    let full = s
+    for (const t of s.notes.tabs) if (t.kind === 'newtab') full = closeTab(full, t.id)
+    for (let i = 0; full.notes.tabs.length < cap; i++) full = ensureLessonTab(full, { kind: 'notes', note: 3 + i })
+    q = ensureLessonTab(full, { kind: 'quiz' })
+    assert.equal(q.notes.tabs.length, cap)
+    assert.ok(findLesson(q, 'quiz'))
+    assert.ok(!q.notes.tabs.some((t) => t.kind === 'pdf'))
+    assert.ok(q.notes.tabs.some((t) => t.kind === 'scratch'))
+  })
+
+  it('a full strip gives up a tab not on screen first: New tabs, then the oldest PDF page, the active tab last', () => {
+    const cap = WINDOW_UI.tabs.maxPerWindow
+    const lesson = initialTabs().notes.tabs.filter((t) => t.kind !== 'quiz')
+    const pdf = (id: string): Tab => ({ id, kind: 'pdf', docId: 'd', page: 1, title: 'p.pdf' })
+    // Lesson tabs pad the strip to the cap (they are never given up).
+    const full = (own: Tab[], active: string): TabsState => {
+      const pad = Array.from({ length: cap - lesson.length - own.length }, (_, i): Tab => ({ id: `p${i}`, kind: 'notes', note: 3 + i }))
+      return { notes: { tabs: [...lesson, ...own, ...pad], active }, seq: 50 }
+    }
+    const quizIn = (s: TabsState) => {
+      const q = ensureLessonTab(s, { kind: 'quiz' })
+      assert.equal(q.notes.tabs.length, cap)
+      return findLesson(q, 'quiz')?.tab.id
+    }
+    const scratch: Tab = { id: 't40', kind: 'scratch' }
+    // A PDF page off screen goes before the New tab the student is looking at.
+    assert.equal(quizIn(full([{ id: 't1', kind: 'newtab' }, pdf('t2'), scratch], 't1')), 't2')
+    // The oldest PDF page (smallest t<n>), wherever it sits.
+    assert.equal(quizIn(full([pdf('t9'), pdf('t3'), scratch], 'n0')), 't3')
+    // The active tab when it is the only one to give.
+    assert.equal(quizIn(full([{ id: 't1', kind: 'newtab' }, scratch], 't1')), 't1')
+    assert.equal(quizIn(full([pdf('t2'), scratch], 't2')), 't2')
   })
 
   it('ensureLessonTab just activates a tab that is open, wherever it was dragged', () => {
@@ -233,6 +281,44 @@ describe('stored state validation', () => {
     ])
     assert.equal(v.notes.active, 'a')
     assert.equal(v.seq, 7, 'seq moves past every stored t<n> id')
+  })
+
+  it('over the cap, keeps the lesson tabs and drops the student\'s own tabs from the right', () => {
+    const cap = WINDOW_UI.tabs.maxPerWindow
+    const own = Array.from({ length: cap }, (_, i) => ({ id: `t${i + 1}`, kind: 'newtab' }))
+    const v = validateTabs({ notes: { active: 'q0', tabs: [{ id: 'n0', kind: 'notes', note: 0 }, ...own, { id: 'b0', kind: 'board' }, { id: 'q0', kind: 'quiz' }] } })
+    assert.ok(v)
+    assert.equal(v.notes.tabs.length, cap)
+    assert.deepEqual(ids(v), ['n0', ...own.slice(0, cap - 3).map((t) => t.id), 'b0', 'q0'])
+    assert.equal(v.notes.active, 'q0')
+  })
+
+  it('over the cap, drops New tabs right to left, then PDF pages oldest first, the scratch note last, the active tab after its kind', () => {
+    const cap = WINDOW_UI.tabs.maxPerWindow
+    const lesson = [{ id: 'n0', kind: 'notes', note: 0 }, { id: 'n1', kind: 'notes', note: 1 }, { id: 'n2', kind: 'notes', note: 2 }, { id: 'b0', kind: 'board' }, { id: 'q0', kind: 'quiz' }]
+    const pdf = (n: number) => ({ id: `t${n}`, kind: 'pdf', docId: 'd', page: 1, title: 'p.pdf' })
+    const pdfs = (from: number, count: number) => Array.from({ length: count }, (_, i) => pdf(from + i))
+    const own = [{ id: 't1', kind: 'newtab' }, pdf(8), { id: 't2', kind: 'newtab' }, pdf(3), { id: 't4', kind: 'scratch' }]
+    const load = (tabs: unknown[], active = 'n0') => {
+      const v = validateTabs({ notes: { tabs, active } })
+      assert.ok(v)
+      assert.equal(v.notes.tabs.length, Math.min(cap, tabs.length))
+      return ids(v)
+    }
+    const fill = cap - lesson.length - own.length // own tabs that just fit
+    // Two over: both New tabs go.
+    assert.deepEqual(load([...lesson, ...own, ...pdfs(20, fill + 2)]), ['n0', 'n1', 'n2', 'b0', 'q0', 't8', 't3', 't4', ...pdfs(20, fill + 2).map((t) => t.id)])
+    // Four over: then the oldest PDF pages, t3 before t8.
+    const kept = load([...lesson, ...own, ...pdfs(20, fill + 4)])
+    assert.ok(!kept.includes('t3') && !kept.includes('t8') && kept.includes('t4') && kept.includes('t20'), kept.join(','))
+    // The scratch note only once nothing else is left to drop.
+    const onlyScratch = load([...lesson, { id: 't4', kind: 'scratch' }, ...pdfs(20, cap - lesson.length)])
+    assert.ok(!onlyScratch.includes('t20') && onlyScratch.includes('t4'), onlyScratch.join(','))
+    // The active New tab stays while another New tab can go.
+    const blanks = Array.from({ length: cap - lesson.length + 1 }, (_, i) => ({ id: `t${i + 1}`, kind: 'newtab' }))
+    const active = blanks[blanks.length - 1].id
+    const v = load([...lesson, ...blanks], active)
+    assert.ok(v.includes(active) && !v.includes(blanks[blanks.length - 2].id), v.join(','))
   })
 
   it('refills an emptied window with a New tab', () => {

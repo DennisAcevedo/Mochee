@@ -6,8 +6,8 @@ import type { ResolvedStep, StepColor, WalkStep } from './walkthrough.ts'
 // A tutor session built from an uploaded document's LessonPack. The hub's
 // Start Tutor Session calls useLessonPack.start(pack, section); while a pack
 // is set, the lesson room plays packToWalkthrough(pack, section) instead of
-// the hand-written WALKTHROUGH, the notes window shows packNotesTabs(pack)
-// (notes tab N = section N) and the board shows packBoard(pack, N).
+// the hand-written WALKTHROUGH, the browser window's notes tabs show
+// packNotesTabs(pack) (notes tab N = section N) and its Board tab shows packBoard(pack, N).
 //
 // Everything said or shown comes from the pack (the document's own text and
 // topics). The only words added here are the framing around it ("Ready?",

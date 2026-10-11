@@ -7,26 +7,28 @@ import type { PaletteKey } from '../../growth/abilities'
 // trophy per mastered topic), the ability props and the return experiment's
 // scheduler race. The sparkle stage has no walls, so the shelves and posters
 // float in the open sky; they are placed by where they land in the 16:9
-// frame (frameAt, against LESSON_CAMERA), clear of the HUD, the two windows,
-// the tutor and the caption.
+// frame (frameAt, against LESSON_CAMERA), clear of the HUD, the browser
+// window, the tutor and the caption.
 
-// Shelf islands sit below the windows in the frame's lower corners, turned a
-// little toward the centre so their books read in 3D.
+// Shelf islands sit in the frame's lower corners (the left one below the
+// browser window), turned a little toward the centre so their books read in 3D.
 const LIBRARY_AT = frameAt(0.165, 0.775, 0.2)
 const TROPHIES_AT = frameAt(0.835, 0.775, 0.2)
 
 // Poster slots, centre first, then left and right, top row before the
-// bottom: a small, quiet gallery in the far sky between the windows (their
-// inner edges land near u 0.32 and 0.68), above the tutor's head, so the
-// centre of the stage stays his.
+// bottom: a small, quiet gallery in the far sky right of the browser window
+// (its inner edge lands near u 0.35 at rest), above the tutor's head, so the
+// centre of the stage stays his. The grid sits a touch right of centre: with
+// the camera panned to the focused window, the left column at u 0.415 met the
+// window's focus ring; at 0.43 it clears it by about 10 px (1456 x 785).
 const POSTER_Z = -6.5
 const POSTER_GRID: [number, number][] = [
-  [0.5, 0.24],
-  [0.415, 0.24],
-  [0.585, 0.24],
-  [0.5, 0.355],
-  [0.415, 0.355],
-  [0.585, 0.355],
+  [0.515, 0.24],
+  [0.43, 0.24],
+  [0.6, 0.24],
+  [0.515, 0.355],
+  [0.43, 0.355],
+  [0.6, 0.355],
 ]
 
 export const EVOLUTION = {
@@ -57,7 +59,7 @@ export const EVOLUTION = {
     plaque: { text: 'TROPHIES', size: 0.12, dy: -0.2 },
   },
 
-  // Posters hang in the far sky between the windows, facing the camera.
+  // Posters hang in the far sky right of the browser window, facing the camera.
   posters: {
     size: [1.2, 0.86] as [number, number], // width, height
     scale: 0.9, // about 6% of the frame's width each

@@ -1,5 +1,6 @@
 import { Box3, Vector3, type Camera, type Mesh, type Object3D } from 'three'
 import { useWindows } from '../../state/windows'
+import { WINDOW } from '../layout3d'
 import { WIN, type TabKind, type WinId } from './tabModel'
 
 // Live, non-reactive bookkeeping of the window (written every frame, never
@@ -57,7 +58,7 @@ export interface WindowFrame {
   yaw: number
 }
 export const windowFrames: Record<WinId, WindowFrame> = {
-  [WIN]: { center: new Vector3(), halfW: 1.5, halfH: 1.25, yaw: 0 }, // WINDOW in layout3d.ts until the first frame
+  [WIN]: { center: new Vector3(...WINDOW.position), halfW: WINDOW.width / 2, halfH: WINDOW.height / 2, yaw: WINDOW.yaw }, // WINDOW in layout3d.ts until the first frame
 }
 
 // ---- Screen rects for the e2e (dev hook window.__gg.windows.rects())
@@ -96,8 +97,16 @@ function rectOfPoints(points: Vector3[], camera: Camera, canvas: HTMLElement): S
 
 const corners = Array.from({ length: 8 }, () => new Vector3())
 
+// Drawn only if it and every ancestor are visible: a closed or folded window
+// hides its parent group (minimizeRig), not the meshes themselves. GGHooks'
+// screenOf uses it too.
+export function shown(obj: Object3D): boolean {
+  for (let o: Object3D | null = obj; o; o = o.parent) if (!o.visible) return false
+  return true
+}
+
 function rectOf(obj: Object3D | null, camera: Camera, canvas: HTMLElement): ScreenRect | null {
-  if (!obj || !obj.visible) return null
+  if (!obj || !shown(obj)) return null
   obj.updateWorldMatrix(true, true)
   box.setFromObject(obj)
   if (box.isEmpty()) return null

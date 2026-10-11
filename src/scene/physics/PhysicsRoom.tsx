@@ -7,8 +7,8 @@ import { usePlayBody } from './playBody'
 // The physics world for play mode: Rapier with fixed colliders on every face
 // of the white-box room (floor, back wall, side walls, ceiling) plus an
 // invisible front wall just inside the camera's frame, so nothing thrown ever
-// leaves the room or rolls out of view. The two floating windows get thin
-// colliders too. The simulation pauses in study mode while the tutor is on
+// leaves the room or rolls out of view. The floating browser window gets a thin
+// collider too. The simulation pauses in study mode while the tutor is on
 // his feet (his body is then moved by hand, and the toys are unmounted); a
 // pick-up in study mode runs it until he has landed and stood back up.
 //
@@ -52,7 +52,7 @@ export function RoomColliders({ windows = true }: { windows?: boolean }) {
 interface PhysicsRoomProps {
   children?: ReactNode
   debug?: boolean // draw Rapier's collider wireframes
-  windows?: boolean // colliders for the two floating windows (default on)
+  windows?: boolean // a collider for the floating browser window (default on)
 }
 
 export function PhysicsRoom({ children, debug = false, windows = true }: PhysicsRoomProps) {

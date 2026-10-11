@@ -24,20 +24,66 @@ const base: MinState = { maximized: null, minimized: false, closed: false }
 
 // A localStorage stand-in, installed before the store loads (it reads storage once, at creation).
 const mem = new Map<string, string>()
+let failV2Write = false // a full quota for the v2 save only
 const storage = {
   getItem: (k: string) => mem.get(k) ?? null,
-  setItem: (k: string, v: string) => void mem.set(k, String(v)),
+  setItem: (k: string, v: string) => {
+    if (failV2Write && k === WINDOW_UI.storageKey) throw new Error('QuotaExceededError')
+    mem.set(k, String(v))
+  },
   removeItem: (k: string) => void mem.delete(k),
 }
-// A save from the two-window layout (v1): must not crash the store or bring back a second window.
+const NOTE = WINDOW_UI.scratchKey + 'notes'
+const BOARD_NOTE = WINDOW_UI.legacy.boardScratchKey
+// A save from the two-window layout (v1): both strips load into the one
+// window. The left one has no scratch tab and no note is saved for the one
+// window, so the right window's scratch tab and its note move over; the old
+// keys go once the v2 save is written.
 mem.set(
   'gg.windows.v1',
-  JSON.stringify({ v: 1, tabs: { notes: { tabs: [{ id: 'n0', kind: 'notes', note: 0 }], active: 'n0' }, board: { tabs: [{ id: 'b0', kind: 'board' }], active: 'b0' }, seq: 0 } }),
+  JSON.stringify({
+    v: 1,
+    tabs: {
+      notes: { tabs: [{ id: 'n0', kind: 'notes', note: 0 }, { id: 't1', kind: 'pdf', docId: 'd1', page: 2, title: 'x.pdf' }], active: 't1' },
+      board: { tabs: [{ id: 'b0', kind: 'board' }, { id: 't2', kind: 'scratch' }, { id: 'q0', kind: 'quiz' }], active: 'b0' },
+      seq: 2,
+    },
+    layout: { notes: { offset: [0.2, -0.1], size: null }, board: { offset: [9, 9], size: [1, 1] } },
+  }),
 )
+mem.set('gg.scratch.v1.board', 'old right-window note')
 ;(globalThis as { window?: unknown }).window = { localStorage: storage }
 const { useWindows } = await import('../../src/state/windows.ts')
 const initial = useWindows.getState()
+const afterV1 = { v1: mem.has('gg.windows.v1'), boardNote: mem.has('gg.scratch.v1.board'), v2: mem.get(WINDOW_UI.storageKey), note: mem.get(NOTE) }
 after(() => useWindows.getState().resetWindows())
+// More loads, each a second store instance (the query makes Node load the module again) on a fresh storage.
+const loadWith = async (seed: Record<string, string>, tag: string) => {
+  mem.clear()
+  for (const [k, v] of Object.entries(seed)) mem.set(k, v)
+  const s = (await import(`../../src/state/windows.ts?${tag}`)).useWindows.getState() as typeof initial
+  const left = Object.fromEntries(mem)
+  mem.clear()
+  return { s, left }
+}
+const v1Save = (left: unknown[], right: unknown[]) =>
+  JSON.stringify({ v: 1, tabs: { notes: { tabs: left, active: 'n0' }, board: { tabs: right, active: 'b0' }, seq: 9 }, layout: { notes: { offset: [0.3, 0], size: [2.4, 2] } } })
+// The left window had a scratch tab: it keeps it (and its note); the right one's goes.
+const leftScratch = await loadWith(
+  { 'gg.windows.v1': v1Save([{ id: 'n0', kind: 'notes', note: 0 }, { id: 't5', kind: 'scratch' }], [{ id: 'b0', kind: 'board' }, { id: 't6', kind: 'scratch' }, { id: 'q0', kind: 'quiz' }]), [NOTE]: 'left note', [BOARD_NOTE]: 'right note' },
+  'left-scratch',
+)
+// A v2 save beside a stale v1 one: the v2 save wins; the old right note moves over as ours is empty.
+const v2Wins = await loadWith(
+  { [WINDOW_UI.storageKey]: JSON.stringify({ v: 2, tabs: { notes: { tabs: [{ id: 'n0', kind: 'notes', note: 0 }], active: 'n0' }, seq: 1 }, layout: { offset: [0, 0], size: null } }), 'gg.windows.v1': v1Save([], []), [BOARD_NOTE]: 'stale right note' },
+  'v2-wins',
+)
+// An unreadable v1 save: dropped, fresh tabs.
+const brokenV1 = await loadWith({ 'gg.windows.v1': '{not json', [BOARD_NOTE]: 'orphan' }, 'broken-v1')
+// The v2 save cannot be written: the migrated tabs still load, the v1 save stays for the next load.
+failV2Write = true
+const blocked = await loadWith({ 'gg.windows.v1': v1Save([{ id: 'n0', kind: 'notes', note: 0 }], [{ id: 'b0', kind: 'board' }]) }, 'blocked-write')
+failV2Write = false
 // A v2 save that still carries a second window's tabs (a hand-edited or
 // half-migrated payload): a second store instance (the query makes Node load
 // the module again) reads it, keeps the one window's tabs and drops the rest.
@@ -54,7 +100,7 @@ mem.set(WINDOW_UI.storageKey, JSON.stringify(TWO))
 const twoShaped = (await import('../../src/state/windows.ts?two-window-v2')).useWindows.getState()
 mem.delete(WINDOW_UI.storageKey)
 const { noteEpoch, saveNote } = await import('../../src/scene/windows/scratchNote.ts')
-const { asStudent, reopenFor, revealsBoard, trimAfterClose } = await import('../../src/scene/windows/lessonNeed.ts')
+const { asStudent, onDirector, onMode, onPack, onStep, onWindows, reopenFor, revealsBoard, stepApplied, trimAfterClose } = await import('../../src/scene/windows/lessonNeed.ts')
 
 const fresh = () => {
   useWindows.getState().resetWindows()
@@ -107,12 +153,50 @@ describe('minimize and close state', () => {
 })
 
 describe('the windows store: close vs minimize', () => {
-  it('ignores a two-window (v1) save: one window, the lesson tabs, open', () => {
+  it('migrates a two-window (v1) save into the one window, open, and removes the old keys', () => {
     assert.equal(WINDOW_UI.storageKey, 'gg.windows.v2')
     assert.deepEqual(Object.keys(initial.tabs).sort(), ['notes', 'seq'])
-    assert.deepEqual(initial.tabs.notes.tabs.map((t) => t.kind), ['notes', 'notes', 'notes', 'board', 'quiz'])
+    assert.deepEqual(initial.tabs.notes.tabs.map((t) => t.id), ['n0', 't1', 'b0', 't2', 'q0'], 'left strip, then the right one with its scratch tab (the left had none)')
+    assert.equal(initial.tabs.notes.active, 't1', 'the left window\'s active tab')
+    assert.ok(initial.tabs.seq >= 2)
+    assert.deepEqual(initial.layout, { offset: [0, 0], size: null }, 'the default place: a v1 offset was from the old left window\'s')
     assert.equal(initial.minimized, false)
     assert.equal(initial.closed, false)
+    assert.equal(afterV1.v1, false, 'the v1 save is removed')
+    assert.equal(afterV1.boardNote, false, 'the right window\'s scratch key is removed ...')
+    assert.equal(afterV1.note, 'old right-window note', '... its note now the one window\'s')
+    const saved = JSON.parse(afterV1.v2 ?? '{}') as { v?: number; tabs?: unknown }
+    assert.equal(saved.v, 2, 'saved straight away as v2')
+    assert.deepEqual(saved.tabs, initial.tabs)
+  })
+
+  it('a v1 save whose left window had a scratch tab keeps that one and its note, and drops the right one', () => {
+    const { s, left } = leftScratch
+    assert.deepEqual(s.tabs.notes.tabs.map((t) => t.id), ['n0', 't5', 'b0', 'q0'])
+    assert.equal(left[NOTE], 'left note')
+    assert.equal(left[BOARD_NOTE], undefined)
+    assert.deepEqual(s.layout, { offset: [0, 0], size: [2.4, 2] }, 'the left window\'s size carries over, its move does not')
+  })
+
+  it('a v2 save beside a stale v1 one wins, and takes the old right note when it has none', () => {
+    const { s, left } = v2Wins
+    assert.deepEqual(s.tabs.notes.tabs.map((t) => t.id), ['n0'])
+    assert.equal(left[NOTE], 'stale right note')
+    assert.equal(left['gg.windows.v1'], undefined)
+    assert.equal(left[BOARD_NOTE], undefined)
+  })
+
+  it('an unreadable v1 save is removed and the window starts fresh', () => {
+    const { s, left } = brokenV1
+    assert.deepEqual(s.tabs.notes.tabs.map((t) => t.kind), ['notes', 'notes', 'notes', 'board', 'quiz'])
+    assert.deepEqual(Object.keys(left), [])
+  })
+
+  it('when the v2 save cannot be written, the migrated tabs load and the v1 save stays for next time', () => {
+    const { s, left } = blocked
+    assert.deepEqual(s.tabs.notes.tabs.map((t) => t.id), ['n0', 'b0'])
+    assert.ok(left['gg.windows.v1'], 'v1 kept')
+    assert.equal(left[WINDOW_UI.storageKey], undefined)
   })
 
   it('a v2 save shaped like two windows loads the one window and drops the stray second one', () => {
@@ -208,7 +292,7 @@ describe('the windows store: close vs minimize', () => {
     assert.equal(useWindows.getState().closed, true)
   })
 
-  it('a lesson need reopens a closed window on the tab it needs (lessonNeed.reopenFor, what lessonSync runs)', () => {
+  it('a lesson need reopens a closed window on the tab it needs (the reopenFor helper)', () => {
     const s = fresh()
     s.closeTab('notes', 'q0')
     s.close('notes')
@@ -248,7 +332,7 @@ describe('the windows store: close vs minimize', () => {
     assert.equal(revealsBoard(4, 3), true)
   })
 
-  it('after a close, the rebuilt notes tabs fit a pack with fewer sections', () => {
+  it('after a close, the rebuilt notes tabs fit a pack with fewer sections (the trimAfterClose helper)', () => {
     const s = fresh()
     s.close('notes')
     trimAfterClose(2)
@@ -258,6 +342,88 @@ describe('the windows store: close vs minimize', () => {
     assert.equal(useWindows.getState().tabs, same, 'no update when nothing to trim')
   })
 
+})
+
+// lessonSync.connect() subscribes these handlers to the stores; here they are
+// subscribed to the real windows store, or fired with the (next, previous)
+// pairs the director and the walkthrough would send.
+describe('lessonSync handlers', () => {
+  const ctx = (mode = 'lecture', noteCount = 3) => ({ mode, noteCount, noteOfLine: (id: string) => (id === 'line-in-2' ? 2 : -1) })
+  const dir = (over: Partial<{ notesTab: number; highlight: string | null; focus: string; boardReveal: number }> = {}) => ({ notesTab: 0, highlight: null, focus: 'none', boardReveal: 0, ...over })
+  const activeKind = () => {
+    const t = useWindows.getState().tabs.notes
+    return t.tabs.find((x) => x.id === t.active)?.kind
+  }
+
+  it('the red light, through the store subscription, trims the rebuilt notes tabs to the pack', () => {
+    fresh()
+    const off = useWindows.subscribe((s, p) => onWindows(s, p, 2))
+    useWindows.getState().close('notes')
+    off()
+    assert.equal(useWindows.getState().closed, true)
+    assert.deepEqual(kinds(), ['notes0', 'notes1', 'board', 'quiz'])
+  })
+
+  it('a pack start trims notes tabs past its sections and republishes the strip', () => {
+    fresh()
+    const before = useWindows.getState().tabs
+    onPack(3)
+    assert.notEqual(useWindows.getState().tabs, before, 'republished even with nothing to trim')
+    assert.deepEqual(kinds(), LESSON)
+    onPack(1)
+    assert.deepEqual(kinds(), ['notes0', 'board', 'quiz'])
+  })
+
+  it('a board reveal that shows more reopens a closed window on the Board tab, in lecture mode only', () => {
+    fresh().close('notes')
+    onDirector(dir({ boardReveal: 1 }), dir({ boardReveal: 0 }), ctx('quiz'))
+    assert.equal(useWindows.getState().closed, true, 'not in quiz mode')
+    onDirector(dir({ boardReveal: 0 }), dir({ boardReveal: Number.POSITIVE_INFINITY }), ctx())
+    assert.equal(useWindows.getState().closed, true, 'the lesson-start reset does not')
+    onDirector(dir({ boardReveal: 1 }), dir({ boardReveal: 0 }), ctx())
+    assert.equal(useWindows.getState().closed, false)
+    assert.equal(activeKind(), 'board')
+  })
+
+  it('the Board tab reload (a replay inside asStudent) never pulls a closed or folded window back', () => {
+    for (const hide of ['close', 'minimize'] as const) {
+      const s = fresh()
+      s[hide]('notes')
+      // useBoardReplay: 0, then 1, 2, 3 one step at a time, each inside asStudent.
+      let prev = 3
+      for (const n of [0, 1, 2, 3]) {
+        asStudent(() => onDirector(dir({ boardReveal: n }), dir({ boardReveal: prev }), ctx()))
+        prev = n
+      }
+      const st = useWindows.getState()
+      assert.equal(hide === 'close' ? st.closed : st.minimized, true, `${hide}: still hidden after the replay`)
+    }
+    useWindows.getState().restore('notes')
+  })
+
+  it('a highlighted line opens its notes tab; focus on the board opens the Quick check in quiz mode', () => {
+    fresh().minimize('notes')
+    onDirector(dir({ highlight: 'line-in-2' }), dir(), ctx())
+    assert.equal(useWindows.getState().minimized, false)
+    assert.equal(useWindows.getState().tabs.notes.active, 'n2')
+    onDirector(dir({ focus: 'board' }), dir(), ctx('quiz'))
+    assert.equal(activeKind(), 'quiz')
+    onMode({ mode: 'lecture' }, { mode: 'quiz' })
+    assert.equal(activeKind(), 'board')
+  })
+
+  it('a re-applied walkthrough step asks again for a tab the student closed since', () => {
+    const s = fresh()
+    s.closeTab('notes', 'b0')
+    assert.equal(stepApplied({ index: 4, phase: 'speaking' }, { index: 4, phase: 'idle' }), true, 'speaking without a walk first')
+    assert.equal(stepApplied({ index: 4, phase: 'speaking' }, { index: 4, phase: 'walking' }), false, 'already applied when the walk began')
+    assert.equal(stepApplied({ index: 5, phase: 'idle' }, { index: 4, phase: 'idle' }), true)
+    onStep({ focus: 'board', notesTab: 0, mode: 'lecture', highlight: null }, ctx())
+    assert.equal(activeKind(), 'board')
+  })
+})
+
+describe('the windows store: the Reader and saving', () => {
   it('the Reader opening a page reopens a closed window (openTab + turnInto + setMaximized, as PageViewer calls them)', () => {
     const s = fresh()
     s.close('notes')

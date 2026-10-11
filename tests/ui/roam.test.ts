@@ -16,7 +16,7 @@ function rngOf(seed: number) {
   }
 }
 
-// The lane the stage uses (SPOTS.left.x .. SPOTS.right.x in src/scene/layout3d.ts), pinned here.
+// A symmetric test lane (the stage's runs SPOTS.left.x .. SPOTS.right.x in src/scene/layout3d.ts).
 const LANE = { laneMin: -1.05, laneMax: 1.05 }
 const SPOTS = { left: { x: -1.05, z: 1.0 }, center: { x: 0, z: 0.6 }, right: { x: 1.05, z: 1.0 } }
 

@@ -4,6 +4,7 @@ import figtree800 from '@fontsource/figtree/files/figtree-latin-800-normal.woff?
 import mono500 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff?url'
 import mono700 from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff?url'
 import { PALETTE } from '../layout3d'
+import { WINDOW_UI } from './windowConfig'
 
 // Look of the 3D mini browser window, in world units (the window is
 // WINDOW.width x WINDOW.height from layout3d.ts). One object to restyle
@@ -43,20 +44,20 @@ export const ON_ACCENT: Record<keyof typeof TINT, string> = {
 
 export const WINDOW_STYLE = {
   urlHost: 'tutor.app/', // omnibox prefix in front of each tab's path
-  depth: 0.06, // frame thickness
+  depth: WINDOW_UI.window.depth, // frame thickness (windowConfig.ts)
   bevel: 0.014, // rounded edge on the frame's front and back
   // Real key-light shadows from the frames. Off: their long floor shadows read
   // as grey slabs; the room's soft blobs ground the windows instead.
   castShadow: false,
-  radius: 0.1, // frame corner radius
+  radius: WINDOW_UI.window.radius, // frame corner radius (windowConfig.ts: the placement tests read it there)
   frameColor: '#ffffff',
   z: 0.031, // front face of the frame; chrome layers stack from here
   layer: 0.004, // spacing between stacked flat layers
 
   focus: {
     damp: 7, // exponential damping rate for yaw, scale and glow
-    lift: 0.25, // moves toward the camera when focused
-    ring: { color: PALETTE.teal, stroke: 0.035, gap: 0.03 },
+    lift: WINDOW_UI.focus.lift, // moves toward the camera when focused
+    ring: { color: PALETTE.teal, ...WINDOW_UI.focus.ring }, // gap and stroke: windowConfig.ts
     glow: { color: PALETTE.teal, pad: 0.55, opacity: 0.55 },
   },
 

@@ -42,9 +42,9 @@ export const ARENA = {
   // card. The band is measured off the HUD every `everyMs`.
   frame: { zoom: 0.78, dx: 0, dy: -130, fit: { gap: 12, minScale: 0.7, damp: 9, everyMs: 120 } },
   // The lesson room is found through these (their top-level group); each of its
-  // pieces (windows, platform, shelves) pops away during a fight. Windows only
-  // scale: their own code moves them every frame.
-  windows: ['notes-window', 'board-window'] as const,
+  // pieces (the browser window, platform, shelves) pops away during a fight.
+  // The window only scales: its own code moves it every frame.
+  windows: ['notes-window'] as const,
   tutorName: 'blender-tutor', // the Blender tutor's placement group (BlenderTutor.tsx)
 } as const
 

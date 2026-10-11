@@ -11,12 +11,13 @@ import { findTopic, useDocs } from './docsStore'
 import { CheckIcon } from './icons'
 import s from './ChatQuiz.module.css'
 import { performQuizResult } from './tutorCues'
+import { clearCelebration } from '../../scene/windows/pointGate'
 
 // The study hub's Quiz view. For an uploaded document: one question at a time with big choice
 // chips. Each submit carries a fresh attemptId (the server's idempotency key)
 // and the server reveals the answer only after it. Every result feeds topic
 // mastery; a first-try correct answer also earns XP and a dance. The built-in
-// lesson's quick check lives on the board window instead.
+// lesson's quick check lives in the browser window's Quick check tab instead.
 
 const QUIZ_UI = {
   choiceColors: [PALETTE.violet, PALETTE.teal, PALETTE.coral, PALETTE.indigo],
@@ -50,7 +51,7 @@ export function QuizPane() {
 function BoardHint() {
   const openCheck = () => {
     const d = useDirector.getState()
-    d.walkTo('right')
+    d.walkTo('left')
     d.setFocus('board')
     useTutorStore.getState().setMode('quiz')
   }
@@ -59,8 +60,8 @@ function BoardHint() {
       <span className={s.hintEmoji} aria-hidden>
         ?
       </span>
-      <h3 className={s.hintTitle}>The quick check lives on the board</h3>
-      <p className={s.hint}>The built-in lesson asks its question on the board to his right. Pick a PDF under Upload Materials for a quiz made from your own notes.</p>
+      <h3 className={s.hintTitle}>The quick check lives in the browser window</h3>
+      <p className={s.hint}>The built-in lesson asks its question in the browser window to his left. Pick a PDF under Upload Materials for a quiz made from your own notes.</p>
       <button type="button" className={s.primary} onClick={openCheck}>
         Open the quick check
       </button>
@@ -96,7 +97,11 @@ function DocQuiz({ documentId }: { documentId: string }) {
       useProgress.getState().award('quizCorrect')
       setFirstTryRight((n) => n + 1)
     }
-    performQuizResult(result.correct)
+    if (result.correct) {
+      // performQuizResult's cheer, minus the dances that reach into the window from the left spot (pointGate.ts).
+      useDirector.getState().play(clearCelebration())
+      useDirector.getState().burst('confetti')
+    } else performQuizResult(false)
     setPhase({ at: 'result', set: phase.set, index: phase.index, choice, result })
   }
 

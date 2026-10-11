@@ -210,10 +210,11 @@ def run(base: str, out: Path, headed: bool) -> int:
         time.sleep(1.5)
         ok, detail = canvas_has_content(r.shot(page, "sp_01_live"))
         r.check("canvas renders content", ok, detail)
-        notes, board = screen_of(page, "notes-window"), screen_of(page, "board-window")
+        window = screen_of(page, "notes-window")
         vw = CONFIG["viewport"]["width"]
-        r.check("Learning drawer starts folded: both windows in view", notes and board and 0 < notes["x"] < vw and 0 < board["x"] < vw
-                and not gg(page, "g.drawers.getState().learningOpen"), {"notes": notes, "board": board})
+        r.check("Learning drawer starts folded: the browser window in view", window and 0 < window["x"] < vw
+                and screen_of(page, "board-window") is None
+                and not gg(page, "g.drawers.getState().learningOpen"), {"window": window})
         quest = page.get_by_role("button", name=re.compile(r"\bquest\b", re.I)).count() + page.locator("#drawer-handle-quest, #drawer-dock-quest").count()
         r.check("no Quest drawer: no Quest handle, tab or dock button", quest == 0 and "questOpen" not in gg(page, "Object.keys(g.drawers.getState())"),
                 {"quest_controls": quest})
@@ -445,12 +446,18 @@ def run(base: str, out: Path, headed: bool) -> int:
 
             # 8. The demo label, on a mocked demo-mode answer (the live server has a key).
             hub(page, "chat")
+            # The cue says point_right: everything he points at is the window on his left, so he
+            # plays point_left there (talk while no window is focused), never point_right.
             demo = {"answer": "FCFS means **first come, first served**.", "citations": cites[:1], "cue": "point_right",
                     "confidence": "medium", "nextQuestion": None, "abstained": False, "source": "demo"}
             page.route("**/api/tutor/chat", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(demo)), times=1)
+            t0 = gg(page, "performance.now()")
             ask(CONFIG["ask_demo"])
             label = page.get_by_text(re.compile(r"^demo answer$", re.I)).last
             r.check("chat shows the 'Demo answer' label (mocked response)", poll(lambda: label.count() and label.is_visible(), 5))
+            want = "talk" if gg(page, "g.director.getState().focus") == "none" else "point_left"
+            played = lambda: [x["clip"] for x in gg(page, "g.loops.filter(x => x.t >= a)", t0)]
+            r.check(f"a point_right cue plays {want}, never point_right", poll(lambda: want in played(), 5) and "point_right" not in played(), played())
             r.shot(page, "sp_14_demo")
 
         # No errors anywhere.

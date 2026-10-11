@@ -121,12 +121,17 @@ export function BrowserWindow3D() {
   const setGrip = useCallback((g: Group | null) => void (windowHits.grip = g), [])
   const setOmni = useCallback((m: Mesh | null) => void (windowHits.omni = m), [])
 
-  // Resting placement at mount (afterwards the frame loop owns it).
+  // Resting placement at mount (afterwards the frame loop owns it). A stored
+  // offset comes back through the move clamp first: one saved before the
+  // clamp or the default placement changed could sit off screen or past the wall.
   const initial = useMemo(() => {
-    const o = useWindows.getState().layout.offset
+    const st = useWindows.getState()
+    const [sw, sh] = st.layout.size ?? [place.width, place.height]
+    const o = clampOffset(st.layout.offset[0], st.layout.offset[1], sw, sh, [0, 0])
     const x = place.position[0] + o[0]
-    return { position: [x, place.position[1] + o[1], place.position[2]] as [number, number, number], rotation: [0, yawAt(x), 0] as [number, number, number] }
+    return { offset: o, position: [x, place.position[1] + o[1], place.position[2]] as [number, number, number], rotation: [0, yawAt(x), 0] as [number, number, number] }
   }, [place])
+  useEffect(() => useWindows.getState().setOffset(WIN, initial.offset), [initial]) // a no-op when the stored offset already fit
 
   // ---- Moving (empty strip or omnibox) and resizing (corner grip)
   const moveTrack = useMemo(() => new PointerTrack(), [])
@@ -196,6 +201,7 @@ export function BrowserWindow3D() {
   })
 
   useFrame((state, dt) => {
+    anchors.camera.copy(state.camera.position) // for the pointing gate (pointGate.ts)
     const g = outer.current
     const pv = pivot.current
     const mn = mini.current

@@ -1,6 +1,6 @@
 // Dev-only lab for the stage's two worlds (src/scene/worlds): WorldSwitch
 // under the lesson camera exactly as CameraRig frames it once live, with the
-// two windows, the Blender tutor and (in play) the physics toys, so the toy
+// browser window, the Blender tutor and (in play) the physics toys, so the toy
 // hoop can be checked against the gym's wall mount. Not part of the build.
 // URL: ?mode=study|play|celebrate &frame=lesson|full &toys=0 &hoop=mount|full &ui=0 &outline=1 &void=1
 // window.__worlds lets scripts flip the mode, the frame and the scoreboard.
@@ -17,7 +17,7 @@ import { tutorStatus } from '../src/character/blender/BlenderTutor'
 import { cameraPan, LESSON_CAMERA, PALETTE } from '../src/scene/layout3d'
 import { Lights } from '../src/scene/Lights'
 import { PhysicsRoom, PhysicsTutor, Toys } from '../src/scene/physics'
-import { BoardWindow, NotesWindow } from '../src/scene/windows'
+import { NotesWindow } from '../src/scene/windows'
 import { useGym, WorldSwitch, type HoopDraw } from '../src/scene/worlds'
 import { useDirector, type Focus } from '../src/state/director'
 import { useMode, type StageMode } from '../src/state/mode'
@@ -279,7 +279,6 @@ function App() {
         <WorldSwitch hoop={l.hoop} />
         <Suspense fallback={null}>
           <NotesWindow />
-          <BoardWindow />
         </Suspense>
         <Suspense fallback={null}>
           <PhysicsRoom>
