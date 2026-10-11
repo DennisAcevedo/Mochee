@@ -27,8 +27,3 @@ export function framePoint(u: number, v: number, z: number, out = new Vector3())
 export function frameAt(u: number, v: number, z: number): [number, number, number] {
   return framePoint(u, v, z, rel).toArray() as [number, number, number]
 }
-
-// Yaw that turns something standing at p to face the resting camera.
-export function yawToCamera(p: Vector3): number {
-  return Math.atan2(cam.position.x - p.x, cam.position.z - p.z)
-}

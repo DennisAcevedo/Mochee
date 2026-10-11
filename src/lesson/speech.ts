@@ -239,8 +239,6 @@ function recognizerCtor(): RecognizerCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-export const canRecognize = () => typeof window !== 'undefined' && recognizerCtor() !== null
-
 interface Listening {
   rec: Recognizer
   finalText: string

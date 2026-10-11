@@ -135,4 +135,3 @@ export async function prepareVoice(text: string, signal: AbortSignal, trace: Lat
 }
 
 export function prefetchVoice(text: string) { void voiceUrl(text) }
-export const elevenVoiceDisabled = () => disabled

@@ -83,20 +83,6 @@ export function pointerOnPlane(x: number, y: number, camera: Camera, canvas: HTM
   return caster.ray.intersectPlane(plane, out) !== null
 }
 
-// Does the pointer ray hit `target`? Writes the hit point (world) to `out`.
-export function pointerHits(x: number, y: number, camera: Camera, canvas: HTMLElement, target: Object3D, out: Vector3): boolean {
-  const r = canvas.getBoundingClientRect()
-  if (!r.width || !r.height) return false
-  ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1)
-  caster.setFromCamera(ndc, camera)
-  hitList.length = 0
-  target.raycast(caster, hitList)
-  if (!hitList.length) return false
-  out.copy(hitList[0].point)
-  return true
-}
-const hitList: import('three').Intersection[] = []
-
 // The plane of an object's local XY (a window face), through its origin.
 const n = new Vector3()
 const o = new Vector3()

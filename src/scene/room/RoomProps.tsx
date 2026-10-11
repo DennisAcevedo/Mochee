@@ -105,8 +105,3 @@ export function RoomProps() {
     </group>
   )
 }
-
-export function preloadRoomProps() {
-  useGLTF.preload(ROOM_PROPS.study)
-  useGLTF.preload(ROOM_PROPS.play)
-}

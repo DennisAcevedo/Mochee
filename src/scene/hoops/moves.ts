@@ -122,11 +122,6 @@ export function driveAt(clip: BallClip, time: number, g: number): BallDrive {
   return { mode: 'path', pos: pointAt(e.pos, v0, g, since), vel: velocityAt(v0, g, since) }
 }
 
-// The time of the first event of a kind (and its position), or null.
-export function eventOf(clip: BallClip, kind: string): BallEvent | null {
-  return clip.events.find((e) => e.kind === kind) ?? null
-}
-
 // Where the ball should be when the clip starts (t = 0): the gather target.
 export function startPos(clip: BallClip, g: number): Vec3 | null {
   const d = driveAt(clip, 0, g)

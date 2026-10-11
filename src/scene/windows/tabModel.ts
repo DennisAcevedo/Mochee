@@ -39,7 +39,6 @@ export interface TabsState {
   seq: number // last number used for a generated tab id ('t' + seq)
 }
 
-export const TAB_KINDS: readonly TabKind[] = ['notes', 'board', 'quiz', 'scratch', 'pdf', 'newtab']
 const NOTE_COUNT = notesTabs.length
 
 // ---- Lesson tabs: unique by content, in a fixed lesson order
@@ -57,11 +56,6 @@ export function lessonKey(c: TabContent): string | null {
 // and the Quick check rank after any note index, not after NOTE_COUNT.
 const AFTER_NOTES = Number.MAX_SAFE_INTEGER - 1
 const rankOf = (c: LessonContent): number => (c.kind === 'notes' ? c.note : AFTER_NOTES + (c.kind === 'board' ? 0 : 1))
-
-export const contentOf = (tab: Tab): TabContent => {
-  const { id: _id, ...content } = tab
-  return content as TabContent
-}
 
 // ---- Construction
 

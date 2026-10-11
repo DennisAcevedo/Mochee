@@ -103,8 +103,6 @@ export const useDocs = create<DocsState>((set, get) => ({
   },
 }))
 
-export const findDocument = (id: string | null) => (id ? (useDocs.getState().documents.find((d) => d.id === id) ?? null) : null)
-
 export function findTopic(topicId: string): TopicInfo | null {
   for (const d of useDocs.getState().documents) {
     const t = d.topics.find((x) => x.id === topicId)

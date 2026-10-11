@@ -192,7 +192,6 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 const LECTURE_SECTION = 1
 
 // Derived values, mirroring renderVals() in the export.
-export const selectIsQuiz = (s: TutorState) => s.mode === 'quiz'
 export const selectSection = (s: TutorState) =>
   s.mode === 'quiz' ? s.session.sectionCount - 1 : Math.min(LECTURE_SECTION, s.session.sectionCount - 1)
 export const selectSpeaking = (s: TutorState) => s.mic === 'speaking'

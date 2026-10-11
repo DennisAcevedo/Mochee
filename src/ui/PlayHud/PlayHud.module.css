@@ -27,50 +27,6 @@
   user-select: none;
 }
 
-.strip {
-  display: flex;
-  align-items: center;
-  gap: calc(10 * var(--px));
-  padding: calc(6 * var(--px)) calc(8 * var(--px)) calc(6 * var(--px)) calc(6 * var(--px));
-  border-radius: calc(18 * var(--px));
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 0 0 calc(1.5 * var(--px)) rgba(29, 27, 36, 0.06),
-    0 calc(9 * var(--px)) calc(26 * var(--px)) rgba(60, 70, 130, 0.18);
-  position: relative;
-  z-index: 1; /* its menus (dance, ball tricks) open over the tickle hint, never under it */
-}
-
-/* A thin rainbow edge along the bottom of the strip. */
-.strip::after {
-  content: '';
-  position: absolute;
-  left: calc(16 * var(--px));
-  right: calc(16 * var(--px));
-  bottom: calc(-1.5 * var(--px));
-  height: calc(3 * var(--px));
-  border-radius: calc(3 * var(--px));
-  background: var(--rainbow);
-}
-
-.divider {
-  width: 1px;
-  align-self: stretch;
-  margin: calc(4 * var(--px)) 0;
-  border-radius: 1px;
-  background: #eceaf2;
-}
-
-/* Coin balance: a coin badge, his name, the coins and the next thing to buy. */
-
-.meter {
-  display: flex;
-  align-items: center;
-  gap: calc(8 * var(--px));
-  min-width: calc(166 * var(--px));
-}
-
 /* The coin pops whenever the balance changes (keyed on it). */
 .coinBadge {
   flex: none;
@@ -94,21 +50,6 @@
   height: 1.15em;
 }
 
-.meterBody {
-  display: flex;
-  flex-direction: column;
-  gap: calc(3.5 * var(--px));
-  flex: 1;
-  min-width: 0;
-}
-
-.name {
-  font-size: calc(12.5 * var(--px));
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
 .balance {
   font-size: calc(10 * var(--px));
   font-weight: 700;
@@ -120,18 +61,6 @@
   font-size: calc(17 * var(--px));
   font-weight: 900;
   color: var(--ink);
-}
-
-.goal {
-  font-size: calc(8.5 * var(--px));
-  font-weight: 700;
-  color: #4a4754;
-  white-space: nowrap;
-}
-
-.goal b {
-  color: #7c5cf2;
-  font-weight: 900;
 }
 
 /* Play buttons */
@@ -183,9 +112,7 @@
 }
 
 .action:focus-visible,
-.more:focus-visible,
-.hint:focus-visible,
-.menuItem:focus-visible {
+.hint:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
@@ -214,32 +141,6 @@
   letter-spacing: 0.01em;
   text-shadow: 0 1px 0 color-mix(in oklab, var(--c), #000 30%);
   white-space: nowrap;
-}
-
-.ink {
-  color: var(--ink);
-}
-
-.ink .label {
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-/* Cooling down: a dark veil drains from full to empty. */
-.cooldown {
-  position: absolute;
-  inset: 0;
-  background: rgba(29, 27, 36, 0.35);
-  transform-origin: left center;
-  animation: drain linear forwards;
-  pointer-events: none;
-}
-
-.cooling {
-  cursor: progress;
-}
-
-.nope {
-  animation: nope 0.36s ease;
 }
 
 .locked {
@@ -274,143 +175,9 @@
   box-shadow: 0 0 0 calc(1.5 * var(--px)) #fff;
 }
 
-.lockTag {
-  position: absolute;
-  top: calc(3 * var(--px));
-  right: calc(3 * var(--px));
-  padding: 0 calc(3.5 * var(--px));
-  border-radius: 999px;
-  font-size: calc(7.5 * var(--px));
-  font-weight: 900;
-  line-height: 1.35;
-  color: #fff;
-  background: #1d1b24;
-}
-
-/* The cap's price sits in its corner tag, in the tag's own colours. */
-.lockTag .price {
-  padding: 0;
-  font-size: inherit;
-  color: inherit;
-  background: none;
-  box-shadow: none;
-}
-
 .lock {
   width: calc(10 * var(--px));
   height: calc(10 * var(--px));
-}
-
-/* Dance: the main button plus a chevron that opens the dance picker. */
-
-.danceWrap {
-  position: relative;
-  display: flex;
-}
-
-.danceWrap > .action {
-  border-top-right-radius: calc(5 * var(--px));
-  border-bottom-right-radius: calc(5 * var(--px));
-}
-
-.more {
-  display: grid;
-  place-items: center;
-  width: calc(16 * var(--px));
-  height: calc(46 * var(--px));
-  margin-left: calc(2 * var(--px));
-  padding: 0;
-  border: 0;
-  border-radius: calc(5 * var(--px)) calc(12 * var(--px)) calc(12 * var(--px)) calc(5 * var(--px));
-  color: #fff;
-  cursor: pointer;
-  background: linear-gradient(180deg, #9a80f6, #7c5cf2);
-  box-shadow: inset 0 calc(-3 * var(--px)) 0 #5d42c4;
-  transition: transform 0.18s var(--spring);
-}
-
-.more:hover {
-  transform: translateY(-2px);
-}
-
-.more svg {
-  width: calc(10 * var(--px));
-  height: calc(10 * var(--px));
-}
-
-.more[aria-expanded='true'] svg {
-  transform: rotate(180deg);
-}
-
-.menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 184px;
-  padding: 8px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow:
-    0 0 0 2px rgba(29, 27, 36, 0.06),
-    0 18px 40px -14px rgba(124, 92, 242, 0.5);
-  transform: translateX(-50%);
-  animation: menuIn 0.22s var(--spring);
-}
-
-.menuItem {
-  --c: #7c5cf2;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 10px 6px 6px;
-  border: 0;
-  border-radius: 12px;
-  font: inherit;
-  text-align: left;
-  color: var(--ink);
-  background: color-mix(in oklab, var(--c), #fff 88%);
-  cursor: pointer;
-  transition: transform 0.15s var(--spring), background 0.15s ease;
-}
-
-.menuItem:hover:not(.locked) {
-  transform: translateX(3px);
-  background: color-mix(in oklab, var(--c), #fff 75%);
-}
-
-.menuIcon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  font-size: 15px;
-  color: #fff;
-  background: var(--c);
-}
-
-.menuIcon .lock {
-  width: 14px;
-  height: 14px;
-}
-
-.menuLabel {
-  font-size: 14px;
-  font-weight: 900;
-  flex: 1;
-}
-
-.menuItem.locked {
-  background: #f1f0f4;
-  color: #8a8696;
-}
-
-.menuItem.locked .menuIcon {
-  background: #c9c5d4;
 }
 
 /* Tickle hint (Play only, until the first tickle or button press). It hangs
@@ -523,38 +290,6 @@
   }
 }
 
-@keyframes drain {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-
-@keyframes nope {
-  0%,
-  100% {
-    translate: 0;
-  }
-  20% {
-    translate: -5px;
-  }
-  45% {
-    translate: 5px;
-  }
-  70% {
-    translate: -3px;
-  }
-}
-
-@keyframes menuIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -6px) scale(0.92);
-  }
-}
-
 @keyframes hintBob {
   0%,
   100% {
@@ -624,11 +359,6 @@
 
 /* Phones: the meter goes above the buttons. */
 @media (max-width: 759px) {
-  .strip {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   /* The HUD sits in the page flow under the stage here: the hint goes above the
      strip, by the meter, instead of between the buttons and the caption. */
   .hint {
@@ -637,108 +367,9 @@
     margin-bottom: calc(4 * var(--px));
   }
 
-  .divider {
-    display: none;
-  }
-
   .actions {
     justify-content: center;
     flex-wrap: wrap;
-  }
-
-  /* Dance ends the row near the screen's right edge, so its centred menu ran
-     off it: open leftward from the chevron instead. */
-  .actions > .danceWrap > .menu {
-    left: auto;
-    right: 0;
-    transform: none;
-    transform-origin: top right;
-    animation-name: menuInEdge;
-  }
-}
-
-@keyframes menuInEdge {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.92);
-  }
-}
-
-/* Basketball (play mode): "Shoot hoops" + the ball-trick chevron, and the SHOTS chip (HoopsControls.tsx). */
-
-.hoops {
-  display: flex;
-  align-items: center;
-  gap: calc(5 * var(--px));
-}
-
-.hoopsMain {
-  width: calc(66 * var(--px));
-}
-
-.moreHoops {
-  background: linear-gradient(180deg, #f6a75a, #f08a24);
-  box-shadow: inset 0 calc(-3 * var(--px)) 0 #b9601a;
-}
-
-.score {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: calc(46 * var(--px));
-  height: calc(46 * var(--px));
-  padding: 0 calc(6 * var(--px));
-  border-radius: calc(12 * var(--px));
-  background: var(--ink);
-  color: #fff;
-  box-shadow: inset 0 calc(-3 * var(--px)) 0 #000;
-}
-
-.scoreLabel {
-  font-size: calc(7.5 * var(--px));
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: #f6a75a;
-}
-
-.scoreNum {
-  font-size: calc(10 * var(--px));
-  font-weight: 800;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.scoreNum b {
-  font-size: calc(15 * var(--px));
-  font-weight: 900;
-}
-
-.scoreMade {
-  animation: scorePop 0.5s var(--spring);
-}
-
-.scoreMiss {
-  animation: nope 0.38s ease;
-}
-
-@keyframes scorePop {
-  0% {
-    scale: 1;
-    background: #f08a24;
-  }
-  40% {
-    scale: 1.18;
-  }
-  100% {
-    scale: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scoreMade,
-  .scoreMiss {
-    animation: none;
   }
 }
 
@@ -803,32 +434,4 @@
   color: #6e6b78;
   background: #ecebf2;
   box-shadow: none;
-}
-
-/* Party lights for sale, at the foot of the dance menu. */
-.buyChip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 4px;
-  padding: 7px 8px 7px 10px;
-  border: 0;
-  border-radius: 12px;
-  font: inherit;
-  color: var(--ink);
-  background: #f6f2ff;
-  box-shadow: inset 0 0 0 1.5px #e2d9ff;
-  cursor: pointer;
-}
-
-.buyChip[aria-disabled='true'] {
-  cursor: not-allowed;
-}
-
-.buyChipLabel {
-  flex: 1;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 900;
 }

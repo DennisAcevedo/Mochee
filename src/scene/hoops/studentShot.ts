@@ -50,9 +50,6 @@ export function disarmStudentShot(): void {
   disarmWatch(watch)
 }
 
-// Whether a throw is being watched (browser checks read it).
-export const studentShotArmed = (): boolean => watch.armed
-
 // After every physics step, with the ball's body.
 export function stepStudentShot(body: RapierRigidBody, dt: number): void {
   if (!watch.armed) return

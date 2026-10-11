@@ -18,8 +18,6 @@ export const FONTS = {
   monoBold: mono700,
 } as const
 
-export type Accent = keyof typeof PALETTE
-
 // Light tints of the accents, for chips and table rows.
 export const TINT: Record<'teal' | 'coral' | 'sun' | 'violet' | 'lime' | 'pink' | 'indigo', string> = {
   teal: '#d4f1f3',

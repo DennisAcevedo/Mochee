@@ -60,11 +60,6 @@ export const quiz: Quiz = {
   correctIndex: 1,
 }
 
-export const quizBoard = {
-  sectionLabel: '05 · Quick check',
-  heading: 'Quick check',
-}
-
 export const feedback = {
   idle: 'Tap an answer, or say it out loud.',
   correct: 'Correct. Short jobs first keeps the wait low.',
@@ -82,5 +77,3 @@ export const script = {
     "Because every short job queues behind it. That's called the convoy effect, and it's why the average wait jumps to 17 ms.",
   genericReply: 'Good question. Let me tie that back to the board.',
 }
-
-export const replyDelayMs = 900

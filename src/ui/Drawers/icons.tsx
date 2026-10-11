@@ -22,20 +22,3 @@ export const CheckIcon = () => (
   </svg>
 )
 
-export const SendIcon = () => (
-  <svg {...base} aria-hidden>
-    <path d="M3.5 10h12M11 5l5 5-5 5" />
-  </svg>
-)
-
-export const ChevronIcon = ({ dir = 'right' }: { dir?: 'left' | 'right' }) => (
-  <svg {...base} strokeWidth={2.4} aria-hidden style={{ transform: dir === 'left' ? 'scaleX(-1)' : undefined }}>
-    <path d="M8 4.5l5.5 5.5L8 15.5" />
-  </svg>
-)
-
-export const SparkIcon = () => (
-  <svg {...base} aria-hidden>
-    <path d="M10 2.5v4M10 13.5v4M2.5 10h4M13.5 10h4M5 5l2 2M13 13l2 2M15 5l-2 2M7 13l-2 2" />
-  </svg>
-)

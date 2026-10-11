@@ -1,9 +1,6 @@
 import type { Subject } from '../data/catalog'
 import { script } from '../data/mockLesson'
-import type { LessonPack } from '../../shared/lessonPack'
 import { CS111_OUTLINE, type LessonStep, type OutlineItem } from '../state/library'
-import { packToWalkthrough } from './packSession'
-import type { WalkStep } from './walkthrough'
 
 // Turns a new tutor's notes into a lesson. The Create wizard only talks to
 // this function: swap the body for Gemini and the UI stays as it is.
@@ -69,21 +66,5 @@ export async function generateLesson(
   return {
     outline: CS111_OUTLINE,
     steps: [{ section: 1, say: script.greeting }],
-  }
-}
-
-export interface PackLesson extends GeneratedLesson {
-  walk: WalkStep[] // the guided walkthrough (packToWalkthrough)
-}
-
-// A lesson built from an uploaded document's LessonPack, from `section` on:
-// the outline is every section (plus the Quick check), the steps are the
-// sections' spoken lines. Real data only: nothing here is invented.
-export function lessonForPack(pack: LessonPack, section: number): PackLesson {
-  const from = Math.max(0, Math.min(pack.sections.length - 1, Math.floor(section) || 0))
-  return {
-    outline: [...pack.sections.map((s): OutlineItem => ({ title: s.title, mins: s.mins })), { title: 'Quick check', mins: 3 }],
-    steps: pack.sections.slice(from).flatMap((s, k) => s.say.map((say): LessonStep => ({ section: from + k + 1, say }))),
-    walk: packToWalkthrough(pack, from),
   }
 }

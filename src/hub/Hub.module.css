@@ -455,18 +455,6 @@
   cursor: not-allowed;
 }
 
-.ghost {
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(29, 27, 36, 0.06);
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
 .error {
   margin: 0;
   padding: 10px 12px;

@@ -156,9 +156,3 @@ export const PROPS = {
     sprinkleColors: [PALETTE.teal, PALETTE.sun, PALETTE.violet, PALETTE.lime, '#ffffff', PALETTE.indigo],
   },
 } as const
-
-// Invisible hit sphere over his body for "tap to tickle".
-export const POKE = {
-  offset: [0, -0.42, 0] as Vec3, // from the tutor anchor (top of head) to his body centre
-  radius: 0.62,
-} as const

@@ -102,4 +102,3 @@ export const layout = {
 } as const
 
 export const theme = { fonts, colors, radii, shadows, motion, layout } as const
-export type Theme = typeof theme

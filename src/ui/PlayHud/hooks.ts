@@ -1,20 +1,6 @@
-import { useEffect, useReducer, useState } from 'react'
-import { COIN_COLOR, PLAY, type PlayAction } from '../../play/config'
-import { usePlay } from '../../play/playStore'
+import { useEffect, useState } from 'react'
+import { COIN_COLOR, PLAY } from '../../play/config'
 import { COIN_LABEL, useProgress } from '../../state/progress'
-
-// Whether `action` is cooling down, re-rendering once when it is ready again.
-export function useCooldown(action: PlayAction) {
-  const until = usePlay((s) => s.cooldownUntil[action])
-  const [, tick] = useReducer((n: number) => n + 1, 0)
-  const left = until - performance.now()
-  useEffect(() => {
-    if (left <= 0) return
-    const t = window.setTimeout(tick, left + 16)
-    return () => window.clearTimeout(t)
-  }, [until, left])
-  return { cooling: left > 0, until, ms: PLAY.cooldownMs[action] }
-}
 
 export interface CoinToast {
   id: number
