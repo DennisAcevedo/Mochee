@@ -11,7 +11,8 @@ import { stripMarks } from './markup'
 import type { LatencyTrace } from './latency'
 import { openCelebrations, pickNoRepeat } from './roam'
 import { prefetchSpeech, setVoiceEnabled, speak, speakingText, stopSpeaking } from './speech'
-import { answerQuickCheck, currentQuestion, isLastQuestion, nextQuestion, restartQuickCheck, useQuickCheck } from './quickCheck'
+import { packNotesTabs, useLessonPack } from './packSession'
+import { answerQuickCheck, currentQuestion, isLastQuestion, nextQuestion, quickCheckRecap, restartQuickCheck, useQuickCheck } from './quickCheck'
 import { RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 
 // Plays the guided lesson (walkthrough.ts) through the director and the tutor
@@ -314,10 +315,18 @@ function celebrate() {
 // camera) stays put, so the quick-check keys stay where the student saw them.
 function showHint() {
   if (useTutorStore.getState().mic !== 'speaking') return // the feedback already ended: no hint to point at
-  const line = currentQuestion()?.hintLine // built-in questions; a document's hint names its page instead
-  if (!line) return
+  const q = currentQuestion()
   const d = useDirector.getState()
-  const tab = notesTabs.findIndex((t) => t.lines.some((l) => l.id === line))
+  // A built-in question names its notes line; a document's points at a notes line from its page.
+  const pack = useLessonPack.getState().pack
+  let line = q?.hintLine ?? null
+  let tab = line ? notesTabs.findIndex((t) => t.lines.some((l) => l.id === line)) : -1
+  if (!line && pack && q?.page !== undefined) {
+    const tabs = packNotesTabs(pack)
+    tab = tabs.findIndex((t) => t.lines.some((l) => l.page === q.page))
+    line = tab >= 0 ? (tabs[tab].lines.find((l) => l.page === q.page)?.id ?? null) : null
+  }
+  if (!line) return
   if (tab >= 0) d.setNotesTab(tab)
   d.setHighlight(line)
   d.walkTo(QUIZ_HINT.spot)
@@ -353,12 +362,13 @@ export function pickQuickCheck(choice: number) {
     expectLine = plain // our own line: not one for onOtherLine
     useTutorStore.getState().tutorSays(plain, { answer: choice }, out.say)
     expectLine = null
-    onQuizAnswer(out.correct, out.say)
+    onQuizAnswer(out.correct, out.say, out.revealed)
   })
 }
 
 // The feedback line is already in the transcript.
-function onQuizAnswer(correct: boolean, text: string) {
+// `revealed`: a second miss showed the answer, so the check moves on like a right answer (no cheer).
+function onQuizAnswer(correct: boolean, text: string, revealed = false) {
   useWalkthrough.setState({ held: false }) // the answer takes the floor from any pending question
   const w = useWalkthrough.getState()
   const onQuizStep = w.started && w.steps[w.index]?.wait === 'quiz'
@@ -367,13 +377,13 @@ function onQuizAnswer(correct: boolean, text: string) {
   // The built-in topic's mastery counts once, when the whole Quick check is done (all right
   // on the first try = mastered): mastery mid-check would switch to Celebrate and hide the board.
   const qc = useQuickCheck.getState()
-  pendingAnswer = qc.documentId === null && correct && isLastQuestion(qc) ? qc.score === qc.questions.length : null
+  pendingAnswer = qc.documentId === null && (correct || revealed) && isLastQuestion(qc) ? qc.score === qc.questions.length : null
   useTutorStore.setState({ mic: 'speaking' })
   const d = useDirector.getState()
   if (correct) celebrate()
   else {
     d.play('shrug', { urgent: true, vary: true }) // over a step gesture still queued from his walk in; shrug, facepalm, headshake in turn
-    later(RUNNER.hintDelayMs, showHint)
+    if (!revealed) later(RUNNER.hintDelayMs, showHint)
   }
   d.setCaption(text)
   if (onQuizStep) useWalkthrough.setState({ quizResult: correct ? 'correct' : 'wrong', phase: 'speaking', loopOverride: null })
@@ -385,7 +395,7 @@ function onQuizAnswer(correct: boolean, text: string) {
     // until he arrived, since one-shots wait out a walk.
     endHint()
     if (!onQuizStep) return
-    if (correct) {
+    if (correct || revealed) {
       // More questions: on to the next one, and wait for its answer.
       if (nextQuestion()) {
         useTutorStore.setState({ answer: null })
@@ -399,10 +409,14 @@ function onQuizAnswer(correct: boolean, text: string) {
         sayLine(`Next one! **Question ${qc.index + 1} of ${qc.questions.length}.**`, () => useWalkthrough.setState({ phase: 'waiting', lineDone: true }))
         return
       }
-      useWalkthrough.setState({ lineDone: true })
-      // He shows off what he just learned before the lesson moves on.
-      if (learned) later(GROWTH.celebrate.captionMs, advanceOrFinish)
-      else advanceOrFinish()
+      // The last one: the recap (score, what to look at again), then the lesson moves on.
+      useWalkthrough.setState({ quizResult: 'correct' })
+      sayLine(quickCheckRecap(), () => {
+        useWalkthrough.setState({ lineDone: true })
+        // He shows off what he just learned before the lesson moves on.
+        if (learned) later(GROWTH.celebrate.captionMs, advanceOrFinish)
+        else advanceOrFinish()
+      })
     } else useWalkthrough.setState({ phase: 'waiting' })
   })
 }

@@ -121,7 +121,9 @@ export function BoardQuiz({ box }: { box: ContentBox }) {
   const right = qc.result === 'correct'
   const wrong = qc.result === 'wrong'
 
+  const revealed = qc.revealed
   const stateOf = (i: number): OptionState => {
+    if (revealed !== null) return i === revealed ? 'right' : i === qc.picked ? 'wrong' : 'dim'
     if (qc.picked === i && qc.result) return right ? 'right' : 'wrong'
     if (qc.picked === i && qc.checking) return 'dim'
     return right ? 'dim' : 'idle'
@@ -147,8 +149,8 @@ export function BoardQuiz({ box }: { box: ContentBox }) {
   const pp = Q.prompt
 
   const gridTop = Q.gridTop
-  const fb = right ? (q?.boardRight ?? feedback.correct) : wrong ? (q?.boardWrong ?? feedback.wrong) : qc.checking ? 'Checking…' : feedback.idle
-  const fbColor = right ? Q.right : wrong ? Q.wrong : null
+  const fb = revealed !== null ? `The answer was ${LETTERS[revealed]}.` : right ? (q?.boardRight ?? feedback.correct) : wrong ? (q?.boardWrong ?? feedback.wrong) : qc.checking ? 'Checking…' : feedback.idle
+  const fbColor = revealed !== null || right ? Q.right : wrong ? Q.wrong : null
   const fbY = -(gridTop + o.h * 2 + o.gap + Q.feedback.gap)
 
   return (
@@ -188,7 +190,7 @@ export function BoardQuiz({ box }: { box: ContentBox }) {
         const row = Math.floor(i / cols)
         return (
           <group key={`${q?.id}-${i}`} position={[col * (ow + o.gap) + ow / 2, -(gridTop + row * (o.h + o.gap) + o.h / 2), 0]}>
-            <Option index={i} label={label} w={ow} state={stateOf(i)} locked={right || qc.checking} />
+            <Option index={i} label={label} w={ow} state={stateOf(i)} locked={right || revealed !== null || qc.checking} />
           </group>
         )
       })}

@@ -22,6 +22,8 @@ export interface CheckQuestion {
   correctIndex?: number // built-in questions only: a document's answer stays on the server
   page?: number // where a document question's answer is
   hintLine?: string // built-in: the notes line he points at after a miss
+  why: string // the reason, said when a second miss reveals the answer
+  topic: string // what to look at again, for the recap
   praise: string // said on a right answer (built-in; a document's comes from the server)
   hint: string // said on a wrong one
   boardRight: string // the board's feedback pill
@@ -36,6 +38,8 @@ export const BUILTIN_QUESTIONS: CheckQuestion[] = [
     choices: ['6 ms', '3 ms', '17 ms', '9 ms'],
     correctIndex: 1,
     hintLine: 'l4-wait',
+    why: 'The waits are **0, 3 and 6**, because the long job goes last.',
+    topic: 'waiting times',
     praise: '**Yes!** 3 ms. The waits are **0, 3 and 6**, because the long job goes last.',
     hint: 'Not quite. Write out when each job starts: **P2 at 0, P3 at 3, P1 at 6**. Now average those.',
     boardRight: 'Correct. Short jobs first keeps the wait low.',
@@ -47,6 +51,8 @@ export const BUILTIN_QUESTIONS: CheckQuestion[] = [
     choices: ['It jumps ahead', 'It waits its turn', 'Both share the CPU', 'The long job restarts'],
     correctIndex: 1,
     hintLine: 'l4-queue',
+    why: 'FCFS is **non-preemptive**: a running job always finishes first.',
+    topic: 'preemption',
     praise: '**Right!** FCFS never interrupts a job, so the short one **waits its turn**.',
     hint: 'Not quite. Remember: FCFS is **non-preemptive**. Once a job starts, nothing cuts in.',
     boardRight: 'Correct. FCFS never preempts.',
@@ -58,6 +64,8 @@ export const BUILTIN_QUESTIONS: CheckQuestion[] = [
     choices: ['17 ms', '9 ms', '3 ms', '0 ms'],
     correctIndex: 2,
     hintLine: 'l4-convoy',
+    why: 'Shortest first gives waits of **0, 3 and 6**, so the average is 3 ms.',
+    topic: 'SJF',
     praise: '**Yes!** Shortest first: the waits are **0, 3 and 6**, so the average is 3 ms.',
     hint: 'Close! Run the **short jobs first**, then average when each one starts.',
     boardRight: 'Correct. SJF puts short jobs first.',
@@ -76,10 +84,13 @@ export interface QuickCheckState {
   result: 'correct' | 'wrong' | null
   checking: boolean // a document answer is being checked
   firstTry: boolean // the current question has not been missed yet
+  misses: number // wrong picks on the current question
+  revealed: number | null // the right choice, shown after a second miss
   score: number // questions right on the first try
+  missed: string[] // topics of the questions missed at least once, for the recap
 }
 
-const fresh = { index: 0, picked: null, result: null, checking: false, firstTry: true, score: 0 } as const
+const fresh = { index: 0, picked: null, result: null, checking: false, firstTry: true, misses: 0, revealed: null, score: 0, missed: [] as string[] }
 
 export const useQuickCheck = create<QuickCheckState>(() => ({
   documentId: null,
@@ -118,6 +129,8 @@ export function prepareQuickCheck(documentId: string | null) {
           page: q.page,
           praise: '**Correct!**',
           hint: `Not quite. Have another look at **page ${q.page}**, then try again.`,
+          why: '',
+          topic: `page ${q.page}`,
           boardRight: 'Correct!',
           boardWrong: `Try again. Hint: page ${q.page}.`,
         }),
@@ -136,7 +149,7 @@ export function restartQuickCheck() {
 export function nextQuestion(): boolean {
   const s = useQuickCheck.getState()
   if (isLastQuestion(s)) return false
-  useQuickCheck.setState({ index: s.index + 1, picked: null, result: null, checking: false, firstTry: true })
+  useQuickCheck.setState({ index: s.index + 1, picked: null, result: null, checking: false, firstTry: true, misses: 0, revealed: null })
   return true
 }
 
@@ -144,7 +157,18 @@ const clip = (text: string, max: number) => (text.length <= max ? text : `${text
 
 export interface CheckOutcome {
   correct: boolean
+  revealed: boolean // a second miss: the answer is shown and the check moves on
   say: string // the feedback line, **bold** marks allowed
+}
+
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+
+// What he says at the end: the first-try score and what to look at again.
+export function quickCheckRecap(s: QuickCheckState = useQuickCheck.getState()): string {
+  const n = s.questions.length
+  const head = `That's the quick check: **${s.score} of ${n}** on the first try.`
+  if (!s.missed.length) return `${head} Perfect run!`
+  return `${head} Worth another look: **${[...new Set(s.missed)].join(' and ')}**.`
 }
 
 // Checks a pick on the current question. Null when it can't be checked now
@@ -152,9 +176,11 @@ export interface CheckOutcome {
 export async function answerQuickCheck(choice: number): Promise<CheckOutcome | null> {
   const s = useQuickCheck.getState()
   const q = currentQuestion(s)
-  if (!q || s.result === 'correct' || s.checking || choice < 0 || choice >= q.choices.length) return null
+  if (!q || s.result === 'correct' || s.revealed !== null || s.checking || choice < 0 || choice >= q.choices.length) return null
   let correct: boolean
   let praise = q.praise
+  let why = q.why
+  let rightChoice = q.correctIndex ?? -1
   if (q.correctIndex !== undefined) correct = choice === q.correctIndex
   else {
     useQuickCheck.setState({ checking: true, picked: choice })
@@ -165,18 +191,27 @@ export async function answerQuickCheck(choice: number): Promise<CheckOutcome | n
       return null
     }
     correct = res.data.correct
-    const why = stripMarks(res.data.explanation ?? '').trim()
-    if (why) praise = `**Correct!** ${clip(why, QUICK_CHECK.explanationMax)}`
+    rightChoice = res.data.correctChoice
+    const reason = clip(stripMarks(res.data.explanation ?? '').trim(), QUICK_CHECK.explanationMax)
+    if (reason) praise = `**Correct!** ${reason}`
+    why = reason
   }
-  const first = useQuickCheck.getState().firstTry
+  const now = useQuickCheck.getState()
+  const misses = now.misses + (correct ? 0 : 1)
+  // A second miss shows the right answer and moves on, instead of guessing on.
+  const reveal = !correct && misses >= 2 && rightChoice >= 0
   useQuickCheck.setState({
     picked: choice,
     result: correct ? 'correct' : 'wrong',
     checking: false,
-    firstTry: correct ? first : false,
-    score: useQuickCheck.getState().score + (correct && first ? 1 : 0),
+    firstTry: correct ? now.firstTry : false,
+    misses,
+    revealed: reveal ? rightChoice : null,
+    score: now.score + (correct && now.firstTry ? 1 : 0),
+    missed: correct || now.missed.includes(q.topic) ? now.missed : [...now.missed, q.topic],
   })
-  return { correct, say: correct ? praise : q.hint }
+  if (reveal) return { correct: false, revealed: true, say: `The answer is **${LETTERS[rightChoice]}: ${q.choices[rightChoice]}**.${why ? ` ${why}` : ''}` }
+  return { correct, revealed: false, say: correct ? praise : q.hint }
 }
 
 // A document lesson starting fetches its questions while it plays, so they
