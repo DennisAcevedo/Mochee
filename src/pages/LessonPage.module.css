@@ -23,6 +23,17 @@
   background: #f3f1ec;
 }
 
+.page[data-shop-active] :is(.header, .overlay, .below, .dock, .invite),
+body:has(.page[data-shop-active]) .cornerTools {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.page[data-shop-active] [data-gg='window-controls'] {
+  display: none;
+}
+
 .header {
   flex: none;
   width: var(--row-w);

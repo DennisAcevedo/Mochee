@@ -1,4 +1,5 @@
 import { useFrame } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
 import { MathUtils, type PerspectiveCamera } from 'three'
 import { CAMERA, INTRO } from '../animation/config'
 import { intro } from '../animation/introState'
@@ -6,9 +7,11 @@ import { introTargets } from '../intro/targets'
 import { useDirector } from '../state/director'
 import { useTutorStore } from '../state/store'
 import { useWindows } from '../state/windows'
+import { useShop } from '../state/shop'
 import { cameraPan, LESSON_CAMERA } from './layout3d'
 import { usePlayBody } from './physics'
 import { sceneFrame, sceneRig } from './sceneRig'
+import { shopCameraPose, WALL_SHOP } from './shop/shopCamera'
 import { pointSide } from './windows/pointAt'
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -51,6 +54,8 @@ let lastOpacity = ''
 // if it were the current frame rect (the shot lands in the frame, the scene
 // carries on past it) and moves the camera.
 export function CameraRig() {
+  const trip = useRef({ progress: 0, arrivalHold: 0, active: false, start: { ...sceneRig.cam }, fov: LESSON_CAMERA.fov as number })
+  useEffect(() => () => useShop.getState().reset(), [])
   useFrame((state, delta) => {
     const cam = state.camera as PerspectiveCamera
     const vw = state.size.width
@@ -71,12 +76,13 @@ export function CameraRig() {
     // The intro drives the blend (sceneRig.roomT) as it reveals the room; once
     // live it eases the rest of the way and holds there.
     const live = useTutorStore.getState().phase === 'live'
+    const shop = useShop.getState()
     const dt = Math.min(delta, LESSON_EASE.maxDt)
     lesson.t = live ? Math.max(sceneRig.roomT, MathUtils.damp(lesson.t, 1, LESSON_EASE.blend, dt)) : sceneRig.roomT
     if (lesson.t > 0.999) lesson.t = 1
     const want = cameraPan(useDirector.getState().focus, useWindows.getState().maximized, pointSide())
     // The pan holds still while he is held, so the drag plane under the pointer stays put.
-    if (usePlayBody.getState().state !== 'held') lesson.shift = live ? MathUtils.damp(lesson.shift, want, LESSON_EASE.focus, dt) : 0
+    if (shop.phase === 'closed' && usePlayBody.getState().state !== 'held') lesson.shift = live ? MathUtils.damp(lesson.shift, want, LESSON_EASE.focus, dt) : 0
     const k = lesson.t
     const P = LESSON_CAMERA.position
     const A = LESSON_CAMERA.lookAt
@@ -88,7 +94,41 @@ export function CameraRig() {
     // Track the spin's rise, and the arc while the camera is still in close.
     const follow = (intro.out.rise + intro.lift * (1 - t)) * INTRO.spin.cameraFollow * (1 - k)
     cam.position.set(lerp(c.px, P[0] + lesson.shift, k), lerp(c.py, P[1], k) + follow, lerp(c.pz, P[2], k))
-    cam.lookAt(lerp(c.tx, A[0] + lesson.shift, k), lerp(c.ty, A[1], k) + follow, lerp(c.tz, A[2], k))
+    const tx = lerp(c.tx, A[0] + lesson.shift, k)
+    const ty = lerp(c.ty, A[1], k) + follow
+    const tz = lerp(c.tz, A[2], k)
+    cam.lookAt(tx, ty, tz)
+
+    const visit = trip.current
+    if (live && shop.phase !== 'closed') {
+      if (!visit.active) {
+        visit.active = true
+        visit.start = { px: cam.position.x, py: cam.position.y, pz: cam.position.z, tx, ty, tz }
+        visit.fov = cam.fov
+      }
+      const returning = shop.phase === 'returning'
+      const duration = returning ? WALL_SHOP.returnSeconds : WALL_SHOP.approachSeconds
+      // This deliberate trip is part of entering the shop: keep it visible
+      // even when reduced motion disables decorative UI animations.
+      const step = dt / duration
+      const wasAtShelves = visit.progress === 1
+      visit.progress = MathUtils.clamp(visit.progress + (returning ? -step : step), 0, 1)
+      const pose = shopCameraPose(visit.start, visit.progress)
+      cam.position.set(pose.px, pose.py, pose.pz)
+      cam.lookAt(pose.tx, pose.ty, pose.tz)
+      const ease = visit.progress * visit.progress * (3 - 2 * visit.progress)
+      cam.fov = lerp(visit.fov, WALL_SHOP.fov, ease)
+      cam.updateProjectionMatrix()
+      if (returning && visit.progress === 0) shop.returned()
+      else if (shop.phase === 'approaching' && wasAtShelves) {
+        visit.arrivalHold += dt
+        if (visit.arrivalHold >= WALL_SHOP.arrivalHoldSeconds) shop.arrived()
+      }
+    } else {
+      visit.active = false
+      visit.progress = 0
+      visit.arrivalHold = 0
+    }
     cam.updateMatrixWorld()
 
     const wrap = introTargets.scene

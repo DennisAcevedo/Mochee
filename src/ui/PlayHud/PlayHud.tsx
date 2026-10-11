@@ -8,7 +8,7 @@ import { PALETTE } from '../../scene/layout3d'
 import { useProgress } from '../../state/progress'
 import { ReopenChip } from '../Closeable/Closeable'
 import { EmoteWheel } from '../EmoteWheel/EmoteWheel'
-import { Shop } from '../Shop/Shop'
+import { useShop } from '../../state/shop'
 import { CoinIcon } from './CoinIcon'
 import { useCoinToasts } from './hooks'
 import { UnlockBanner } from './UnlockBanner'
@@ -65,7 +65,6 @@ interface Props {
 
 export function PlayHud({ banner = true, className }: Props) {
   const hintSeen = usePlay((s) => s.tickleHintSeen)
-  const [shop, setShop] = useState(false)
   const [wheel, setWheel] = useState(false)
 
   return (
@@ -80,7 +79,7 @@ export function PlayHud({ banner = true, className }: Props) {
     >
       <div className={styles.pills}>
         <ReopenChip label="Emotes" icon="emotes" small onOpen={() => setWheel(true)} />
-        <ReopenChip label="Shop" icon="shop" small onOpen={() => setShop(true)} />
+        <ReopenChip label="Shop" icon="shop" small onOpen={() => useShop.getState().enter()} />
       </div>
 
       {!hintSeen && (
@@ -89,7 +88,6 @@ export function PlayHud({ banner = true, className }: Props) {
         </button>
       )}
 
-      {shop && <Shop onClose={() => setShop(false)} />}
       {wheel && <EmoteWheel onClose={() => setWheel(false)} />}
 
       {banner && <UnlockBanner />}

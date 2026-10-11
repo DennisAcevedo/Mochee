@@ -5,6 +5,7 @@ import { NotesWindow } from '../windows/NotesWindow'
 import { BuildIn } from './build'
 import { RoomProps } from './RoomProps'
 import { WhiteBoxRoom } from './WhiteBoxRoom'
+import { WallShop } from '../shop/WallShop'
 
 // The whole lesson set in one element: the white-box room, Ronil's Study or
 // Play furniture inside it (RoomProps follows the mode) and, in Study only,
@@ -17,6 +18,9 @@ export function LessonRoom() {
   return (
     <>
       <WhiteBoxRoom />
+      <BuildIn part="props" style="rise" distance={2.4}>
+        <WallShop />
+      </BuildIn>
       <Suspense fallback={null}>
         <BuildIn part="props" style="rise" distance={2.4}>
           <RoomProps />

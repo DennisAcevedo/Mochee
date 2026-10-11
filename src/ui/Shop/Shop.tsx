@@ -107,7 +107,7 @@ const Arrow = ({ d }: { d: string }) => (
   </svg>
 )
 
-function AnimationsPanel({ onClose }: { onClose: () => void }) {
+function AnimationsPanel({ onPlay }: { onPlay: (run: () => void) => void }) {
   const coins = useProgress((s) => s.coins)
   const owned = useProgress((s) => s.owned)
   const capIndex = usePlay((s) => s.capIndex)
@@ -148,11 +148,11 @@ function AnimationsPanel({ onClose }: { onClose: () => void }) {
       if (track.current) track.current.style.transform = `translateY(${base()}px)`
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp') move(-1)
-      else if (e.key === 'ArrowDown') move(1)
-      else return
+      if (!(e.target instanceof Node) || !rail.current?.closest('[role="dialog"]')?.contains(e.target)) return
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
       e.preventDefault()
       e.stopPropagation()
+      move(e.key === 'ArrowUp' ? -1 : 1)
     }
     const r = rail.current
     const onWheel = (e: WheelEvent) => {
@@ -180,8 +180,11 @@ function AnimationsPanel({ onClose }: { onClose: () => void }) {
 
   // Owned: run it and close. Locked: buy it if he can afford it, and stay to play it.
   const act = () => {
-    if (locked ? cur.unlock && useProgress.getState().spend(cur.unlock) : cur.run()) {
-      if (!locked) onClose()
+    if (!locked) {
+      onPlay(() => { cur.run() })
+      return
+    }
+    if (cur.unlock && useProgress.getState().spend(cur.unlock)) {
       return
     }
     setNope(true)
@@ -287,8 +290,10 @@ function ItemsPanel() {
   )
 }
 
-export function Shop({ onClose }: { onClose: () => void }) {
+export function Shop({ onClose, onPlay }: { onClose: () => void; onPlay: (run: () => void) => void }) {
   const [tab, setTab] = useState<Tab>('animations')
+  const dialog = useRef<HTMLDivElement>(null)
+  useEffect(() => { dialog.current?.querySelector<HTMLButtonElement>('button[aria-label="Close the shop"]')?.focus() }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -303,8 +308,17 @@ export function Shop({ onClose }: { onClose: () => void }) {
 
   return createPortal(
     <div className={styles.overlay} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={styles.shop} role="dialog" aria-modal="true" aria-label="Shop">
+      <div ref={dialog} className={styles.shop} role="dialog" aria-modal="true" aria-label="Shop" onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key !== 'Tab') return
+        const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
+      }}>
         <div className={styles.top}>
+          <div className={styles.brand}><span>THE LITTLE SHOP</span><small>A little reward for a curious mind.</small></div>
           <div className={styles.tabs} role="tablist" aria-label="Shop sections" style={{ '--i': TABS.findIndex((t) => t.id === tab) } as CSSProperties}>
             <span className={styles.thumb} aria-hidden="true" />
             {TABS.map((t) => (
@@ -317,7 +331,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
             <Arrow d="M6 6l12 12M18 6L6 18" />
           </button>
         </div>
-        {tab === 'animations' ? <AnimationsPanel onClose={onClose} /> : <ItemsPanel />}
+        {tab === 'animations' ? <AnimationsPanel onPlay={onPlay} /> : <ItemsPanel />}
       </div>
     </div>,
     document.body,

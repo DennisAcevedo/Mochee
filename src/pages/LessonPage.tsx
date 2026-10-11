@@ -16,6 +16,8 @@ import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
 import { useHidden, useIsHidden } from '../state/hidden'
 import { useMode } from '../state/mode'
+import { useShop } from '../state/shop'
+import { ShopVisit } from '../ui/Shop/ShopVisit'
 import { useWindows } from '../state/windows'
 import { useLibrary, useTutor, type LessonStep, type Tutor } from '../state/library'
 import { useTutorStore } from '../state/store'
@@ -130,6 +132,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const touchStudied = useLibrary((s) => s.touchStudied)
   const phase = useTutorStore((s) => s.phase)
   const live = phase === 'live'
+  const shopActive = useShop((s) => s.phase !== 'closed')
   const narrow = useNarrow()
   // Cards the learner closed for now; each leaves a chip that reopens it.
   const captionHidden = useIsHidden('caption')
@@ -155,6 +158,11 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
   const pageRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const page = pageRef.current
+    if (page) page.inert = shopActive
+    return () => { if (page) page.inert = false }
+  }, [shopActive])
   const rowRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
   useStageFrame(pageRef, rowRef, frameRef)
@@ -235,7 +243,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
 
   return (
     <CurrentTutorContext.Provider value={tutor}>
-      <div ref={pageRef} className={lesson.page} data-live={live || undefined}>
+      <div ref={pageRef} className={lesson.page} data-live={live || undefined} data-shop-active={shopActive || undefined}>
         <div className={lesson.header}>
           <TopBar
             extra={
@@ -300,6 +308,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <PackDirector />
         <BossLayer tutorId={tutor.id} />
       </div>
+      {live && <ShopVisit />}
     </CurrentTutorContext.Provider>
   )
 }

@@ -3,6 +3,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { Color, Matrix4, Plane, Raycaster, Vector2, Vector3, type Group, type Mesh, type MeshBasicMaterial } from 'three'
 import { useDirector } from '../../state/director'
 import { useWindows } from '../../state/windows'
+import { useShop } from '../../state/shop'
 import { anchors } from '../anchors'
 import { WINDOW, WINDOWS } from '../layout3d'
 import { glowTexture } from '../room/bakedTextures'
@@ -331,6 +332,7 @@ export function BrowserWindow3D() {
     if (glowMat.current) glowMat.current.opacity = damp(glowMat.current.opacity, focused ? W.focus.glow.opacity : 0, W.focus.damp, k)
 
     rig.step(dt, state.clock.elapsedTime * 1000, st.minimized, st.closed, g, mn, cw, ch, pv.scale.x, state.camera, state.gl.domElement)
+    g.visible = useShop.getState().phase === 'closed'
     rig.glue(pv, cw, ch, state.camera, state.gl.domElement)
     const aboveControls = placeBrowserAboveControls(pv, cw, ch, state.camera, state.gl.domElement, shown(pv))
     if (stackBacking.current) stackBacking.current.visible = aboveControls
