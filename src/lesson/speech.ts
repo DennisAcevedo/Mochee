@@ -48,7 +48,7 @@ export const readingMs = (text: string) =>
 
 export function setVoiceEnabled(on: boolean) {
   voiceEnabled = on
-  if (!on) {
+  if (!on && current?.voiceOverride === undefined) {
     window.speechSynthesis?.cancel() // the browser voice finishes at reading pace (u.onerror)
     current?.onMute?.()
   }
@@ -61,6 +61,7 @@ export function prefetchSpeech(text: string) {
 }
 
 interface Speaking {
+  voiceOverride?: boolean // an explicitly enabled tool voice, independent of lesson narration
   abort: AbortController
   clip: VoiceClip | null
   trace: LatencyTrace
@@ -74,6 +75,7 @@ interface Speaking {
 }
 
 let current: Speaking | null = null
+const audible = (line: Speaking) => line.voiceOverride ?? voiceEnabled
 let lastCancelAt = -Infinity
 
 // The plain text being spoken right now, or null.
@@ -98,11 +100,11 @@ export function stopSpeaking() {
 // Speaks `text` (marks stripped) and calls onEnd once, when the voice ends or
 // the fallback timer fires. A newer speak() or stopSpeaking() cancels it
 // without calling onEnd.
-export function speak(text: string, onEnd: () => void, trace = startLatency('speech')) {
+export function speak(text: string, onEnd: () => void, trace = startLatency('speech'), options: { enabled?: boolean } = {}) {
   stopSpeaking()
   const plain = stripMarks(text)
   const estimate = readingMs(plain)
-  const me: Speaking = { abort: new AbortController(), clip: null, trace, fallback: false, text: plain, utterance: null, audio: null, onMute: null, timer: 0 as unknown as ReturnType<typeof setTimeout>, done: false }
+  const me: Speaking = { voiceOverride: options.enabled, abort: new AbortController(), clip: null, trace, fallback: false, text: plain, utterance: null, audio: null, onMute: null, timer: 0 as unknown as ReturnType<typeof setTimeout>, done: false }
   const finish = () => {
     if (me.done) return
     me.done = true
@@ -110,12 +112,12 @@ export function speak(text: string, onEnd: () => void, trace = startLatency('spe
     me.audio?.pause()
     me.abort.abort()
     me.clip?.dispose()
-    trace.finish(!voiceEnabled ? 'muted' : me.fallback ? 'fallback' : 'complete')
+    trace.finish(!audible(me) ? 'muted' : me.fallback ? 'fallback' : 'complete')
     if (current === me) current = null
     onEnd()
   }
   current = me
-  if (!voiceEnabled) {
+  if (!audible(me)) {
     me.timer = setTimeout(finish, estimate)
     return
   }
@@ -124,7 +126,7 @@ export function speak(text: string, onEnd: () => void, trace = startLatency('spe
   void prepareVoice(plain, me.abort.signal, trace).then((clip) => {
     if (me.done) { clip?.dispose(); return }
     me.clip = clip
-    if (clip && voiceEnabled) playAudio(me, clip, estimate, finish)
+    if (clip && audible(me)) playAudio(me, clip, estimate, finish)
     else speakBrowser(me, estimate, finish) // muted while loading: the reading timer only
   })
 }
@@ -135,7 +137,7 @@ function playAudio(me: Speaking, clip: VoiceClip, estimate: number, finish: () =
   const audio = new Audio(clip.url)
   me.audio = audio
   const fallBack = () => {
-    if (me.done || me.audio !== audio || !voiceEnabled) return
+    if (me.done || me.audio !== audio || !audible(me)) return
     audio.pause()
     clip.dispose()
     me.audio = null
@@ -160,7 +162,7 @@ function playAudio(me: Speaking, clip: VoiceClip, estimate: number, finish: () =
   audio.onended = finish
   audio.onerror = fallBack
   void clip.completed.then(() => {
-    if (me.done || me.audio !== audio || !voiceEnabled) return
+    if (me.done || me.audio !== audio || !audible(me)) return
     clearTimeout(me.timer)
     const left = Number.isFinite(audio.duration) ? Math.max(0, audio.duration - audio.currentTime) * 1000 : estimate
     me.timer = setTimeout(finish, left * SPEECH.safetyFactor + SPEECH.minTailMs)
@@ -177,7 +179,7 @@ function speakBrowser(me: Speaking, estimate: number, finish: () => void) {
   clearTimeout(me.timer)
   me.timer = setTimeout(finish, estimate)
   const syn = window.speechSynthesis
-  if (!voiceEnabled || !syn || typeof SpeechSynthesisUtterance === 'undefined') return
+  if (!audible(me) || !syn || typeof SpeechSynthesisUtterance === 'undefined') return
   try {
     const u = new SpeechSynthesisUtterance(plain)
     if (!voice) voice = pickVoice()

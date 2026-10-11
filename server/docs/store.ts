@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { DEFAULT_DOC_KIND, type Citation, type DocKind, type TopicInfo } from '../../shared/docsTypes.ts'
 import { DEFAULT_TUTOR_ID, type LessonPack } from '../../shared/lessonPack.ts'
 import type { Chunk } from './text.ts'
+import type { TeachBackAttempt, TeachBackSession } from './teachBackTypes.ts'
 
 // Data access for documents, chunks, topics, quiz questions and attempts
 // (node:sqlite, FTS5 for retrieval). Every read is scoped by documentId, so an
@@ -49,6 +50,9 @@ CREATE TABLE IF NOT EXISTS questions (id TEXT PRIMARY KEY, documentId TEXT NOT N
 CREATE TABLE IF NOT EXISTS attempts (seq INTEGER PRIMARY KEY AUTOINCREMENT, attemptId TEXT NOT NULL UNIQUE, questionId TEXT NOT NULL, choice INTEGER NOT NULL, correct INTEGER NOT NULL, createdAt TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS attempts_question ON attempts (questionId, seq);
 CREATE TABLE IF NOT EXISTS lesson_packs (documentId TEXT PRIMARY KEY, json TEXT NOT NULL, createdAt TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS teachback_sessions (id TEXT PRIMARY KEY, documentId TEXT NOT NULL, topicId TEXT NOT NULL UNIQUE, json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS teachback_attempts (attemptId TEXT PRIMARY KEY, sessionId TEXT NOT NULL, documentId TEXT NOT NULL, json TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS teachback_attempts_doc ON teachback_attempts (documentId);
 `
 
 const DOC_COLUMNS = `id, title, savedPath, pageCount, createdAt, COALESCE(tutorId, ?) AS tutorId, COALESCE(kind, '${DEFAULT_DOC_KIND}') AS kind`
@@ -118,10 +122,35 @@ export function openStore(dbPath: string) {
   return {
     close: () => db.close(),
 
+    getTeachBackSession(id: string): TeachBackSession | null {
+      const row = db.prepare('SELECT json FROM teachback_sessions WHERE id = ?').get(id) as Row | undefined
+      return row ? JSON.parse(str(row.json)) as TeachBackSession : null
+    },
+
+    teachBackForTopic(topicId: string): TeachBackSession | null {
+      const row = db.prepare('SELECT json FROM teachback_sessions WHERE topicId = ?').get(topicId) as Row | undefined
+      return row ? JSON.parse(str(row.json)) as TeachBackSession : null
+    },
+
+    putTeachBackSession(session: TeachBackSession) {
+      db.prepare('INSERT INTO teachback_sessions (id, documentId, topicId, json) VALUES (?, ?, ?, ?)')
+        .run(session.id, session.documentId, session.topicId, JSON.stringify(session))
+    },
+
+    getTeachBackAttempt(attemptId: string): TeachBackAttempt | null {
+      const row = db.prepare('SELECT json FROM teachback_attempts WHERE attemptId = ?').get(attemptId) as Row | undefined
+      return row ? JSON.parse(str(row.json)) as TeachBackAttempt : null
+    },
+
+    putTeachBackAttempt(attempt: TeachBackAttempt) {
+      db.prepare('INSERT INTO teachback_attempts (attemptId, sessionId, documentId, json) VALUES (?, ?, ?, ?)')
+        .run(attempt.attemptId, attempt.sessionId, attempt.result.documentId, JSON.stringify(attempt))
+    },
+
     deleteDocument(documentId: string) {
       inTransaction(() => {
         db.prepare('DELETE FROM attempts WHERE questionId IN (SELECT id FROM questions WHERE documentId = ?)').run(documentId)
-        for (const table of ['questions', 'lesson_packs', 'topics', 'chunks_fts', 'chunks', 'pages']) {
+        for (const table of ['teachback_attempts', 'teachback_sessions', 'questions', 'lesson_packs', 'topics', 'chunks_fts', 'chunks', 'pages']) {
           db.prepare(`DELETE FROM ${table} WHERE documentId = ?`).run(documentId)
         }
         db.prepare('DELETE FROM documents WHERE id = ?').run(documentId)

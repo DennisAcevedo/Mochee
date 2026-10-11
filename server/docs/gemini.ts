@@ -4,7 +4,7 @@ import { DOCS_CONFIG } from './config.ts'
 // key travels only in the x-goog-api-key header; failures come back as short
 // codes, never as upstream bodies, so nothing upstream can echo into a reply.
 
-export type GeminiResult = { ok: true; json: unknown } | { ok: false; error: 'timeout' | 'network' | 'upstream' | 'parse'; status?: number }
+export type GeminiResult = { ok: true; json: unknown } | { ok: false; error: 'timeout' | 'network' | 'upstream' | 'parse'; status?: number; truncated?: boolean }
 
 export interface GeminiCall {
   key: string
@@ -54,15 +54,17 @@ export async function callGemini(call: GeminiCall): Promise<GeminiResult> {
     void upstream.body?.cancel()
     return { ok: false, error: 'upstream', status: upstream.status }
   }
+  let truncated = false
   try {
-    const data = (await upstream.json()) as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
+    const data = (await upstream.json()) as { candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
+    truncated = data.candidates?.[0]?.finishReason === 'MAX_TOKENS'
     const text = (data.candidates?.[0]?.content?.parts ?? [])
       .filter((p) => !p.thought)
       .map((p) => p.text ?? '')
       .join('')
     return { ok: true, json: JSON.parse(text) as unknown }
   } catch {
-    return { ok: false, error: 'parse' }
+    return truncated ? { ok: false, error: 'parse', truncated: true } : { ok: false, error: 'parse' }
   }
 }
 

@@ -3,7 +3,7 @@ import '@fontsource/fredoka/700.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/nunito/600.css'
 import '@fontsource/nunito/700.css'
-import { useContext, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { openBoss } from '../boss'
 import { CurrentTutorContext } from '../state/currentTutor'
@@ -16,14 +16,23 @@ import s from './Hub.module.css'
 import { useHub, useStudyDebug, type HubView } from './hubStore'
 import { RecordPane } from './RecordPane'
 import { SessionPane } from './SessionPane'
+import { TeachBackPane } from './TeachBackPane'
 
 // The Learning drawer's home (design: learning-panel.html): the Beat the boss
-// card, then "or pick one" and four tool rows. A row opens its pane; the back
+// card, then "or pick one" and tool rows. A row opens its pane; the back
 // button returns here. The class switcher sits in the drawer's header.
 
 type CardId = Exclude<HubView, 'home'>
 
 const CARDS: { id: CardId; testId: string; label: string; short: string; color: string; icon: ReactNode }[] = [
+  {
+    id: 'teachBack',
+    testId: 'hub-card-teach-back',
+    label: 'Teach it back',
+    short: 'Explain it to Mochee. See what clicked.',
+    color: '#C4ACEB',
+    icon: <path d="M5 4h14v11H9l-4 4V4ZM9 8h6M9 11h4" />,
+  },
   {
     id: 'upload',
     testId: 'hub-card-upload',
@@ -80,6 +89,13 @@ export function StudyHub({ upload }: { upload: ReactNode }) {
   const view = useHub((h) => h.view)
   const go = useHub((h) => h.go)
   const setTutor = useDocs((d) => d.setTutor)
+  const hub = useRef<HTMLDivElement>(null)
+
+  // Tool cards can be below the fold; a new pane should start at its heading.
+  useLayoutEffect(() => {
+    const body = hub.current?.closest('#drawer-body-learning')
+    if (body) body.scrollTop = 0
+  }, [view])
 
   // The drawer's material follows the class of this lesson page.
   useEffect(() => {
@@ -100,7 +116,7 @@ export function StudyHub({ upload }: { upload: ReactNode }) {
   )
 
   return (
-    <div className={s.hub}>
+    <div className={s.hub} ref={hub}>
       {view !== 'home' && (
         <div className={s.bar}>
           <button type="button" className={s.back} onClick={() => go('home')} aria-label="Back to study tools" data-testid="hub-back">
@@ -120,6 +136,7 @@ export function StudyHub({ upload }: { upload: ReactNode }) {
       )}
       {view === 'tutor' && <SessionPane tutorId={tutor?.id ?? null} />}
       {view === 'record' && <RecordPane tutorId={tutor?.id ?? null} />}
+      {view === 'teachBack' && <TeachBackPane />}
     </div>
   )
 }

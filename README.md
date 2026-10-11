@@ -16,7 +16,7 @@ Keys are read only by the dev server, never by the browser:
 - `gemini_API.txt` in the repo root (or `GEMINI_API_KEY`): answers, document Q&A, quizzes, topic extraction.
 - `ElevenLabsAPI.txt` in the repo root (or `ELEVENLABS_API_KEY`): the tutor's voice. Lines are cached in `tmp/tts-cache/` and billed characters are capped per day (the count is kept on disk, so a restart doesn't reset it).
 
-Both files are git-excluded and denied by the dev server's file serving. Without a Gemini key the document features run in a labelled demo mode (answers built from the best matching passage, quizzes cut from real sentences); without an ElevenLabs key he falls back to the browser voice.
+Both files are git-excluded and denied by the dev server's file serving. Without a Gemini key document Q&A and quizzes run in a labelled demo mode (answers built from the best matching passage, quizzes cut from real sentences); teach-back grading requires a Gemini key. Without an ElevenLabs key he falls back to the browser voice.
 
 Use Node 24 for the server (older Node builds can lack SQLite FTS5).
 
@@ -75,6 +75,16 @@ Each item below is asserted by an e2e check. The checks read what the tutor actu
 
 Both e2e files also assert no failed requests, no page errors and no console errors.
 
+**Teach-back**
+- In the study tools, choose **Teach it back**, pick uploaded material and a topic, and explain it to Mochee. **Speak** is the default: tap **Start speaking**, then **Finish & get feedback**. **Type instead** keeps the text version (60–3,000 characters).
+- The microphone has a live level meter and optional browser captions. Takes are capped at two minutes; finishing turns off the mic and sends the audio for verbatim Gemini transcription before grading. **Pause & review transcript** lets you edit or continue. Audio is held only in memory and is not saved as a library document. Leaving the tool cancels capture; failed transcription can be retried during the visit.
+- Mochee asks the prompt aloud and speaks the score with a short reason, capped at one paragraph / 75 words. This uses his existing ElevenLabs voice with browser speech fallback. **Mochee speaks**, **Stop speaking**, and **Hear my feedback** control playback independently of guided-lesson narration.
+- Gemini prepares a source-checked rubric, then grades each idea as correct, partial, missing or incorrect. Feedback links back to the material and suggests a follow-up question. A Gemini key is required; unavailable or unverifiable grading reports an error without awarding coins.
+- Earn up to **50 coins per topic**, proportional to the best score. Revising an explanation earns only the improvement. The reward ledger persists with the existing browser coin balance; drafts survive switching tools during the visit.
+- Rubrics and grading results are stored in SQLite and removed with their document. Repeated submissions reuse their saved grade. Raw student explanations are not persisted by the server; feedback may include short excerpts.
+- `tests/server/teachBack.test.ts` uses a mocked model to check citations, scores, retries, validation, idempotency and deletion. `tests/ui/progress.test.ts` checks reward caps and persistence.
+- `/lab/teach-back.html` exercises the actual pane and client with scripted feedback, an isolated wallet, and a simulated failure. It makes no external AI calls.
+
 ### Known gaps
 
 - His pick-up reaction ("surprise") doesn't play while he is held, because the higher-priority dragged loop blocks it by design. If he is picked up, flung and lands within about 1.2 s, the queued reaction can play just after he recovers.
@@ -88,7 +98,6 @@ Both e2e files also assert no failed requests, no page errors and no console err
 
 - Server-side XP economy and quest database. XP, levels, mastery and learned abilities persist in the browser (localStorage) for now.
 - Return events stored on the server. Return experiments are scheduled client-side (eligible from the next calendar day, `?return=1` to preview).
-- Teach-back mode (the student explains a topic back to him and he grades it).
 - A mascot redesign. Mochee keeps his original look.
 - Accounts, document ownership and a delete-document route. All data access sits in `server/docs/store.ts` so auth can be added there.
 - OCR for scanned PDFs (a PDF without a text layer is rejected with `no-text`).

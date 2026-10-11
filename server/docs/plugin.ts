@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
 import { DOCS_ROUTES, uploadFormat } from '../../shared/docsTypes.ts'
 import { STUDY_LIMITS, STUDY_ROUTES } from '../../shared/lessonPack.ts'
+import { TEACH_BACK_LIMITS, TEACH_BACK_ROUTES } from '../../shared/teachBack.ts'
 import { hasGeminiKey, hasVoiceKey, KEY_FILES, readGeminiKey } from '../keys.ts'
 import { refuseCrossSite } from '../requestGuard.ts'
 import { DOCS_CONFIG } from './config.ts'
@@ -218,6 +219,15 @@ async function route(service: DocsService, root: string, maxBytes: number, maxAu
   if (path === DOCS_ROUTES.chat) return method === 'POST' ? service.chat(await readJson(req)) : methodNotAllowed
   if (path === DOCS_ROUTES.quiz) return method === 'POST' ? service.quiz(await readJson(req)) : methodNotAllowed
   if (path === DOCS_ROUTES.quizSubmit) return method === 'POST' ? service.submit(await readJson(req)) : methodNotAllowed
+  if (path === TEACH_BACK_ROUTES.start) return method === 'POST' ? service.teachBackStart(await readJson(req)) : methodNotAllowed
+  if (path === TEACH_BACK_ROUTES.grade) return method === 'POST' ? service.teachBackGrade(await readJson(req)) : methodNotAllowed
+  if (path === TEACH_BACK_ROUTES.transcribe) {
+    if (method !== 'POST') return methodNotAllowed
+    const type = String(req.headers['content-type'] ?? '')
+    if (!audioType(type)) return { status: 415, body: { error: 'not-audio' } }
+    if (!service.hasKey()) { req.resume(); return { status: 503, body: { error: 'no-key' } } }
+    return service.teachBackTranscribe(await readBody(req, TEACH_BACK_LIMITS.maxAudioBytes), type)
+  }
   return null
 }
 
@@ -240,7 +250,7 @@ export function docsMiddleware(options: DocsMiddlewareOptions): Connect.NextHand
     if (req.method === 'POST' || req.method === 'DELETE') {
       // Uploads check their own content type (an UPLOAD_FORMATS type in upload(), audio/* in lectureUpload()).
       const postPath = url.split('?')[0]
-      const isUpload = postPath === DOCS_ROUTES.documents || postPath === STUDY_ROUTES.lectures
+      const isUpload = postPath === DOCS_ROUTES.documents || postPath === STUDY_ROUTES.lectures || postPath === TEACH_BACK_ROUTES.transcribe
       const refused = refuseCrossSite(req, isUpload || req.method === 'DELETE' ? null : 'application/json')
       if (refused) return send(res, { status: refused.status, body: { error: refused.error } })
     }

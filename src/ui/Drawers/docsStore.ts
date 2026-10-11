@@ -4,6 +4,7 @@ import type { DocKind, DocumentInfo, TopicInfo } from '../../../shared/docsTypes
 import { deleteDocument, listDocuments, uploadFile, type DocsErrorCode } from './docsClient'
 import { useDrawers } from '../../state/drawers'
 import { useLessonPack } from '../../lesson/packSession'
+import { useTeachBack } from '../../hub/teachBackStore'
 
 // The student's uploaded documents as the drawer sees them, plus the backend's
 // readiness. The Learning drawer lists them, the quiz looks up topic titles
@@ -94,6 +95,7 @@ export const useDocs = create<DocsState>((set, get) => ({
     const res = await deleteDocument(documentId)
     if (!res.ok && res.error !== 'not-found') return res.error
     set((s) => ({ documents: s.documents.filter((d) => d.id !== documentId) }))
+    useTeachBack.getState().forgetDocument(documentId)
     const drawer = useDrawers.getState()
     if (drawer.documentId === documentId) drawer.selectDocument(null)
     if (useLessonPack.getState().pack?.documentId === documentId) useLessonPack.getState().clear()

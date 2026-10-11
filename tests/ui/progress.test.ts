@@ -11,7 +11,7 @@ describe('coins', () => {
   beforeEach(() => store().resetProgress())
 
   it('pays the learning rewards and toasts each one', () => {
-    assert.deepEqual(COIN_REWARD, { sectionDone: 25, quizCorrect: 15, bossWin: 100, lessonDone: 50 })
+    assert.deepEqual(COIN_REWARD, { sectionDone: 25, quizCorrect: 15, bossWin: 100, lessonDone: 50, teachBack: 50 })
     store().award('sectionDone')
     store().award('quizCorrect')
     store().award('bossWin')
@@ -38,6 +38,22 @@ describe('coins', () => {
       party_lights: 150,
     })
     for (let i = 1; i < SHOP.length; i++) assert.ok(SHOP[i].price >= SHOP[i - 1].price)
+  })
+
+  it('rewards teach-back improvements once per topic, capped at 50 coins', () => {
+    const topic = 'aaaaaaaaaaaaaaaa-t1'
+    assert.equal(store().awardTeachBack(topic, 50), 25)
+    assert.equal(store().awardTeachBack(topic, 50), 0)
+    assert.equal(store().awardTeachBack(topic, 25), 0)
+    assert.equal(store().awardTeachBack(topic, 75), 13)
+    assert.equal(store().awardTeachBack(topic, 100), 12)
+    assert.equal(store().coins, 50)
+    assert.equal(store().awardTeachBack('aaaaaaaaaaaaaaaa-t2', 100), 50)
+    assert.equal(store().coins, 100)
+    assert.equal(store().lastAward?.reason, 'teachBack')
+    for (const score of [-1, 101, Infinity, NaN]) assert.equal(store().awardTeachBack(topic, score), 0)
+    assert.equal(store().awardTeachBack('__proto__', 100), 0)
+    assert.equal(store().coins, 100)
   })
 
   it('spends only what he has, once per item', () => {
@@ -98,7 +114,7 @@ describe('old XP saves', () => {
     store().award('sectionDone') // a change saves the new shape
     const saved = JSON.parse(data.get(PROGRESS_STORAGE_KEY)!)
     assert.equal(saved.version, 2)
-    assert.deepEqual(Object.keys(saved.state).sort(), ['coins', 'owned'])
+    assert.deepEqual(Object.keys(saved.state).sort(), ['coins', 'owned', 'teachBackRewards'])
     assert.equal(saved.state.coins, 58)
   })
 
@@ -111,5 +127,18 @@ describe('old XP saves', () => {
     await useProgress.persist.rehydrate()
     assert.equal(store().coins, 42)
     assert.deepEqual(store().owned, [])
+  })
+
+  it('keeps the teach-back reward ledger across reloads and cleans invalid entries', async () => {
+    const topic = 'aaaaaaaaaaaaaaaa-t1'
+    withStorage({ state: { coins: 25, owned: [], teachBackRewards: { [topic]: 25, invalid: 999, 'aaaaaaaaaaaaaaaa-t2': -10 } }, version: 2 })
+    await useProgress.persist.rehydrate()
+    assert.deepEqual(store().teachBackRewards, { [topic]: 25 })
+    assert.equal(store().awardTeachBack(topic, 50), 0)
+    assert.equal(store().awardTeachBack(topic, 100), 25)
+    assert.equal(store().coins, 50)
+    await useProgress.persist.rehydrate()
+    assert.equal(store().awardTeachBack(topic, 100), 0)
+    assert.equal(store().coins, 50)
   })
 })

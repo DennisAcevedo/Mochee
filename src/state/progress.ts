@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
+import { TEACH_BACK_LIMITS } from '../../shared/teachBack.ts'
 
 // Mochee's coins. Only learning earns them (a section finished, a right
 // answer, the boss beaten, the lesson done); playing with him never does.
@@ -8,13 +9,14 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 // wrapper that swallows every storage error, so private windows and blocked
 // site data just start fresh each visit.
 
-export type CoinReason = 'sectionDone' | 'quizCorrect' | 'bossWin' | 'lessonDone'
+export type CoinReason = 'sectionDone' | 'quizCorrect' | 'bossWin' | 'lessonDone' | 'teachBack'
 
 export const COIN_REWARD: Record<CoinReason, number> = {
   sectionDone: 25, // the lesson moves on a section: lecture to quick check (runner.ts, once per section per run)
   quizCorrect: 15, // a right answer: the lesson's quick check or the Learning drawer's quiz
   bossWin: 100, // Beat the Boss won (src/boss/bossStore.ts)
   lessonDone: 50, // the guided lesson's last step reached
+  teachBack: TEACH_BACK_LIMITS.maxCoins, // per topic, earned as the explanation improves
 }
 
 // Short label for the floating "+N coins" toast, per reason.
@@ -23,6 +25,7 @@ export const COIN_LABEL: Record<CoinReason, string> = {
   quizCorrect: 'Correct!',
   bossWin: 'Boss beaten!',
   lessonDone: 'Lesson complete',
+  teachBack: 'Topic taught!',
 }
 
 // Every dance, in shop order. Bounce is his from the start; the rest are bought.
@@ -154,6 +157,8 @@ export interface Purchase {
 export interface ProgressState {
   coins: number
   owned: UnlockId[]
+  teachBackRewards: Record<string, number>
+  awardTeachBack: (topicId: string, score: number) => number
   lastAward: CoinAward | null
   lastPurchase: Purchase | null
   // `coins` overrides the reason's COIN_REWARD.
@@ -166,14 +171,18 @@ export interface ProgressState {
 interface Saved {
   coins: number
   owned: UnlockId[]
+  teachBackRewards: Record<string, number>
 }
 
 // A stored save as it can be trusted: whole, non-negative coins and known items, once each.
 function cleanSave(raw: unknown): Saved {
-  const r = (raw ?? {}) as { coins?: unknown; owned?: unknown }
+  const r = (raw ?? {}) as { coins?: unknown; owned?: unknown; teachBackRewards?: unknown }
   const coins = typeof r.coins === 'number' && Number.isFinite(r.coins) && r.coins >= 0 ? Math.round(r.coins) : 0
   const owned = Array.isArray(r.owned) ? [...new Set(r.owned.filter((id): id is UnlockId => typeof id === 'string' && SHOP_IDS.has(id)))] : []
-  return { coins, owned }
+  const teachBackRewards = Object.fromEntries(Object.entries(r.teachBackRewards && typeof r.teachBackRewards === 'object' ? r.teachBackRewards : {})
+    .filter(([id, amount]) => /^[a-f0-9]{16}-t\d{1,2}$/.test(id) && typeof amount === 'number' && Number.isFinite(amount) && amount >= 0 && amount <= TEACH_BACK_LIMITS.maxCoins)
+    .map(([id, amount]) => [id, Math.round(amount as number)]))
+  return { coins, owned, teachBackRewards }
 }
 
 export const useProgress = create<ProgressState>()(
@@ -181,6 +190,7 @@ export const useProgress = create<ProgressState>()(
     (set, get) => ({
       coins: 0,
       owned: [],
+      teachBackRewards: {},
       lastAward: null,
       lastPurchase: null,
       award: (reason, amount) =>
@@ -188,6 +198,18 @@ export const useProgress = create<ProgressState>()(
           const gained = amount !== undefined && Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : COIN_REWARD[reason]
           return { coins: s.coins + gained, lastAward: { id: (s.lastAward?.id ?? 0) + 1, reason, coins: gained } }
         }),
+      awardTeachBack: (topicId, score) => {
+        if (!/^[a-f0-9]{16}-t\d{1,2}$/.test(topicId) || !Number.isFinite(score) || score < 0 || score > 100) return 0
+        const s = get()
+        const earned = Math.round(score / 100 * TEACH_BACK_LIMITS.maxCoins)
+        const gained = Math.max(0, earned - (s.teachBackRewards[topicId] ?? 0))
+        if (gained > 0) set({
+          coins: s.coins + gained,
+          teachBackRewards: { ...s.teachBackRewards, [topicId]: earned },
+          lastAward: { id: (s.lastAward?.id ?? 0) + 1, reason: 'teachBack', coins: gained },
+        })
+        return gained
+      },
       spend: (id) => {
         const s = get()
         const item = SHOP.find((i) => i.id === id)
@@ -195,14 +217,14 @@ export const useProgress = create<ProgressState>()(
         set({ coins: s.coins - item.price, owned: [...s.owned, id], lastPurchase: { id: (s.lastPurchase?.id ?? 0) + 1, item: id } })
         return true
       },
-      resetProgress: () => set({ coins: 0, owned: [], lastAward: null, lastPurchase: null }),
+      resetProgress: () => set({ coins: 0, owned: [], teachBackRewards: {}, lastAward: null, lastPurchase: null }),
     }),
     {
       name: PROGRESS_STORAGE_KEY,
       // 1: { xp } (levels). 2: { coins, owned }.
       version: 2,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s): Saved => ({ coins: s.coins, owned: s.owned }),
+      partialize: (s): Saved => ({ coins: s.coins, owned: s.owned, teachBackRewards: s.teachBackRewards }),
       migrate: (persisted, version) => {
         if (version < 2) return migrateXp(Number((persisted as { xp?: unknown } | undefined)?.xp))
         return persisted

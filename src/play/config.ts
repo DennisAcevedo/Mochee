@@ -46,6 +46,7 @@ export const LESSON_RETURN = {
 
 // Colour of each "+N coins" toast, by what earned it.
 export const COIN_COLOR: Record<CoinReason, string> = {
+  teachBack: '#a78bfa',
   sectionDone: PALETTE.teal,
   quizCorrect: PALETTE.indigo,
   bossWin: PALETTE.coral,

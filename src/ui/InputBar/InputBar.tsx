@@ -3,6 +3,8 @@ import { introRef } from '../../intro/targets'
 import { selectListening, selectSpeaking, useTutorStore } from '../../state/store'
 import styles from './InputBar.module.css'
 import { MicButton } from './MicButton'
+import { useHub } from '../../hub/hubStore'
+import { useDrawers } from '../../state/drawers'
 
 const BAR_HEIGHTS = [8, 14, 10, 16, 9, 13, 7]
 // The waveform's pills, left to right: teal, violet, pink, coral, yellow, green, teal.
@@ -15,6 +17,9 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 // compact: just the mic and the ask box (the lesson's focus mode, with the browser maximized).
 export function InputBar({ compact = false }: { compact?: boolean }) {
+  const teachBack = useHub((h) => h.view === 'teachBack')
+  const learningOpen = useDrawers((d) => d.learningOpen)
+  const teaching = teachBack && learningOpen
   const listening = useTutorStore(selectListening)
   const speaking = useTutorStore(selectSpeaking)
   const draft = useTutorStore((s) => s.draft)
@@ -26,7 +31,7 @@ export function InputBar({ compact = false }: { compact?: boolean }) {
   // Hold Space to talk. Ignored while the text field has focus, and until the
   // intro has handed over (Space starts the lesson on the start screen).
   useEffect(() => {
-    const live = () => useTutorStore.getState().phase === 'live'
+    const live = () => useTutorStore.getState().phase === 'live' && !teaching
     const onDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || e.repeat || isTypingTarget(e.target) || !live()) return
       e.preventDefault()
@@ -43,10 +48,13 @@ export function InputBar({ compact = false }: { compact?: boolean }) {
       window.removeEventListener('keydown', onDown)
       window.removeEventListener('keyup', onUp)
     }
-  }, [startListening, finishListening])
+  }, [startListening, finishListening, teaching])
 
   const title = listening ? 'Listening…' : speaking ? 'Tutor is speaking' : 'Tap to talk'
   const showBars = listening || speaking
+
+  // Teach-back owns the mic while its tool is open; don't send the explanation to Q&A.
+  if (teaching) return null
 
   return (
     <div ref={introRef('inputBar')} className={styles.bar} data-compact={compact || undefined}>

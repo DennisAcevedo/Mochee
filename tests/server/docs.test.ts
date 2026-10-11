@@ -382,6 +382,22 @@ describe('HTTP middleware', () => {
     assert.equal(JSON.stringify(list.json).includes('savedPath'), false, 'storage paths never leave the server')
   })
 
+  test('teach-back routes require same-origin JSON, validate input, and report a missing model key', async () => {
+    const [doc] = (await send('/api/documents', 'GET', {})).json as DocumentInfo[]
+    const body = Buffer.from(JSON.stringify({ documentId: doc.id, topicId: doc.topics[0].id }))
+    const headers = { 'content-type': 'application/json' }
+    assert.deepEqual(await send('/api/teach-back/start', 'POST', headers, body), { status: 503, json: { error: 'no-key' } })
+    for (const path of ['/api/teach-back/start', '/api/teach-back/grade']) {
+      assert.equal((await send(path, 'GET', {})).status, 405)
+      assert.equal((await send(path, 'POST', { ...headers, origin: 'https://evil.example' }, body)).status, 403)
+      assert.equal((await send(path, 'POST', headers, Buffer.from('{}'))).status, 400)
+    }
+    assert.equal((await send('/api/teach-back/transcribe', 'GET', {})).status, 405)
+    assert.equal((await send('/api/teach-back/transcribe', 'POST', headers, body)).status, 415)
+    assert.equal((await send('/api/teach-back/transcribe', 'POST', { 'content-type': 'audio/webm', origin: 'https://evil.example' }, Buffer.from('fixture'))).status, 403)
+    assert.deepEqual(await send('/api/teach-back/transcribe', 'POST', { 'content-type': 'audio/webm' }, Buffer.from('fixture')), { status: 503, json: { error: 'no-key' } })
+  })
+
   // Raw GET: status, headers and the exact bytes (the original file is binary, not JSON).
   function getRaw(path: string, method = 'GET'): Promise<{ status: number; headers: Record<string, unknown>; bytes: Buffer }> {
     return new Promise((resolve, reject) => {

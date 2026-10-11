@@ -16,6 +16,7 @@ import { chunkPage, decodeFilename, titleFromFilename, type Chunk } from './text
 import { extractTopics } from './topics.ts'
 import { groundedChat, type GeminiFn } from './tutor.ts'
 import { isScanned, readImage, readScannedPdf, type VisionOutcome } from './vision.ts'
+import { createTeachBack } from './teachBack.ts'
 
 // The documents backend as plain operations (no HTTP): ingest, list, page,
 // chat, quiz, submit. Each returns { status, body } so plugin.ts only moves
@@ -151,6 +152,7 @@ export function createDocsService(opts: ServiceOptions) {
   const fromVision = (out: VisionOutcome): { pages: string[] } | Reply => (out.ok ? { pages: out.pages } : fail(out.status, out.error))
 
   return {
+    ...createTeachBack(store, opts.readKey, gemini),
     store,
     close: () => store.close(),
 

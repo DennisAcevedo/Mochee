@@ -14,6 +14,7 @@ import {
   type QuizSubmit,
 } from '../../../shared/docsTypes'
 import { DEFAULT_TUTOR_ID, STUDY_LIMITS, STUDY_ROUTES, type LessonPack } from '../../../shared/lessonPack'
+import { TEACH_BACK_ROUTES, type TeachBackChallenge, type TeachBackResult, type TeachBackSubmission } from '../../../shared/teachBack'
 
 // Browser client for the documents backend (server/docs/**). Every call
 // resolves to { ok, data } or { ok: false, error } with a short code, never
@@ -51,6 +52,15 @@ export const ERROR_TEXT: Record<string, string> = {
   method: 'The server does not take that request.',
   forbidden: 'The server refused a request from another site.',
   'not-audio': 'That recording format is not supported. Try webm, ogg, wav, mp3, m4a or mp4 audio.',
+  'teach-back-unverified': 'Mochee couldn’t finish checking this exercise against your material. Please try again; any explanation you’ve written is still here.',
+  'teach-back-incomplete': 'Gemini’s response was cut short, even after retrying. Please try again; any explanation you’ve written is still here.',
+  'teach-back-busy': 'Gemini’s request limit was reached. Wait a moment, then try again. Your explanation is still here.',
+  'teach-back-auth': 'The server’s Gemini key was rejected. Check the API key and its access before trying again.',
+  'teach-back-model': 'The configured Gemini model is unavailable. Update the server’s model setting before trying again.',
+  'teach-back-request': 'Gemini rejected the exercise request. The server’s Gemini configuration needs checking.',
+  'teach-back-unavailable': 'Mochee couldn’t reach Gemini after retrying. Please try again in a moment; your explanation is still here.',
+  'teach-back-no-speech': 'I couldn’t hear any words. Check your microphone and try speaking again, or switch to typing.',
+  'teach-back-too-long': 'That explanation is too long. Try a shorter take, or switch to typing to shorten your transcript.',
 }
 
 export const errorText = (code: string) => ERROR_TEXT[code] ?? ERROR_TEXT.internal
@@ -71,7 +81,7 @@ async function request<T>(url: string, init: RequestInit = {}, timeoutMs: number
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    const res = await fetch(url, { ...init, headers: { accept: 'application/json', ...init.headers }, signal: ctrl.signal })
+    const res = await fetch(url, { ...init, headers: { accept: 'application/json', ...init.headers }, signal: init.signal ? AbortSignal.any([ctrl.signal, init.signal]) : ctrl.signal })
     // Vite's SPA fallback answers unknown GETs with index.html (200): not mounted yet.
     if (!isJson(res)) return { ok: false, error: res.ok || res.status === 404 ? 'not-ready' : codeFrom(res.status, null) }
     const body: unknown = await res.json()
@@ -100,6 +110,12 @@ export const askDocument = (req: ChatRequest) => postJson<GroundedAnswer>(DOCS_R
 export const fetchQuiz = (documentId: string, topicId?: string) =>
   postJson<QuizSet>(DOCS_ROUTES.quiz, topicId ? { documentId, topicId } : { documentId }, CLIENT.chatTimeoutMs)
 export const submitQuiz = (submit: QuizSubmit) => postJson<QuizResult>(DOCS_ROUTES.quizSubmit, submit)
+export const startTeachBack = (documentId: string, topicId: string) =>
+  postJson<TeachBackChallenge>(TEACH_BACK_ROUTES.start, { documentId, topicId }, 55_000)
+export const gradeTeachBack = (submission: TeachBackSubmission) =>
+  postJson<TeachBackResult>(TEACH_BACK_ROUTES.grade, submission, 55_000)
+export const transcribeTeachBack = (blob: Blob, signal: AbortSignal) =>
+  request<{ text: string }>(TEACH_BACK_ROUTES.transcribe, { method: 'POST', headers: { 'content-type': blob.type || 'audio/webm' }, body: blob, signal }, 45_000)
 
 // Client-side checks before any bytes leave the browser (the same format rule
 // as the server: the extension decides, a contradicting type is refused).
