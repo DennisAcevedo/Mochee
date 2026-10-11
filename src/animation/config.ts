@@ -377,8 +377,8 @@ export const INTRO = {
       rug: { at: 0.02, duration: 0.55, ease: 'back.out(2.4)' }, // pops out under his feet
       skirting: { at: 0.14, duration: 0.6, ease: 'power3.out' }, // stripes rise from the floor
       ceiling: { at: 0.32, duration: 0.6, ease: 'back.out(1.8)' },
-      notes: { at: 0.46, duration: 0.75, ease: 'back.out(1.3)' }, // flies in from the left
-      board: { at: 0.58, duration: 0.75, ease: 'back.out(1.3)' }, // and from the right
+      props: { at: 0.4, duration: 0.8, ease: 'back.out(1.2)' }, // the Study / Play furniture rises from the floor
+      window: { at: 0.58, duration: 0.75, ease: 'back.out(1.3)' }, // the browser window flies in from the left
       blobs: { at: 0.6, duration: 0.6, ease: 'power2.out' },
       decals: { at: 0.72, duration: 0.6, ease: 'back.out(2)' },
       evolution: { at: 0.86, duration: 0.65, ease: 'back.out(1.6)' }, // shelves, books and posters

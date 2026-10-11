@@ -1,6 +1,7 @@
 import { useRef, useState, type CSSProperties, type DragEvent } from 'react'
-import { notesTabs } from '../../data/stageContent'
-import { DOCS_LIMITS, type DocumentInfo } from '../../lesson/docsTypes'
+import { notesTabs } from '../../../shared/lessonNotes'
+import { DEFAULT_DOC_KIND, DOCS_LIMITS, formatLabel, UPLOAD_ACCEPT, UPLOAD_FORMATS, type DocKind, type DocumentInfo } from '../../../shared/docsTypes'
+import { StudyHub } from '../../hub/StudyHub'
 import { PALETTE } from '../../scene/layout3d'
 import { useDrawers } from '../../state/drawers'
 import { errorText } from './docsClient'
@@ -11,14 +12,19 @@ import { BuiltInPage, DocumentPage } from './PageViewer'
 import { Panel } from './Panel'
 
 // LEFT drawer: what the student is learning from. The built-in lesson is
-// always first; uploaded PDFs follow with their topic chips. Selecting one
-// makes it the subject of the Quest drawer's chat and quiz, and opens its
-// pages in the reader below.
+// always first; uploaded files follow with their topic chips. Selecting one
+// makes it the subject of the hub's chat and quiz, and opens its pages in
+// the reader below.
 
 const LEARNING = {
   maxChips: 4, // topic chips per document before "+N"
   builtInTopics: ['FCFS', 'Ready queue', 'Convoy effect'], // what the built-in lesson covers
   chipColors: [PALETTE.violet, PALETTE.teal, PALETTE.coral, PALETTE.indigo, PALETTE.lime, PALETTE.pink],
+  // Class material is taught topic by topic; a paper is walked through by Gemini in one pass.
+  kinds: [
+    { id: 'class', label: 'Class', hint: 'PDF, Word, PowerPoint, text, HTML or images' },
+    { id: 'paper', label: 'Research paper', hint: 'Gemini walks the whole paper, question to results' },
+  ] satisfies readonly { id: DocKind; label: string; hint: string }[],
 } as const
 
 // 'CS111 Lecture 4.pdf' -> 'CS111 · Lecture 4'
@@ -31,20 +37,27 @@ export function LearningDrawer() {
   const selected = documents.find((d) => d.id === documentId) ?? null
 
   return (
-    <Panel id="learning" side="left" title="Learning" accent={PALETTE.violet} icon={<BookIcon />}>
-      <UploadZone />
-      <section className={s.section} aria-labelledby="learning-list">
-        <h3 id="learning-list" className={s.kicker}>
-          Your material
-        </h3>
-        <DocList />
-      </section>
-      <section className={s.section} aria-labelledby="learning-reader">
-        <h3 id="learning-reader" className={s.kicker}>
-          Reader
-        </h3>
-        {selected ? <DocumentPage key={selected.id} doc={selected} /> : <BuiltInPage />}
-      </section>
+    <Panel id="learning" title="Learning" accent={PALETTE.violet} icon={<BookIcon />}>
+      {/* The Study hub is the home view; Upload Materials opens the original material pane. */}
+      <StudyHub
+        upload={
+          <>
+            <UploadZone />
+            <section className={s.section} aria-labelledby="learning-list">
+              <h3 id="learning-list" className={s.kicker}>
+                Your material
+              </h3>
+              <DocList />
+            </section>
+            <section className={s.section} aria-labelledby="learning-reader">
+              <h3 id="learning-reader" className={s.kicker}>
+                Reader
+              </h3>
+              {selected ? <DocumentPage key={selected.id} doc={selected} /> : <BuiltInPage />}
+            </section>
+          </>
+        }
+      />
     </Panel>
   )
 }
@@ -52,15 +65,16 @@ export function LearningDrawer() {
 function UploadZone() {
   const upload = useDocs((d) => d.upload)
   const uploadError = useDocs((d) => d.uploadError)
-  const addPdf = useDocs((d) => d.addPdf)
+  const addFile = useDocs((d) => d.addFile)
   const clearUploadError = useDocs((d) => d.clearUploadError)
   const selectDocument = useDrawers((d) => d.selectDocument)
   const input = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
+  const [kind, setKind] = useState<DocKind>(DEFAULT_DOC_KIND)
 
   const take = async (file: File | undefined) => {
     if (!file) return
-    const doc = await addPdf(file)
+    const doc = await addFile(file, kind)
     if (doc) selectDocument(doc.id)
   }
 
@@ -88,7 +102,7 @@ function UploadZone() {
         <div className={s.uploading} aria-live="polite">
           <div className={s.uploadRow}>
             <span className={s.uploadName}>{upload.name}</span>
-            <span className={s.uploadPct}>{upload.phase === 'indexing' ? 'Reading pages…' : `${pct}%`}</span>
+            <span className={s.uploadPct}>{upload.phase === 'sending' ? `${pct}%` : upload.kind === 'paper' ? 'Gemini is reading the paper…' : 'Reading pages…'}</span>
           </div>
           <div className={s.bar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Upload">
             <span style={{ width: `${upload.phase === 'indexing' ? 100 : pct}%` }} data-indexing={upload.phase === 'indexing'} />
@@ -96,19 +110,20 @@ function UploadZone() {
         </div>
       ) : (
         <>
+          <KindPicker kind={kind} onChange={setKind} />
           <button type="button" className={s.uploadBtn} onClick={() => input.current?.click()}>
             <UploadIcon />
-            Add a PDF
+            Add a file
           </button>
           <p className={s.dropHint}>
-            or drop one here &middot; up to {Math.round(DOCS_LIMITS.maxUploadBytes / 1024 / 1024)} MB
+            or drop one here &middot; {LEARNING.kinds.find((k) => k.id === kind)?.hint} &middot; up to {Math.round(DOCS_LIMITS.maxUploadBytes / 1024 / 1024)} MB
           </p>
         </>
       )}
       <input
         ref={input}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={UPLOAD_ACCEPT}
         hidden
         onChange={(e) => {
           void take(e.target.files?.[0])
@@ -127,6 +142,35 @@ function UploadZone() {
   )
 }
 
+// Class / Research paper, as a two-option radio group in the pill style (arrows switch).
+function KindPicker({ kind, onChange }: { kind: DocKind; onChange: (k: DocKind) => void }) {
+  return (
+    <div className={`${s.tabs} ${s.kindPick}`} role="radiogroup" aria-label="What are you adding?">
+      {LEARNING.kinds.map((k, i) => (
+        <button
+          key={k.id}
+          type="button"
+          role="radio"
+          aria-checked={kind === k.id}
+          tabIndex={kind === k.id ? 0 : -1}
+          className={s.tab}
+          data-testid={`upload-kind-${k.id}`}
+          onClick={() => onChange(k.id)}
+          onKeyDown={(e) => {
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+            e.preventDefault()
+            const next = LEARNING.kinds[(i + 1) % LEARNING.kinds.length]
+            onChange(next.id)
+            ;(e.currentTarget.parentElement?.querySelector(`[data-testid="upload-kind-${next.id}"]`) as HTMLElement | null)?.focus()
+          }}
+        >
+          {k.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function DocList() {
   const status = useDocs((d) => d.status)
   const error = useDocs((d) => d.error)
@@ -140,6 +184,7 @@ function DocList() {
       <li>
         <DocRow
           title={BUILT_IN_LABEL}
+          badge={UPLOAD_FORMATS.pdf.label}
           meta="Built-in lesson"
           chips={[...LEARNING.builtInTopics]}
           selected={documentId === null}
@@ -151,6 +196,7 @@ function DocList() {
         <li key={doc.id}>
           <DocRow
             title={doc.title}
+            badge={formatLabel(doc.original)}
             meta={docMeta(doc)}
             chips={doc.topics.map((t) => t.title)}
             selected={documentId === doc.id}
@@ -176,16 +222,17 @@ function DocList() {
           </button>
         </li>
       )}
-      {status === 'ready' && documents.length === 0 && <li className={s.empty}>No PDFs yet. Add lecture notes to grow his room.</li>}
+      {status === 'ready' && documents.length === 0 && <li className={s.empty}>Nothing added yet. Add lecture notes or a paper to grow his room.</li>}
     </ul>
   )
 }
 
 const docMeta = (doc: DocumentInfo) =>
-  `${doc.pageCount} page${doc.pageCount === 1 ? '' : 's'} · ${doc.topics.length} topic${doc.topics.length === 1 ? '' : 's'}`
+  `${doc.kind === 'paper' ? 'Research paper · ' : ''}${doc.pageCount} page${doc.pageCount === 1 ? '' : 's'} · ${doc.topics.length} topic${doc.topics.length === 1 ? '' : 's'}`
 
 interface DocRowProps {
   title: string
+  badge: string
   meta: string
   chips: string[]
   selected: boolean
@@ -193,13 +240,13 @@ interface DocRowProps {
   accent: string
 }
 
-function DocRow({ title, meta, chips, selected, onSelect, accent }: DocRowProps) {
+function DocRow({ title, badge, meta, chips, selected, onSelect, accent }: DocRowProps) {
   const shown = chips.slice(0, LEARNING.maxChips)
   const more = chips.length - shown.length
   return (
     <button type="button" className={s.doc} aria-pressed={selected} onClick={onSelect} style={{ '--c': accent } as CSSProperties}>
       <span className={s.docIcon} aria-hidden>
-        PDF
+        {badge}
       </span>
       <span className={s.docMain}>
         <span className={s.docTitle}>{title}</span>

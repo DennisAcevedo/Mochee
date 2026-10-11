@@ -1,4 +1,4 @@
-// The lesson's white-box room.
+// The lesson's sparkle stage.
 export { LessonRoom } from './LessonRoom'
-export { ROOM_STYLE } from './roomStyle'
-export { WhiteBoxRoom } from './WhiteBoxRoom'
+export { SparkleStage } from './SparkleStage'
+export { STAGE_STYLE } from './stageStyle'

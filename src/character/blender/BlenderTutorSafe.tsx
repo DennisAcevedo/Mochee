@@ -1,5 +1,6 @@
-import { Component, Suspense, use, type ErrorInfo, type ReactNode } from 'react'
+import { Component, Suspense, use, useEffect, type ErrorInfo, type ReactNode } from 'react'
 import { Character } from '../Character'
+import { tutorActor } from './actor'
 import { BlenderTutor, type BlenderTutorProps } from './BlenderTutor'
 import { TUTOR_ASSETS } from './config'
 import { probeModel } from './manifest'
@@ -30,6 +31,18 @@ class TutorBoundary extends Component<BoundaryProps, { failed: boolean }> {
   }
 }
 
+// Marks the classic character as the one on stage while the fallback is shown
+// (the intro frames him differently and roaming leaves him alone).
+function ClassicStandIn({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    tutorActor.classic = true
+    return () => {
+      tutorActor.classic = false
+    }
+  }, [])
+  return children
+}
+
 // A missing GLB never reaches the loader: probe first, fall back quietly.
 function Gate({ fallback, ...props }: BlenderTutorProps & { fallback: ReactNode }) {
   const present = use(probeModel(props.src ?? TUTOR_ASSETS.model))
@@ -38,8 +51,10 @@ function Gate({ fallback, ...props }: BlenderTutorProps & { fallback: ReactNode 
 
 // The Blender tutor, guarded: nothing while the GLB loads, the classic
 // <Character> if it is missing or fails, so the lesson never breaks.
+// introDriven reaches the default fallback too, so a classic stand-in still spins.
 export function BlenderTutorSafe({ fallback, ...props }: Props) {
-  const shown = fallback ?? (props.visible === false ? null : <Character roam={0} />)
+  const given = fallback ?? (props.visible === false ? null : <Character roam={0} introDriven={props.introDriven} />)
+  const shown = given === null ? null : <ClassicStandIn>{given}</ClassicStandIn>
   return (
     <TutorBoundary fallback={shown}>
       <Suspense fallback={null}>

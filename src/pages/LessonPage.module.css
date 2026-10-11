@@ -1,13 +1,76 @@
-/* Lesson chrome over the 3D room. The canvas is a fixed layer at z-index 0,
-   so every DOM control here sits above it to keep its clicks. */
+/* Lesson page layout (design/sparkle-stage/Main.dc.html): the header row, the
+   16:9 stage frame letterboxed into the space left over, then the dock. The
+   stage is full-bleed: its sky and the canvas (fixed layers at z-index 0)
+   cover the whole window, and the frame is only where the lesson shot lands,
+   so the windows and the tutor always sit clear of the header and the dock.
+   Every DOM control here sits above the canvas to keep its clicks, and every
+   box that only places them lets the pointer through to the tutor. LessonPage.tsx publishes the stage's size and place as
+   --frame-w / --frame-h (on the frame) and --stage-left / --stage-top /
+   --stage-w (on the page, for the drawer and the rows).
 
-/* Play HUD, top-centre over the room's ceiling band. */
+   Nothing here may set transform, filter or container-type on an ancestor of
+   the stage: the canvas layer inside it is position: fixed. */
+
+.page {
+  --handle: 52px; /* a drawer handle (42px) and its gap beside the stage */
+  --row-w: min(100%, calc(var(--stage-w, 100vw) + 2 * var(--handle)));
+  height: 100dvh;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  background: #f3f1ec;
+}
+
+.header {
+  flex: none;
+  width: var(--row-w);
+  margin: 0 auto;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* The stage row: the frame is centred in it at the size LessonPage fits. */
+.row {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--handle);
+}
+
+.frame {
+  position: relative;
+  flex: none;
+  width: var(--frame-w, 0px);
+  height: var(--frame-h, 0px);
+}
+
+/* Chrome inside the stage. A query container, so the HUD and caption size in
+   stage units: --u is one mock pixel (the mock's stage is 1100 px wide),
+   clamped so text stays legible on small stages (the mock's smallest HUD
+   text is 8.5 units, about 7 px at the floor) and sane on huge ones. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  container-type: inline-size;
+  --u: clamp(0.84px, calc(100cqw / 1100), 1.4px);
+}
+
+/* Play HUD, inside the top of the stage. Above the caption, which comes later
+   in the page: the open Dance menu (eight dances) can reach down over it. */
 .hud {
   position: absolute;
-  top: 14px;
+  z-index: 1;
+  top: 2.4%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 3;
   pointer-events: none;
 }
 
@@ -15,13 +78,29 @@
   pointer-events: auto;
 }
 
-/* New-ability invite: top left under the header, clear of the mode switch's
-   own invite (top right) and the Learning drawer's handle. */
+/* Caption, inside the bottom of the stage, below the tutor's feet. */
+.caption {
+  position: absolute;
+  left: 50%;
+  bottom: 2.4%;
+  width: 68%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Caption's own wrapper, placed by .caption instead of by itself. */
+.caption > .bubble {
+  position: static;
+  width: 100%;
+  transform: none;
+}
+
+/* New-ability invite: top left inside the stage, under the HUD. */
 .invite {
   position: absolute;
-  top: 70px;
-  left: 54px;
-  width: 360px;
+  top: 17%;
+  left: 2.4%;
+  width: min(340px, 40%);
   z-index: 4;
 }
 
@@ -31,46 +110,31 @@
   right: auto;
 }
 
-/* Caption: a compact bubble low over the floor, clear of the tutor's body. */
-.caption {
-  bottom: 12px;
-  width: min(840px, calc(100% - 32px));
-}
-
-.caption > div {
-  padding: 8px 20px 10px;
-  border-radius: 20px;
-}
-
-.caption > div > div:first-child {
-  margin: 2px 0 3px;
-}
-
-.caption p {
-  font-size: 17px;
-  line-height: 1.32;
-}
-
-/* A closed caption's chip, where the bubble was. */
-.captionChip {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  translate: -50% 0;
-}
-
-/* Walkthrough bar stacked above the ask box. */
+/* Walkthrough bar and ask box. Stacked by default; side by side on wide
+   screens, where the stage gains the height a second row would cost. */
 .dock {
   position: relative;
   z-index: 2;
+  flex: none;
+  width: var(--row-w);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
+  pointer-events: none; /* the gap between the bars belongs to the canvas */
 }
 
-.dock > :last-child {
-  align-self: stretch;
+.dock > * {
+  pointer-events: auto;
+}
+
+.dock > .walk {
+  width: 100%;
+}
+
+.ask > div {
+  height: 100%;
 }
 
 /* Held in the layout from the start so the stage never jumps; shown once live. */
@@ -99,12 +163,11 @@
 }
 
 /* Live UI entrances, staggered after the intro's landing (the top bar and the
-   dock are animated by the intro itself; the drawer tabs slide in from their
-   edges in Panel.module.css). They animate `translate`, not `transform`, so
+   dock are animated by the intro itself; the drawer tab slides in from its
+   edge in Panel.module.css). They animate `translate`, not `transform`, so
    they compose with each element's own centring and hover transforms, and
    fill backwards only, so nothing lingers once they're in. */
-.enter,
-.layer {
+.enter {
   animation: liveEnter 520ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--enter-delay, 0ms) backwards;
 }
 
@@ -115,15 +178,8 @@
   --enter-from: 0 -28px;
   --enter-scale: 0.9;
 }
-.layer[data-enter='up'] {
+.enter[data-enter='up'] {
   --enter-from: 0 18px;
-}
-
-/* Full-stage wrapper for chrome that positions itself against the stage. */
-.layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
 }
 
 @keyframes liveEnter {
@@ -135,8 +191,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .enter,
-  .layer {
+  .enter {
     animation-name: liveFade;
     animation-timing-function: ease;
   }
@@ -146,4 +201,80 @@
   from {
     opacity: 0;
   }
+}
+
+/* An even split, but the walkthrough bar never drops below what its chip,
+   title and five controls need, so on narrower rows the ask box gives way. */
+@media (min-width: 1180px) {
+  .dock {
+    flex-direction: row;
+  }
+  .dock > .walk {
+    flex: 1 1 0;
+    min-width: 560px;
+  }
+  .ask {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* Phones (the drawers' sheet breakpoint, PANEL.sheetQuery): the page scrolls,
+   the stage takes the full width, and the HUD and caption flow below it at a
+   fixed scale. The ask box tightens (InputBar drops its status column by
+   itself on any bar this narrow). */
+@media (max-width: 759px) {
+  .page {
+    --handle: 0px;
+    height: auto;
+    min-height: 100dvh;
+    padding: 12px 16px 16px;
+    gap: 10px;
+  }
+  .header,
+  .dock {
+    width: 100%;
+  }
+  .row {
+    flex: none;
+    padding: 0;
+  }
+  .frame {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+  .ask > div {
+    gap: 10px;
+    padding: 8px;
+  }
+}
+
+/* Above the fixed canvas, which runs under the whole page, and above the dock
+   (z-index 2, later in the page), which the HUD's open Dance menu drops over. */
+.below {
+  --u: 0.86px;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.below .hud,
+.below .caption {
+  position: static;
+  transform: none;
+  pointer-events: auto;
+}
+
+.below .hud {
+  position: relative; /* in flow, but still above the caption */
+  inset: auto; /* no offset from .hud's top / left */
+  max-width: 100%;
+}
+
+.below .caption {
+  width: 100%;
 }

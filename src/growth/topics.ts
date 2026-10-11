@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DOCS_ROUTES, type DocumentInfo, type TopicInfo } from '../lesson/docsTypes'
+import { DOCS_ROUTES, type DocumentInfo, type TopicInfo } from '../../shared/docsTypes'
 import type { TopicRef } from '../state/growth'
 import { GROWTH } from './config'
 
@@ -10,7 +10,7 @@ import { GROWTH } from './config'
 
 export const BUILTIN_DOCUMENT_TITLE = 'CS111 Lecture 4'
 
-// The built-in lesson's topic (mockLesson / stageContent: FCFS, P1 24 / P2 3 / P3 3).
+// The built-in lesson's topic (mockLesson / shared/lessonNotes: FCFS, P1 24 / P2 3 / P3 3).
 export const BUILTIN_TOPIC: { id: string; title: string; keywords: string[] } = {
   id: 'cs111-fcfs',
   title: 'First-come, first-served',
@@ -139,6 +139,9 @@ export function sampleDocument(n: number): DocumentInfo {
     title: pick.title,
     pageCount: 2,
     createdAt: new Date(0).toISOString(),
+    tutorId: 'cs111', // DEFAULT_TUTOR_ID in shared/lessonPack.ts: the sample CS111 class
+    original: 'pdf',
+    kind: 'class',
     topics: pick.topics.map((t) => ({ ...t, id: n < samples.length ? t.id : `${t.id}-${n}`, documentId: id })),
   }
 }

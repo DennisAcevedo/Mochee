@@ -6,9 +6,9 @@ import { useRef, type CSSProperties, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ACESFilmicToneMapping, MathUtils, type Group, type PerspectiveCamera } from 'three'
 import { RENDER } from '../src/animation/config'
-import { notesTabs } from '../src/data/stageContent'
+import { notesTabs } from '../shared/lessonNotes'
 import { anchors } from '../src/scene/anchors'
-import { FLOOR_Y, LESSON_CAMERA, PALETTE, SPOTS, TUTOR_SCALE } from '../src/scene/layout3d'
+import { cameraPan, FLOOR_Y, LESSON_CAMERA, PALETTE, SPOTS, TUTOR_SCALE } from '../src/scene/layout3d'
 import { Lights } from '../src/scene/Lights'
 import { LessonRoom } from '../src/scene/room/LessonRoom'
 import { useDirector, type Focus, type Spot } from '../src/state/director'
@@ -34,11 +34,11 @@ window.__director = useDirector
 window.__tutor = useTutorStore
 window.__anchors = anchors
 
-// LESSON_CAMERA, panned toward the focused window as the real CameraRig will.
+// LESSON_CAMERA, panned toward the window while it has focus, as the real CameraRig does.
 function LabCamera() {
   useFrame(({ camera }, dt) => {
     const focus = useDirector.getState().focus
-    const shift = focus === 'notes' ? -LESSON_CAMERA.focusShift : focus === 'board' ? LESSON_CAMERA.focusShift : 0
+    const shift = cameraPan(focus, null)
     const cam = camera as PerspectiveCamera
     const x = MathUtils.damp(cam.position.x, LESSON_CAMERA.position[0] + shift, LAB.camDamp, dt)
     cam.position.set(x, LESSON_CAMERA.position[1], LESSON_CAMERA.position[2])

@@ -33,6 +33,18 @@ export const PLAY = {
   maxToasts: 4,
 } as const
 
+// Back to Study from play: the lesson waits until he has glided back onto his
+// spot (src/play/lessonMode.ts). The world cross-fade is 360 ms (WORLD.fade);
+// study mode pulls the body home at physics returnDamp 3/s (about 26% of the
+// gap per 100 ms check), so a gap that moves under stillM is home or parked.
+export const LESSON_RETURN = {
+  pollMs: 100,
+  minMs: 420,
+  nearM: 0.1,
+  stillM: 0.006,
+  maxMs: 6000,
+} as const
+
 // Colour of each XP toast, by what earned it.
 export const XP_COLOR: Record<XpReason, string> = {
   poke: PALETTE.pink,
@@ -43,6 +55,8 @@ export const XP_COLOR: Record<XpReason, string> = {
   stepDone: PALETTE.lime,
   quizCorrect: PALETTE.indigo,
   lessonDone: PALETTE.violet,
+  hoops: '#F08A24', // basketball orange
+  trick: PALETTE.coral,
 }
 
 // Ball and snack colours rotate through these.

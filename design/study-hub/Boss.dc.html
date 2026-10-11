@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beat the Boss</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f3fb}
+button{font-family:inherit;color:inherit}
+button:focus-visible{outline:3px solid #7c5cf2;outline-offset:2px}
+@keyframes bossIdle{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-6px) scale(1.01,0.99)}}
+@keyframes bossHurt{0%{transform:translateX(0)}15%{transform:translateX(18px) rotate(4deg);filter:brightness(2.2)}30%{transform:translateX(-10px) rotate(-3deg);filter:brightness(1)}45%{transform:translateX(8px)}60%{transform:translateX(-4px)}100%{transform:none}}
+@keyframes bossCrit{0%{transform:none}12%{transform:translateX(34px) rotate(8deg) scale(0.92,1.08);filter:brightness(2.6)}28%{transform:translateX(-14px) rotate(-5deg)}44%{transform:translateX(10px) rotate(3deg);filter:brightness(1.6)}60%{transform:translateX(-6px)}100%{transform:none}}
+@keyframes bossSlam{0%{transform:none}30%{transform:translateX(26px) scale(1.04,0.96)}55%{transform:translateX(-170px) scale(1.12,0.9)}75%{transform:translateX(-150px)}100%{transform:none}}
+@keyframes bossPop{0%{transform:scale(1);opacity:1}30%{transform:scale(1.18,0.86) rotate(-6deg);filter:brightness(2)}100%{transform:scale(0.2) rotate(40deg) translateY(-60px);opacity:0}}
+@keyframes guyIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes guyDash{0%{transform:none}25%{transform:translateX(-14px) scale(1.06,0.94)}55%{transform:translateX(70px) translateY(-28px) rotate(10deg) scale(0.94,1.06)}80%{transform:translateX(10px)}100%{transform:none}}
+@keyframes guyTumble{0%{transform:none}18%{transform:translateX(-60px) translateY(-70px) rotate(-120deg)}38%{transform:translateX(-120px) translateY(-40px) rotate(-260deg)}55%{transform:translateX(-150px) translateY(0) rotate(-360deg) scale(1.25,0.7)}68%{transform:translateX(-150px) rotate(-360deg) scale(0.9,1.1)}82%{transform:translateX(-120px) rotate(-372deg)}100%{transform:rotate(-360deg)}}
+@keyframes guyCheer{0%,100%{transform:none}30%{transform:translateY(-46px) scale(0.92,1.1)}55%{transform:translateY(0) scale(1.12,0.88)}75%{transform:translateY(-20px)}}
+@keyframes beam{0%{left:34%;opacity:0;transform:scale(0.4) rotate(0)}15%{opacity:1}85%{left:63%;opacity:1;transform:scale(1.2) rotate(360deg)}100%{left:66%;opacity:0;transform:scale(2) rotate(420deg)}}
+@keyframes dmgUp{0%{opacity:0;transform:translate(-50%,10px) scale(0.6)}20%{opacity:1;transform:translate(-50%,-10px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70px) scale(1)}}
+@keyframes orbit{from{transform:translateX(-50%) rotate(0)}to{transform:translateX(-50%) rotate(360deg)}}
+@keyframes heartBreak{0%{transform:scale(1)}30%{transform:scale(1.4) rotate(-12deg)}100%{transform:scale(1)}}
+@keyframes confetti{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(420px) rotate(540deg);opacity:0}}
+@keyframes cardIn{from{opacity:0;transform:translate(-50%,24px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes twinkle{0%,100%{opacity:0.35;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}}
+.opt{transition:transform 160ms cubic-bezier(0.34,1.56,0.64,1),box-shadow 160ms}
+.opt:hover{transform:translateY(-2px)}
+@media (prefers-reduced-motion: reduce){*{animation-duration:1ms !important;animation-iteration-count:1 !important}}
+</style>
+</helmet>
+<div style="position: relative; height: 100vh; overflow: hidden; font-family: 'Figtree', system-ui, sans-serif; color: #1d1b24; background: #f6f3fb">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 72px; display: flex; align-items: center; gap: 14px; padding: 0 24px">
+    <span style="padding: 6px 12px; border-radius: 999px; background: #1d1b24; color: #ffffff; font-size: 13px; font-weight: 800">Tutor</span>
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800; white-space: nowrap">CS111 · Operating Systems</h1>
+    <span style="flex: 1"></span>
+    <span style="padding: 6px 12px; border-radius: 999px; background: #ffe4d6; color: #b8452f; font-size: 13px; font-weight: 800">Boss fight · Convoy effect</span>
+  </header>
+
+  <main style="position: absolute; left: 16px; right: 16px; top: 80px; bottom: 16px; border-radius: 28px; overflow: hidden; background: radial-gradient(55% 60% at 74% 92%, #ffd7e4 0%, rgba(255,215,228,0) 100%), radial-gradient(50% 60% at 14% 18%, #dbe4ff 0%, rgba(219,228,255,0) 100%), radial-gradient(40% 40% at 90% 10%, #fff0c6 0%, rgba(255,240,198,0) 100%), #f8f6fc; box-shadow: inset 0 0 0 1px rgba(29,27,36,0.05)">
+
+    <svg viewBox="0 0 24 24" aria-hidden="true" style="position: absolute; left: 8%; top: 30%; width: 26px; animation: twinkle 3s ease-in-out infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#4285f4"></path></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true" style="position: absolute; left: 46%; top: 20%; width: 18px; animation: twinkle 2.4s ease-in-out 0.5s infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#fbbc04"></path></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true" style="position: absolute; right: 7%; top: 34%; width: 22px; animation: twinkle 3.4s ease-in-out 1s infinite"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#ea4335"></path></svg>
+
+    <!-- HUD -->
+    <div style="position: absolute; left: 24px; top: 20px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 18px; background: rgba(255,255,255,0.86); box-shadow: 0 10px 24px -16px rgba(61,90,214,0.6)">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">YOU + GEMINI GUY</span>
+      <span style="display: flex; gap: 6px">
+        <sc-for list="{{ hearts }}" as="h" hint-placeholder-count="3"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="{{ h.style }}"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.1 1.8-1.9 3.3-3.1 5.4-3.1 3.6 0 5.7 3.8 4.2 7.3C19.5 16.4 12 21 12 21z" fill="{{ h.fill }}"></path></svg></sc-for>
+      </span>
+      <span style="font-size: 13px; font-weight: 800; color: #4a4756">{{ streakLabel }}</span>
+    </div>
+    <div style="position: absolute; right: 24px; top: 20px; width: 340px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 18px; background: rgba(29,27,36,0.88); color: #ffffff; box-shadow: 0 10px 24px -16px rgba(29,27,36,0.8)">
+      <span style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 18px; font-weight: 900; letter-spacing: 0.06em">THE CONVOY</span><span style="font-size: 12px; font-weight: 700; color: #c9c6d8">guards Convoy effect</span></span>
+      <span role="meter" aria-label="Boss health" aria-valuemin="0" aria-valuemax="5" aria-valuenow="{{ hp }}" style="display: flex; gap: 4px">
+        <sc-for list="{{ hpSegs }}" as="s" hint-placeholder-count="5"><span style="{{ s.style }}"></span></sc-for>
+      </span>
+      <span style="font-size: 12px; color: #c9c6d8">{{ hpLabel }}</span>
+    </div>
+
+    <!-- arena discs -->
+    <svg viewBox="0 0 400 130" aria-hidden="true" style="position: absolute; left: 30%; bottom: 210px; width: 330px; transform: translateX(-50%)">
+      <defs><linearGradient id="bs-rim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4285f4"></stop><stop offset="0.34" stop-color="#ea4335"></stop><stop offset="0.66" stop-color="#fbbc04"></stop><stop offset="1" stop-color="#34a853"></stop></linearGradient></defs>
+      <ellipse cx="200" cy="112" rx="150" ry="11" fill="rgba(70,80,140,0.16)"></ellipse>
+      <ellipse cx="200" cy="66" rx="172" ry="40" fill="#e6e4ef"></ellipse>
+      <ellipse cx="200" cy="58" rx="172" ry="40" fill="url(#bs-rim)"></ellipse>
+      <ellipse cx="200" cy="54" rx="163" ry="35" fill="#ffffff"></ellipse>
+    </svg>
+    <svg viewBox="0 0 400 130" aria-hidden="true" style="position: absolute; left: 70%; bottom: 210px; width: 380px; transform: translateX(-50%)">
+      <ellipse cx="200" cy="112" rx="160" ry="12" fill="rgba(60,40,80,0.2)"></ellipse>
+      <ellipse cx="200" cy="66" rx="176" ry="40" fill="#3a3b52"></ellipse>
+      <ellipse cx="200" cy="58" rx="176" ry="40" fill="#5c4a7a"></ellipse>
+      <ellipse cx="200" cy="54" rx="166" ry="35" fill="#7a6a98"></ellipse>
+    </svg>
+
+    <!-- Gemini Guy -->
+    <div style="position: absolute; left: 30%; bottom: 236px; width: 220px; transform: translateX(-50%)">
+      <div style="{{ guyAnim }}">
+        <svg viewBox="0 0 240 268" style="display: block; width: 100%; overflow: visible" aria-label="Gemini Guy">
+          <defs>
+            <radialGradient id="bg-body" cx="0.42" cy="0.36" r="0.7"><stop offset="0" stop-color="#ffffff"></stop><stop offset="0.7" stop-color="#f4f3f7"></stop><stop offset="1" stop-color="#dcdbe4"></stop></radialGradient>
+            <linearGradient id="bg-brim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4285f4"></stop><stop offset="0.34" stop-color="#ea4335"></stop><stop offset="0.66" stop-color="#fbbc04"></stop><stop offset="1" stop-color="#34a853"></stop></linearGradient>
+            <linearGradient id="bg-spark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ea4335"></stop><stop offset="0.38" stop-color="#fbbc04"></stop><stop offset="0.62" stop-color="#34a853"></stop><stop offset="1" stop-color="#4285f4"></stop></linearGradient>
+            <radialGradient id="bg-cap" cx="0.4" cy="0.3" r="0.8"><stop offset="0" stop-color="#ffffff"></stop><stop offset="1" stop-color="#e7e6ee"></stop></radialGradient>
+          </defs>
+          <ellipse cx="80" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+          <ellipse cx="80" cy="248" rx="26" ry="12.5" fill="url(#bg-body)"></ellipse>
+          <ellipse cx="160" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+          <ellipse cx="160" cy="248" rx="26" ry="12.5" fill="url(#bg-body)"></ellipse>
+          <ellipse cx="120" cy="150" rx="94" ry="94" fill="url(#bg-body)"></ellipse>
+          <ellipse cx="214" cy="190" rx="22" ry="19" fill="url(#bg-body)"></ellipse>
+          <g transform="rotate(-18 30 112)"><ellipse cx="30" cy="112" rx="25" ry="31" fill="url(#bg-body)"></ellipse><ellipse cx="50" cy="104" rx="10" ry="13" fill="url(#bg-body)"></ellipse></g>
+          <path d="M40 96 C 40 18, 204 14, 208 102 C 168 84, 80 82, 40 96 Z" fill="url(#bg-cap)"></path>
+          <path d="M30 104 C 72 74, 172 72, 214 106 L 208 118 C 170 92, 76 92, 36 116 Z" fill="url(#bg-brim)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(110 56) scale(20)" fill="url(#bg-spark)"></path>
+          <path d="{{ browL }}" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+          <path d="{{ browR }}" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+          <ellipse cx="94" cy="146" rx="12" ry="{{ eyeRy }}" fill="#141318"></ellipse>
+          <ellipse cx="150" cy="148" rx="12" ry="{{ eyeRy }}" fill="#141318"></ellipse>
+          <circle cx="98" cy="140" r="{{ glint }}" fill="#ffffff"></circle>
+          <circle cx="154" cy="142" r="{{ glint }}" fill="#ffffff"></circle>
+          <ellipse cx="74" cy="172" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+          <ellipse cx="170" cy="175" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+          <path d="M108 166 Q 122 169 136 166 Q 134 186 122 188 Q 110 186 108 166 Z" fill="#4a2328"></path>
+          <path d="M112 179 Q 122 173 132 179 Q 128 187 122 188 Q 115 187 112 179 Z" fill="#f08a90"></path>
+        </svg>
+      </div>
+      <sc-if value="{{ dizzy }}" hint-placeholder-val="{{ false }}">
+        <div aria-hidden="true" style="position: absolute; left: 50%; top: -18px; width: 120px; height: 40px; transform-origin: 50% 50%; animation: orbit 0.9s linear infinite">
+          <svg viewBox="0 0 24 24" style="position: absolute; left: 0; top: 10px; width: 20px"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#fbbc04"></path></svg>
+          <svg viewBox="0 0 24 24" style="position: absolute; right: 0; top: 10px; width: 16px"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#4285f4"></path></svg>
+          <svg viewBox="0 0 24 24" style="position: absolute; left: 50px; top: 0; width: 14px"><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="#ea4335"></path></svg>
+        </div>
+      </sc-if>
+      <sc-if value="{{ comboOn }}" hint-placeholder-val="{{ false }}">
+        <span style="position: absolute; left: 50%; top: -40px; transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: linear-gradient(90deg,#4285f4,#ea4335,#fbbc04,#34a853); color: #ffffff; font-size: 14px; font-weight: 900; letter-spacing: 0.06em; white-space: nowrap; animation: heartBreak 0.5s ease-out">{{ comboText }}</span>
+      </sc-if>
+    </div>
+
+    <!-- The Convoy -->
+    <div style="position: absolute; left: 70%; bottom: 236px; width: 330px; transform: translateX(-50%)">
+      <div style="{{ bossAnim }}">
+        <svg viewBox="0 0 300 220" style="display: block; width: 100%; overflow: visible" aria-label="The Convoy, a boss">
+          <rect x="226" y="132" width="52" height="52" rx="14" fill="#bfe3ff"></rect><circle cx="243" cy="152" r="3.6" fill="#1d1b24"></circle><circle cx="261" cy="152" r="3.6" fill="#1d1b24"></circle><path d="M244 168q8-5 16 0" stroke="#1d1b24" stroke-width="2.6" fill="none" stroke-linecap="round"></path><text x="252" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#5c6a85">3 ms</text>
+          <rect x="30" y="34" width="200" height="146" rx="40" fill="#55597a"></rect>
+          <rect x="30" y="34" width="200" height="66" rx="34" fill="#6b6f92"></rect>
+          <path d="M150 18c10-14 30-14 34 2" stroke="#b7b8cc" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.7"></path>
+          <path d="M58 66 L102 80" stroke="#1d1b24" stroke-width="8" stroke-linecap="round"></path><path d="M168 66 L124 80" stroke="#1d1b24" stroke-width="8" stroke-linecap="round"></path>
+          <ellipse cx="84" cy="96" rx="15" ry="13" fill="#ffffff"></ellipse><circle cx="{{ bossPupilL }}" cy="98" r="7" fill="#1d1b24"></circle>
+          <ellipse cx="142" cy="96" rx="15" ry="13" fill="#ffffff"></ellipse><circle cx="{{ bossPupilR }}" cy="98" r="7" fill="#1d1b24"></circle>
+          <rect x="66" y="122" width="92" height="28" rx="9" fill="#ffffff"></rect><path d="M89 122v28M112 122v28M135 122v28" stroke="#55597a" stroke-width="3.4"></path>
+          <text x="198" y="162" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#ffffff">24ms</text>
+          <circle cx="80" cy="186" r="19" fill="#2b2d3d"></circle><circle cx="80" cy="186" r="7" fill="#9a9db8"></circle>
+          <circle cx="190" cy="186" r="19" fill="#2b2d3d"></circle><circle cx="190" cy="186" r="7" fill="#9a9db8"></circle>
+        </svg>
+      </div>
+      <sc-if value="{{ dmgOn }}" hint-placeholder-val="{{ false }}">
+        <span style="position: absolute; left: 40%; top: 10px; font-size: 34px; font-weight: 900; color: #ea4335; text-shadow: 0 3px 0 #ffffff, 0 6px 12px rgba(234,67,53,0.35); white-space: nowrap; animation: dmgUp 1s ease-out both">{{ dmgText }}</span>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ beamOn }}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="position: absolute; bottom: 340px; width: 60px; animation: beam 0.55s cubic-bezier(0.5,0,0.7,1) both"><defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ea4335"></stop><stop offset="0.4" stop-color="#fbbc04"></stop><stop offset="0.65" stop-color="#34a853"></stop><stop offset="1" stop-color="#4285f4"></stop></linearGradient></defs><path d="M12 0Q13.9 10.1 24 12Q13.9 13.9 12 24Q10.1 13.9 0 12Q10.1 10.1 12 0Z" fill="url(#bm)"></path></svg>
+    </sc-if>
+
+    <sc-if value="{{ confettiOn }}" hint-placeholder-val="{{ false }}">
+      <div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none">
+        <sc-for list="{{ confetti }}" as="cf" hint-placeholder-count="24"><span style="{{ cf.style }}"></span></sc-for>
+      </div>
+    </sc-if>
+
+    <!-- question card -->
+    <sc-if value="{{ asking }}" hint-placeholder-val="{{ true }}">
+      <section aria-labelledby="boss-q" style="position: absolute; left: 50%; bottom: 22px; width: 820px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: 24px; background: #ffffff; box-shadow: 0 24px 48px -28px rgba(61,90,214,0.55), 0 0 0 1px rgba(29,27,36,0.05)">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a">{{ roundLabel }}</span>
+        <h2 id="boss-q" style="margin: 0; font-size: 21px; font-weight: 800; line-height: 1.3">{{ question }}</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{ options }}" as="o" hint-placeholder-count="3">
+            <button type="button" class="opt" onClick="{{ o.pick }}" aria-pressed="{{ o.pressed }}" style="{{ o.style }}">{{ o.text }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ answered }}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="{{ feedbackStyle }}">
+            <span style="flex: 1; font-size: 15px; font-weight: 700; line-height: 1.4">{{ feedback }}</span>
+            <span style="flex: none; padding: 3px 9px; border-radius: 999px; background: #ffffff; color: #3d5ad6; font-size: 12px; font-weight: 800">{{ page }}</span>
+            <sc-if value="{{ canNext }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ next }}" style="flex: none; padding: 9px 16px; border: 0; border-radius: 12px; background: #1d1b24; color: #ffffff; font-size: 14px; font-weight: 800; cursor: pointer">Next round</button>
+            </sc-if>
+          </div>
+        </sc-if>
+      </section>
+    </sc-if>
+
+    <!-- result cards -->
+    <sc-if value="{{ won }}" hint-placeholder-val="{{ false }}">
+      <section style="position: absolute; left: 50%; bottom: 40px; width: 560px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px; border-radius: 26px; background: #ffffff; text-align: center; box-shadow: 0 30px 60px -30px rgba(52,168,83,0.6); animation: cardIn 360ms ease-out both">
+        <span style="font-size: 13px; font-weight: 900; letter-spacing: 0.1em; color: #1f8a43">BOSS BEATEN</span>
+        <h2 style="margin: 0; font-size: 28px; font-weight: 900">The Convoy is down!</h2>
+        <span style="font-size: 15px; color: #4a4756">Convoy effect mastered · +120 XP · a trophy joins his room</span>
+        <span style="display: flex; gap: 8px; margin-top: 6px">
+          <button type="button" onClick="{{ reset }}" style="padding: 10px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg,#7c5cf2,#3d5ad6); color: #ffffff; font-size: 14px; font-weight: 800; cursor: pointer">Next boss: Queue Hydra</button>
+          <button type="button" onClick="{{ reset }}" style="padding: 10px 16px; border: 0; border-radius: 12px; background: #f1eff7; font-size: 14px; font-weight: 800; cursor: pointer">Back to tools</button>
+        </span>
+      </section>
+    </sc-if>
+    <sc-if value="{{ lost }}" hint-placeholder-val="{{ false }}">
+      <section style="position: absolute; left: 50%; bottom: 40px; width: 560px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px; border-radius: 26px; background: #ffffff; text-align: center; box-shadow: 0 30px 60px -30px rgba(234,67,53,0.6); animation: cardIn 360ms ease-out both">
+        <span style="font-size: 13px; font-weight: 900; letter-spacing: 0.1em; color: #c4402f">OUT OF HEARTS</span>
+        <h2 style="margin: 0; font-size: 28px; font-weight: 900">The Convoy rolled on</h2>
+        <span style="font-size: 15px; color: #4a4756">Review page 2 with him (2 min), then try again. The boss keeps the damage you dealt.</span>
+        <span style="display: flex; gap: 8px; margin-top: 6px">
+          <button type="button" onClick="{{ reset }}" style="padding: 10px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg,#7c5cf2,#3d5ad6); color: #ffffff; font-size: 14px; font-weight: 800; cursor: pointer">Review with Gemini Guy</button>
+          <button type="button" onClick="{{ reset }}" style="padding: 10px 16px; border: 0; border-radius: 12px; background: #f1eff7; font-size: 14px; font-weight: 800; cursor: pointer">Try again</button>
+        </span>
+      </section>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { round: 0, hp: 5, hearts: 3, streak: 0, phase: 'ask', picked: null, broke: -1 };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const Q = [
+      { q: 'Jobs of 24, 3 and 3 ms arrive in that order. What is the average waiting time under FCFS?', opts: ['17 ms', '3 ms', '27 ms'], a: 0, why: '(0 + 24 + 27) / 3 = 17 ms: both short jobs wait behind the long one.', page: 'p. 1', src: 'cs111-fcfs.pdf' },
+      { q: 'Same three jobs, but the two 3 ms jobs arrive first. What is the new average wait?', opts: ['17 ms', '3 ms', '9 ms'], a: 1, why: '(0 + 3 + 6) / 3 = 3 ms. Order alone cut the wait by more than five times.', page: 'p. 2', src: 'cs111-fcfs.pdf' },
+      { q: 'What causes the convoy effect?', opts: ['Too many context switches', 'Jobs arriving at the same time', 'Short jobs stuck behind one long job'], a: 2, why: 'One long CPU job holds the CPU while short jobs pile up behind it.', page: 'p. 2', src: 'cs111-fcfs.pdf' },
+      { q: 'Is FCFS preemptive?', opts: ['No: a job keeps the CPU until it finishes or blocks', 'Yes, after every time quantum', 'Only for I/O-bound jobs'], a: 0, why: 'FCFS never takes the CPU away from a running job.', page: 'Lecture 4', src: 'CS111 · Lecture 4' },
+      { q: 'What does the ready queue hold?', opts: ['Jobs waiting for I/O', 'Jobs that could run and are waiting for the CPU', 'Jobs that have finished'], a: 1, why: 'The ready queue is everything runnable that is waiting for its turn on the CPU.', page: 'Lecture 4', src: 'CS111 · Lecture 4' },
+    ];
+    const item = Q[st.round % Q.length];
+    const ph = st.phase;
+    const hitPh = ph === 'hit' || ph === 'crit';
+
+    const answer = (i) => {
+      if (ph !== 'ask') return;
+      if (i === item.a) {
+        const streak = st.streak + 1;
+        const dmg = streak >= 3 ? 2 : 1;
+        const hp = Math.max(0, st.hp - dmg);
+        this.setState({ picked: i, streak, hp, phase: dmg === 2 ? 'crit' : 'hit' });
+        if (hp === 0) setTimeout(() => this.setState({ phase: 'won' }), 1300);
+      } else {
+        const hearts = st.hearts - 1;
+        this.setState({ picked: i, streak: 0, hearts, phase: 'miss', broke: hearts });
+        if (hearts === 0) setTimeout(() => this.setState({ phase: 'lost' }), 1800);
+      }
+    };
+
+    const confetti = Array.from({ length: 24 }, (_, i) => {
+      const c = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#7c5cf2'][i % 5];
+      return { style: 'position: absolute; top: -20px; left: ' + (8 + ((i * 37) % 86)) + '%; width: ' + (8 + (i % 3) * 3) + 'px; height: ' + (12 + (i % 4) * 3) + 'px; border-radius: 3px; background: ' + c + '; animation: confetti ' + (1.4 + (i % 5) * 0.25) + 's ease-in ' + ((i % 7) * 0.08) + 's both' };
+    });
+
+    const optStyle = (i) => {
+      const done = ph !== 'ask';
+      const right = done && i === item.a;
+      const wrong = done && st.picked === i && i !== item.a;
+      return 'padding: 13px 14px; border-radius: 14px; cursor: ' + (done ? 'default' : 'pointer') + '; text-align: left; font-size: 15px; font-weight: 800; line-height: 1.3; border: 2px solid ' +
+        (right ? '#34a853' : wrong ? '#ea4335' : '#ebe9f2') + '; background: ' + (right ? '#e8f6ec' : wrong ? '#fff0ee' : '#ffffff') + (done && !right && !wrong ? '; opacity: 0.55' : '');
+    };
+
+    return {
+      hearts: [0, 1, 2].map((i) => ({
+        fill: i < st.hearts ? '#ff6b5b' : '#e3e0ea',
+        style: i === st.broke && ph === 'miss' ? 'animation: heartBreak 0.5s ease-out' : '',
+      })),
+      streakLabel: st.streak >= 2 ? 'Streak ' + st.streak + (st.streak >= 2 ? ' · next hit is critical' : '') : 'Answer right to attack',
+      hp: String(st.hp),
+      hpSegs: [0, 1, 2, 3, 4].map((i) => ({ style: 'flex: 1; height: 12px; border-radius: 4px; transition: background 300ms; background: ' + (i < st.hp ? 'linear-gradient(90deg,#ff8a5b,#ea4335)' : 'rgba(255,255,255,0.16)') })),
+      hpLabel: st.hp + ' / 5 HP · a streak of 3 hits for double damage',
+      guyAnim: hitPh ? 'animation: guyDash 0.7s cubic-bezier(0.3,0,0.3,1) both' : ph === 'miss' ? 'transform-origin: 50% 80%; animation: guyTumble 1.2s cubic-bezier(0.3,0.6,0.4,1) 0.45s both' : ph === 'won' ? 'animation: guyCheer 0.8s ease-in-out 3' : 'animation: guyIdle 2.4s ease-in-out infinite',
+      bossAnim: ph === 'hit' ? 'animation: bossHurt 0.7s ease-out 0.45s both' : ph === 'crit' ? 'animation: bossCrit 0.9s ease-out 0.45s both' : ph === 'miss' ? 'animation: bossSlam 0.9s cubic-bezier(0.5,0,0.3,1) both' : ph === 'won' ? 'animation: bossPop 0.9s ease-in both' : 'animation: bossIdle 2.8s ease-in-out infinite',
+      bossPupilL: ph === 'miss' ? '78' : '88', bossPupilR: ph === 'miss' ? '136' : '138',
+      dizzy: ph === 'miss' || ph === 'lost',
+      eyeRy: ph === 'miss' || ph === 'lost' ? '4' : '15',
+      glint: ph === 'miss' || ph === 'lost' ? '0' : '4.2',
+      browL: ph === 'miss' || ph === 'lost' ? 'M80 120 Q 92 126 104 120' : 'M80 126 Q 92 118 104 124',
+      browR: ph === 'miss' || ph === 'lost' ? 'M140 120 Q 152 126 164 120' : 'M140 124 Q 152 118 164 128',
+      comboOn: ph === 'crit',
+      comboText: 'x' + st.streak + ' STREAK · CRITICAL',
+      beamOn: hitPh,
+      dmgOn: hitPh,
+      dmgText: ph === 'crit' ? 'CRIT -2' : '-1',
+      confettiOn: ph === 'won',
+      confetti,
+      asking: ph !== 'won' && ph !== 'lost',
+      roundLabel: 'ROUND ' + (st.round + 1) + ' · FROM ' + item.src.toUpperCase(),
+      question: item.q,
+      options: item.opts.map((text, i) => ({ text, pick: () => answer(i), pressed: st.picked === i ? 'true' : 'false', style: optStyle(i) })),
+      answered: ph === 'hit' || ph === 'crit' || ph === 'miss',
+      canNext: (ph === 'hit' || ph === 'crit') ? st.hp > 0 : ph === 'miss' && st.hearts > 0,
+      feedbackStyle: 'display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: ' + (ph === 'miss' ? '#fff3e8' : '#e8f6ec'),
+      feedback: (ph === 'miss' ? 'Ouch, the Convoy hit back. ' : ph === 'crit' ? 'Critical hit! ' : 'Hit! ') + item.why,
+      page: item.page,
+      next: () => this.setState({ round: st.round + 1, phase: 'ask', picked: null }),
+      won: ph === 'won',
+      lost: ph === 'lost',
+      reset: () => this.setState({ round: 0, hp: 5, hearts: 3, streak: 0, phase: 'ask', picked: null, broke: -1 }),
+    };
+  }
+}
+</script>
+</body>
+</html>

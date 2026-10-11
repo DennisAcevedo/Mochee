@@ -1,24 +1,27 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
-import { DoubleSide, LatheGeometry, Vector2 } from 'three'
+import { DoubleSide, LatheGeometry, Vector2, Vector3 } from 'three'
 import { GROWTH } from '../../growth/config'
 import { allDocuments, allTopics, BUILTIN_DOCUMENT_TITLE, useRoomDocs, type RoomTopic } from '../../growth/topics'
 import { useGrowth, type TopicMastery } from '../../state/growth'
+import { useMode } from '../../state/mode'
 import { PALETTE } from '../layout3d'
 import { Flat, Label } from '../windows/primitives'
 import { FONTS } from '../windows/windowStyle'
+import { yawToCamera } from '../room/stageSpace'
 import { EVOLUTION } from './config'
 import { PopIn, SparkleBurst } from './pop'
 
-// The room grows from the student's own material: a library shelf with one
-// book per document (plus the built-in lecture), a poster per topic on the
-// upper side walls, and a gold trophy per mastered topic. Items that appear
-// after the room first settles pop in with a sparkle burst. Mount it inside
-// the Canvas next to <LessonRoom/>.
+// The stage grows from the student's own material: a floating library shelf
+// with one book per document (plus the built-in lecture), a poster per topic
+// in the far sky between the windows, and a gold trophy per mastered topic on
+// a second shelf. Items that appear after the stage first settles pop in with
+// a sparkle burst. Mount it inside the Canvas next to <LessonRoom/>.
 
 const L = EVOLUTION.library
 const T = EVOLUTION.trophies
 const PO = EVOLUTION.posters
 const HALF_PI = Math.PI / 2
+const at = new Vector3()
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
@@ -33,13 +36,13 @@ function useFreshKeys(keys: string[], settled: boolean): (key: string) => boolea
 function Plank({ width, plank, plaque }: { width: number; plank: typeof L.plank | typeof T.plank; plaque: { text: string; size: number; dy: number } }) {
   return (
     <group>
-      {/* Unlit like the room's surfaces, so its underside never reads as a grey slab. */}
+      {/* Unlit like the stage's surfaces, so its underside never reads as a grey slab. */}
       <mesh position={[0, -plank.height / 2, 0]}>
         <boxGeometry args={[width, plank.height, plank.depth]} />
         <meshBasicMaterial color={plank.color} toneMapped={false} />
       </mesh>
       <Flat w={width} h={plank.height * 0.55} color={PALETTE[plank.edge]} position={[0, -plank.height / 2, plank.depth / 2 + 0.002]} />
-      <Label size={plaque.size} color={PALETTE.ink} anchorX="center" letterSpacing={0.12} position={[0, plaque.dy, -plank.depth / 2 + 0.01]}>
+      <Label size={plaque.size} color={PALETTE.ink} anchorX="center" letterSpacing={0.12} position={[0, plaque.dy, plank.depth / 2]}>
         {plaque.text}
       </Label>
     </group>
@@ -57,7 +60,7 @@ function Library({ books, fresh }: { books: Book[]; fresh: (key: string) => bool
   const span = shown.length * book.width + (shown.length - 1) * book.gap
   const x0 = -L.width / 2 + 0.16 // books lean against the left end, like a real shelf
   return (
-    <group position={L.position}>
+    <group position={L.position} rotation={[0, L.yaw, 0]} scale={L.scale}>
       <Plank width={L.width} plank={L.plank} plaque={L.plaque} />
       {shown.map((b, i) => {
         const h = book.heights[i % book.heights.length]
@@ -155,7 +158,7 @@ function Trophies({ mastered, fresh }: { mastered: TopicMastery[]; fresh: (key: 
   const shown = mastered.slice(-T.max)
   const x0 = -((shown.length - 1) * T.spacing) / 2
   return (
-    <group position={T.position}>
+    <group position={T.position} rotation={[0, T.yaw, 0]} scale={T.scale}>
       <Plank width={T.width} plank={T.plank} plaque={T.plaque} />
       {shown.map((topic, i) => {
         const key = `trophy:${topic.id}`
@@ -203,7 +206,7 @@ function Posters({ topics, fresh }: { topics: RoomTopic[]; fresh: (key: string) 
         const slot = PO.slots[i]
         const key = `poster:${topic.id}`
         return (
-          <group key={key} name={`evo-poster-${topic.id}`} position={[slot.side * (PO.halfWidth - PO.wallInset), PO.y, slot.z]} rotation={[0, -slot.side * HALF_PI, 0]}>
+          <group key={key} name={`evo-poster-${topic.id}`} position={slot} rotation={[0, yawToCamera(at.fromArray(slot)), 0]} scale={PO.scale}>
             <PopIn delay={fresh(key) ? 0 : i * EVOLUTION.pop.stagger}>
               <Poster topic={topic} index={i} />
             </PopIn>
@@ -249,10 +252,13 @@ function Evolution() {
 
   const keys = [...books.map((b) => b.key), ...topics.map((t) => `poster:${t.id}`), ...mastered.map((t) => `trophy:${t.id}`)]
   const fresh = useFreshKeys(keys, status === 'ok' || status === 'unavailable')
+  const study = useMode((m) => m.mode === 'study') // the study room stays calm: no library shelf there
 
   return (
     <group name="room-evolution">
-      <Library books={books} fresh={fresh} />
+      <group visible={!study}>
+        <Library books={books} fresh={fresh} />
+      </group>
       <Trophies mastered={mastered} fresh={fresh} />
       <Posters topics={topics} fresh={fresh} />
     </group>

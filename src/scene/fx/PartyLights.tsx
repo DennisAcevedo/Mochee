@@ -2,16 +2,23 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import { CanvasTexture, DoubleSide, SRGBColorSpace, type Group, type Mesh, type MeshBasicMaterial } from 'three'
 import { usePlay } from '../../play/playStore'
-import { FLOOR_Y, ROOM } from '../layout3d'
+import { FLOOR_Y, PLATFORM, ROOM } from '../layout3d'
 import { PARTY } from './config'
 
-// Level-5 unlock: while a dance party runs, coloured beams sweep down from the
-// ceiling and pools of colour slide across the floor. No real lights (adding
-// lights recompiles every material); just transparent cones and discs, with
-// normal blending because additive colour vanishes against the white room.
+// Level-5 unlock: while a dance party runs, coloured beams sweep down from a
+// light truss just above the frame and pools of colour slide across the
+// platform. No real lights (adding lights recompiles every material); just
+// transparent cones and discs, with normal blending because additive colour
+// vanishes against the pale stage.
 
 const CEILING_Y = FLOOR_Y + ROOM.height
 const BEAM_Z = 0.6 // beams hang just in front of the tutor's spots
+
+// Pools stay on the platform's top: their centres clamp to the ellipse's
+// chord at BEAM_Z less a pool radius, and a pool whose beam points past that
+// fades out over one more radius instead of piling up at the edge.
+const dz = (BEAM_Z - PLATFORM.z) / PLATFORM.rz
+const POOL_LIMIT = Math.max(0, PLATFORM.rx * Math.sqrt(Math.max(0, 1 - dz * dz)) - PARTY.spotRadius)
 
 const TEX_PX = 64
 
@@ -76,9 +83,11 @@ export function PartyLights() {
       }
       const pool = pools.current[i]
       if (pool && beam) {
-        // Where the beam meets the floor.
-        pool.position.x = beam.position.x + Math.sin(swing) * PARTY.beamLength
-        ;(pool.material as MeshBasicMaterial).opacity = PARTY.spotOpacity * k
+        // Where the beam meets the floor, kept on the platform.
+        const x = beam.position.x + Math.sin(swing) * PARTY.beamLength
+        const over = Math.max(0, Math.abs(x) - POOL_LIMIT) / PARTY.spotRadius
+        pool.position.x = Math.min(POOL_LIMIT, Math.max(-POOL_LIMIT, x))
+        ;(pool.material as MeshBasicMaterial).opacity = PARTY.spotOpacity * k * Math.max(0, 1 - over)
       }
     }
   })

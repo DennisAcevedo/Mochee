@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gemini Guy lesson, sparkle stage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=Caveat:wght@700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ec}
+a{color:#3d5ad6}a:hover{color:#2a3fa0}
+button{font-family:inherit;color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #4285f4;outline-offset:2px}
+@keyframes ggStartSpin{
+  0%{transform:translateX(-50%) translateY(0) scale(1,1) rotateY(0deg)}
+  12%{transform:translateX(-50%) translateY(0) scale(1.1,0.86) rotateY(-30deg);animation-timing-function:cubic-bezier(0.6,0,0.4,1)}
+  68%{transform:translateX(-50%) translateY(-16%) scale(0.86,1.16) rotateY(2160deg)}
+  80%{transform:translateX(-50%) translateY(0) scale(1.07,0.93) rotateY(2190deg)}
+  90%{transform:translateX(-50%) translateY(0) scale(0.98,1.02) rotateY(2150deg)}
+  100%{transform:translateX(-50%) translateY(0) scale(1,1) rotateY(2160deg)}
+}
+.gg-start-spin{animation:ggStartSpin 2.8s ease-out 0.4s both}
+@media (prefers-reduced-motion: reduce){.gg-start-spin{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; font-family: 'Figtree', system-ui, sans-serif; color: #1d1b24; background: #f3f1ec">
+
+<header style="width: 100%; max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px">
+  <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0">
+    <span style="display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #12a4b4"></span>Tutor</span>
+    <span aria-hidden="true" style="width: 1px; height: 22px; background: #d6d3cc"></span>
+    <span style="font-size: 16px; font-weight: 600; color: #4a4754">CS111 · Operating Systems</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+    <div role="group" aria-label="Stage mode" style="display: flex; gap: 4px; padding: 4px; background: #ffffff; border-radius: 999px; box-shadow: 0 2px 10px rgba(29,27,36,0.08)">
+      <button type="button" aria-pressed="{{ studyPressed }}" onClick="{{ setStudy }}" style="{{ studyStyle }}">Study</button>
+      <button type="button" aria-pressed="{{ playPressed }}" onClick="{{ setPlay }}" style="{{ playStyle }}">Play</button>
+    </div>
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #4a4754">Section 2 of 5</span>
+  </div>
+</header>
+
+<div style="width: 100%; max-width: 1280px; margin: 0 auto; display: flex; align-items: flex-start; gap: 10px">
+  <button type="button" aria-label="Open the Learning drawer" style="flex: none; width: 40px; padding: 14px 0; border: 0; border-radius: 14px; background: #ffffff; box-shadow: 0 2px 10px rgba(29,27,36,0.08); display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c5cf2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+    <span style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 800">Learning</span>
+  </button>
+
+  <div style="flex: 1 1 auto; min-width: 0; display: flex; justify-content: center">
+    <section aria-label="Gemini Guy's stage" style="position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16 / 9; border-radius: 26px; overflow: hidden; container-type: inline-size; background: #f8f7f4; box-shadow: 0 8px 30px rgba(29,27,36,0.10), inset 0 0 0 1px rgba(29,27,36,0.05)">
+
+      <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(48% 70% at 0% 62%, rgba(140,182,255,0.55) 0%, rgba(140,182,255,0) 100%), radial-gradient(40% 55% at 100% 0%, rgba(255,184,170,0.55) 0%, rgba(255,184,170,0) 100%), radial-gradient(42% 60% at 100% 85%, rgba(255,230,150,0.5) 0%, rgba(255,230,150,0) 100%)"></div>
+
+      <svg aria-hidden="true" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" style="position: absolute; inset: 0; width: 100%; height: 100%">
+        <defs>
+          <linearGradient id="sky-spark" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ea4335"></stop>
+            <stop offset="0.38" stop-color="#fbbc04"></stop>
+            <stop offset="0.62" stop-color="#34a853"></stop>
+            <stop offset="1" stop-color="#4285f4"></stop>
+          </linearGradient>
+        </defs>
+        <g fill="url(#sky-spark)">
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(1330 210) scale(46)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(1210 760) scale(22)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(300 790) scale(30)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(640 230) scale(16)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(985 205) scale(24)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(120 140) scale(20)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(1520 560) scale(14)"></path>
+          <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(560 640) scale(12)"></path>
+        </g>
+        <g fill="#ffffff" opacity="0.9">
+          <circle cx="430" cy="160" r="4"></circle><circle cx="860" cy="120" r="3"></circle><circle cx="1110" cy="330" r="4"></circle>
+          <circle cx="720" cy="410" r="3"></circle><circle cx="1450" cy="360" r="3"></circle><circle cx="200" cy="520" r="4"></circle>
+          <circle cx="1040" cy="660" r="3"></circle><circle cx="420" cy="700" r="3"></circle>
+        </g>
+      </svg>
+
+      <svg aria-hidden="true" viewBox="0 0 400 130" style="position: absolute; left: 50%; bottom: 10.5%; width: 36%; transform: translateX(-50%)">
+        <defs>
+          <linearGradient id="plat-rim" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#4285f4"></stop>
+            <stop offset="0.34" stop-color="#ea4335"></stop>
+            <stop offset="0.66" stop-color="#fbbc04"></stop>
+            <stop offset="1" stop-color="#34a853"></stop>
+          </linearGradient>
+        </defs>
+        <ellipse cx="200" cy="112" rx="150" ry="11" fill="rgba(70,80,140,0.16)"></ellipse>
+        <ellipse cx="200" cy="66" rx="172" ry="40" fill="#e6e4ef"></ellipse>
+        <ellipse cx="200" cy="58" rx="172" ry="40" fill="url(#plat-rim)"></ellipse>
+        <ellipse cx="200" cy="54" rx="163" ry="35" fill="#ffffff"></ellipse>
+        <ellipse cx="200" cy="54" rx="120" ry="25" fill="none" stroke="#eeecf6" stroke-width="3"></ellipse>
+      </svg>
+
+      <svg role="img" aria-label="Gemini Guy" viewBox="0 0 240 268" class="{{ guyClass }}" style="{{ guyStyle }}">
+        <defs>
+          <radialGradient id="guy-body" cx="0.42" cy="0.36" r="0.7">
+            <stop offset="0" stop-color="#ffffff"></stop>
+            <stop offset="0.7" stop-color="#f4f3f7"></stop>
+            <stop offset="1" stop-color="#dcdbe4"></stop>
+          </radialGradient>
+          <linearGradient id="guy-brim" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#4285f4"></stop>
+            <stop offset="0.34" stop-color="#ea4335"></stop>
+            <stop offset="0.66" stop-color="#fbbc04"></stop>
+            <stop offset="1" stop-color="#34a853"></stop>
+          </linearGradient>
+          <linearGradient id="guy-spark" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ea4335"></stop>
+            <stop offset="0.38" stop-color="#fbbc04"></stop>
+            <stop offset="0.62" stop-color="#34a853"></stop>
+            <stop offset="1" stop-color="#4285f4"></stop>
+          </linearGradient>
+          <radialGradient id="guy-cap" cx="0.4" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#ffffff"></stop>
+            <stop offset="1" stop-color="#e7e6ee"></stop>
+          </radialGradient>
+        </defs>
+        <ellipse cx="80" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+        <ellipse cx="80" cy="248" rx="26" ry="12.5" fill="url(#guy-body)"></ellipse>
+        <ellipse cx="160" cy="255" rx="29" ry="11" fill="#ff6b5b"></ellipse>
+        <ellipse cx="160" cy="248" rx="26" ry="12.5" fill="url(#guy-body)"></ellipse>
+        <ellipse cx="120" cy="150" rx="94" ry="94" fill="url(#guy-body)"></ellipse>
+        <ellipse cx="214" cy="190" rx="22" ry="19" fill="url(#guy-body)"></ellipse>
+        <g transform="rotate(-18 30 112)">
+          <ellipse cx="30" cy="112" rx="25" ry="31" fill="url(#guy-body)"></ellipse>
+          <ellipse cx="50" cy="104" rx="10" ry="13" fill="url(#guy-body)"></ellipse>
+        </g>
+        <path d="M40 96 C 40 18, 204 14, 208 102 C 168 84, 80 82, 40 96 Z" fill="url(#guy-cap)"></path>
+        <path d="M118 28 L118 88" stroke="#ecebf2" stroke-width="2" fill="none"></path>
+        <ellipse cx="124" cy="24" rx="7" ry="4" fill="#efeef4"></ellipse>
+        <path d="M30 104 C 72 74, 172 72, 214 106 L 208 118 C 170 92, 76 92, 36 116 Z" fill="url(#guy-brim)"></path>
+        <path d="M0 -1 Q0.16 -0.16 1 0 Q0.16 0.16 0 1 Q-0.16 0.16 -1 0 Q-0.16 -0.16 0 -1 Z" transform="translate(110 56) scale(20)" fill="url(#guy-spark)"></path>
+        <path d="M80 126 Q 92 118 104 124" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+        <path d="M140 124 Q 152 118 164 128" stroke="#26242c" stroke-width="4" stroke-linecap="round" fill="none"></path>
+        <ellipse cx="94" cy="146" rx="12" ry="15" fill="#141318"></ellipse>
+        <circle cx="98" cy="140" r="4.2" fill="#ffffff"></circle>
+        <ellipse cx="150" cy="148" rx="12" ry="15" fill="#141318"></ellipse>
+        <circle cx="154" cy="142" r="4.2" fill="#ffffff"></circle>
+        <ellipse cx="74" cy="172" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+        <ellipse cx="170" cy="175" rx="13" ry="7" fill="#ffb3bd" opacity="0.8"></ellipse>
+        <path d="M108 166 Q 122 169 136 166 Q 134 186 122 188 Q 110 186 108 166 Z" fill="#4a2328"></path>
+        <path d="M112 179 Q 122 173 132 179 Q 128 187 122 188 Q 115 187 112 179 Z" fill="#f08a90"></path>
+      </svg>
+
+      <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}">
+        <svg aria-hidden="true" viewBox="0 0 120 160" style="position: absolute; right: 9%; bottom: 14%; width: 8%">
+          <rect x="54" y="30" width="8" height="128" rx="4" fill="#c9c7d4"></rect>
+          <rect x="22" y="8" width="72" height="50" rx="6" fill="#ffffff" stroke="#dcdae6" stroke-width="3"></rect>
+          <ellipse cx="58" cy="60" rx="26" ry="7" fill="none" stroke="#ff6b5b" stroke-width="6"></ellipse>
+        </svg>
+        <svg aria-hidden="true" viewBox="0 0 40 40" style="position: absolute; left: 34%; bottom: 13%; width: 3.2%">
+          <circle cx="20" cy="20" r="18" fill="#ff6b5b"></circle>
+          <path d="M4 16 Q20 24 36 16 M20 2 Q14 20 20 38" stroke="#ffffff" stroke-width="2" fill="none"></path>
+        </svg>
+      </sc-if>
+
+      <sc-for list="{{ windows }}" as="w" hint-placeholder-count="2">
+        <div style="{{ w.style }}">
+          <div style="display: flex; align-items: flex-end; gap: 0.25cqw; padding: 0.55cqw 0.55cqw 0; background: #eceaf2; min-width: 0">
+            <span aria-hidden="true" style="flex: none; display: flex; gap: 0.32cqw; padding: 0 0.5cqw 0.75cqw 0.2cqw">
+              <span style="width: 0.62cqw; height: 0.62cqw; border-radius: 50%; background: #ff6b5b"></span>
+              <span style="width: 0.62cqw; height: 0.62cqw; border-radius: 50%; background: #ffc83d"></span>
+              <span style="width: 0.62cqw; height: 0.62cqw; border-radius: 50%; background: #4cc76a"></span>
+            </span>
+            <div role="tablist" aria-label="{{ w.label }}" style="flex: 1 1 auto; min-width: 0; display: flex; gap: 0.2cqw">
+              <sc-for list="{{ w.tabs }}" as="t" hint-placeholder-count="3">
+                <div style="{{ t.style }}">
+                  <button type="button" role="tab" aria-selected="{{ t.selected }}" title="{{ t.title }}" onClick="{{ t.activate }}" style="flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.4cqw; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; font-size: 0.82cqw; font-weight: 700">
+                    <span aria-hidden="true" style="{{ t.dotStyle }}"></span>
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ t.title }}</span>
+                  </button>
+                  <button type="button" aria-label="{{ t.closeLabel }}" onClick="{{ t.close }}" style="flex: none; width: 1.35cqw; height: 1.35cqw; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; color: #6e6b78">
+                    <svg viewBox="0 0 24 24" style="width: 0.85cqw; height: 0.85cqw" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+            <button type="button" aria-label="New tab" onClick="{{ w.add }}" style="flex: none; width: 1.7cqw; height: 1.7cqw; margin-bottom: 0.35cqw; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #ffffff; cursor: pointer; color: #3d5ad6; box-shadow: 0 0.1cqw 0.3cqw rgba(29,27,36,0.12)">
+              <svg viewBox="0 0 24 24" style="width: 1cqw; height: 1cqw" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            </button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.6cqw; padding: 0.45cqw 0.7cqw; background: #ffffff; border-bottom: 1px solid #eceaf2">
+            <svg viewBox="0 0 72 24" style="flex: none; width: 3.4cqw; height: 1.1cqw" fill="none" stroke="#8a8794" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l-7 7 7 7M5 12h14"></path><path d="M36 5l7 7-7 7M43 12H29"></path><path d="M67 12a7 7 0 1 1-2-5M67 4v4h-4"></path></svg>
+            <span style="flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.4cqw; padding: 0.3cqw 0.8cqw; border-radius: 999px; background: #f3f2f7; font-family: 'JetBrains Mono', monospace; font-size: 0.7cqw; color: #4a4754; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span aria-hidden="true" style="flex: none; width: 0.55cqw; height: 0.55cqw; border-radius: 50%; background: #34a853"></span>tutor.app/{{ w.path }}</span>
+            <button type="button" aria-label="{{ w.maxLabel }}" aria-pressed="{{ w.maxPressed }}" onClick="{{ w.toggleMax }}" style="flex: none; width: 1.7cqw; height: 1.7cqw; display: grid; place-items: center; padding: 0; border: 0; border-radius: 0.5cqw; background: #f3f2f7; cursor: pointer; color: #3d5ad6">
+              <sc-if value="{{ w.showExpand }}" hint-placeholder-val="{{ true }}">
+                <svg viewBox="0 0 24 24" style="width: 1cqw; height: 1cqw" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"></path></svg>
+              </sc-if>
+              <sc-if value="{{ w.showRestore }}" hint-placeholder-val="{{ false }}">
+                <svg viewBox="0 0 24 24" style="width: 1cqw; height: 1cqw" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h6V4M20 14h-6v6M10 10L3 3M14 14l7 7"></path></svg>
+              </sc-if>
+            </button>
+          </div>
+
+          <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 1.1cqw 1.3cqw 1.6cqw; background: #ffffff">
+            <sc-if value="{{ w.is.notes4 }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 0.6cqw">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.62cqw; letter-spacing: 0.08em; color: #6e6b78">CS111 LECTURE 4</span>
+                <h3 style="margin: 0; font-size: 1.5cqw; font-weight: 800; line-height: 1.15">4.2 First-come, first-served</h3>
+                <p style="margin: 0; font-size: 0.88cqw; line-height: 1.4">The CPU runs jobs in the exact order they arrive.</p>
+                <p style="margin: 0; align-self: flex-start; padding: 0.3cqw 0.6cqw; border-radius: 0.4cqw; background: #d4f1f3; font-size: 0.82cqw; font-weight: 800">One FIFO ready queue. No preemption.</p>
+                <p style="margin: 0; font-size: 0.88cqw; line-height: 1.4">Waiting time = start time - arrival time.</p>
+                <p style="margin: 0; align-self: flex-start; padding: 0.3cqw 0.6cqw; border-radius: 0.4cqw; background: #ffe0dc; font-size: 0.82cqw; font-weight: 800">Convoy effect: short jobs stuck behind a long one.</p>
+                <p style="margin: 0; font-size: 0.88cqw; line-height: 1.4">Example: P1 = 24 ms, P2 = 3 ms, P3 = 3 ms, all arrive at 0.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.notes3 }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.6cqw">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.62cqw; letter-spacing: 0.08em; color: #6e6b78">CS111 LECTURE 3</span>
+                <h3 style="margin: 0; font-size: 1.5cqw; font-weight: 800; line-height: 1.15">3.1 Processes and the CPU</h3>
+                <p style="margin: 0; font-size: 0.88cqw; line-height: 1.4">States: new, ready, running, waiting, done.</p>
+                <p style="margin: 0; align-self: flex-start; padding: 0.3cqw 0.6cqw; border-radius: 0.4cqw; background: #e6dffd; font-size: 0.82cqw; font-weight: 800">The scheduler picks which ready job runs next.</p>
+                <p style="margin: 0; font-size: 0.88cqw; line-height: 1.4">Switching jobs costs a context switch.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.sheet }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.7cqw">
+                <h3 style="margin: 0; font-size: 1.4cqw; font-weight: 800">Average wait, same 3 jobs</h3>
+                <table style="border-collapse: separate; border-spacing: 0 0.3cqw; font-size: 0.85cqw; width: 100%">
+                  <thead><tr><th scope="col" style="text-align: left; font-weight: 800; color: #6e6b78; padding: 0 0.6cqw">Policy</th><th scope="col" style="text-align: left; font-weight: 800; color: #6e6b78; padding: 0 0.6cqw">Order</th><th scope="col" style="text-align: left; font-weight: 800; color: #6e6b78; padding: 0 0.6cqw">Avg wait</th></tr></thead>
+                  <tbody>
+                    <tr style="background: #ffe0dc"><td style="padding: 0.35cqw 0.6cqw; font-weight: 800">FCFS</td><td style="padding: 0.35cqw 0.6cqw">P1 P2 P3</td><td style="padding: 0.35cqw 0.6cqw">17 ms</td></tr>
+                    <tr style="background: #d9f4df"><td style="padding: 0.35cqw 0.6cqw; font-weight: 800">SJF</td><td style="padding: 0.35cqw 0.6cqw">P2 P3 P1</td><td style="padding: 0.35cqw 0.6cqw">3 ms</td></tr>
+                    <tr style="background: #fff1c7"><td style="padding: 0.35cqw 0.6cqw; font-weight: 800">RR q=4</td><td style="padding: 0.35cqw 0.6cqw">time slices</td><td style="padding: 0.35cqw 0.6cqw">5.67 ms</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.board }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 0.7cqw">
+                <h3 style="margin: 0; font-family: 'Caveat', cursive; font-size: 1.9cqw; font-weight: 700; color: #3d5ad6">FCFS: run jobs in arrival order</h3>
+                <div style="display: flex; height: 2.2cqw; border-radius: 0.5cqw; overflow: hidden; font-size: 0.8cqw; font-weight: 800; color: #ffffff">
+                  <span style="flex: 24 1 0; display: grid; place-items: center; background: #ff6b5b">P1</span>
+                  <span style="flex: 3 1 0; display: grid; place-items: center; background: #12a4b4">P2</span>
+                  <span style="flex: 3 1 0; display: grid; place-items: center; background: #7c5cf2">P3</span>
+                </div>
+                <div style="position: relative; height: 1cqw; font-family: 'JetBrains Mono', monospace; font-size: 0.65cqw; color: #6e6b78">
+                  <span style="position: absolute; left: 0">0</span><span style="position: absolute; left: 78%">24</span><span style="position: absolute; left: 88%">27</span><span style="position: absolute; right: 0">30</span>
+                </div>
+                <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85cqw">avg wait = (0+24+27) ÷ 3</p>
+                <p style="margin: 0; font-family: 'Caveat', cursive; font-size: 2.6cqw; font-weight: 700; color: #ea4335; line-height: 1">17 ms</p>
+                <p style="margin: 0; font-size: 0.75cqw; color: #4a4754">Run the short jobs first and the same three processes average just 3 ms.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.quiz }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.8cqw">
+                <h3 style="margin: 0; font-size: 1.4cqw; font-weight: 800">Quick check</h3>
+                <p style="margin: 0; font-size: 0.92cqw; line-height: 1.4">The same jobs arrive as <b>P2, P3, P1</b> (3, 3, 24 ms). What is the average wait under FCFS?</p>
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5cqw">
+                  <button type="button" style="padding: 0.6cqw; border: 2px solid #eceaf2; border-radius: 0.6cqw; background: #ffffff; font-size: 0.95cqw; font-weight: 800; cursor: pointer">6 ms</button>
+                  <button type="button" style="padding: 0.6cqw; border: 2px solid #eceaf2; border-radius: 0.6cqw; background: #ffffff; font-size: 0.95cqw; font-weight: 800; cursor: pointer">3 ms</button>
+                  <button type="button" style="padding: 0.6cqw; border: 2px solid #eceaf2; border-radius: 0.6cqw; background: #ffffff; font-size: 0.95cqw; font-weight: 800; cursor: pointer">17 ms</button>
+                  <button type="button" style="padding: 0.6cqw; border: 2px solid #eceaf2; border-radius: 0.6cqw; background: #ffffff; font-size: 0.95cqw; font-weight: 800; cursor: pointer">9 ms</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.scratch }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.5cqw; height: 100%">
+                <label for="{{ w.noteId }}" style="font-size: 0.85cqw; font-weight: 800">Scratch note</label>
+                <textarea id="{{ w.noteId }}" placeholder="Type anything you want to remember from this lesson" style="flex: 1 1 auto; min-height: 8cqw; resize: none; padding: 0.7cqw; border: 2px solid #eceaf2; border-radius: 0.6cqw; font-family: 'Caveat', cursive; font-size: 1.4cqw; line-height: 1.3; color: #1d1b24; background: #fffdf6"></textarea>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.pdf1 }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.55cqw">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.62cqw; color: #6e6b78">cs111-fcfs.pdf · page 1 of 2</span>
+                <h3 style="margin: 0; font-size: 1.3cqw; font-weight: 800">4.2 First-come, first-served</h3>
+                <p style="margin: 0; font-size: 0.85cqw; line-height: 1.45">The CPU runs jobs in the exact order they arrive. One FIFO ready queue. No preemption.</p>
+                <p style="margin: 0; font-size: 0.85cqw; line-height: 1.45">Waiting time = start time - arrival time.</p>
+                <p style="margin: 0; font-size: 0.85cqw; line-height: 1.45">Jobs that arrive while the CPU is busy wait their turn at the back of the ready queue.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.pdf2 }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.55cqw">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.62cqw; color: #6e6b78">cs111-fcfs.pdf · page 2 of 2</span>
+                <p style="margin: 0; font-size: 0.85cqw; line-height: 1.45"><mark style="background: #fff1c7; padding: 0 0.15cqw">Convoy effect: short jobs stuck behind a long one.</mark></p>
+                <p style="margin: 0; font-size: 0.85cqw; line-height: 1.45">A long CPU-bound job holds the processor while every short job queues behind it, so the average waiting time grows.</p>
+                <p style="margin: 0; font-size: 0.85cqw; line-height: 1.45">FCFS runs P1 first, so P2 waits 24 ms and P3 waits 27 ms: the average wait is (0 + 24 + 27) / 3 = 17 ms.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{ w.is.newtab }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: 0.8cqw">
+                <h3 style="margin: 0; font-size: 1.25cqw; font-weight: 800">Open in this tab</h3>
+                <button type="button" onClick="{{ w.openScratch }}" style="display: flex; align-items: center; gap: 0.6cqw; padding: 0.6cqw 0.8cqw; border: 0; border-radius: 0.7cqw; background: #e3f5e8; cursor: pointer; text-align: left">
+                  <svg viewBox="0 0 24 24" style="flex: none; width: 1.3cqw; height: 1.3cqw" fill="none" stroke="#1f8a43" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"></path></svg>
+                  <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 0.88cqw; font-weight: 800">Scratch note</span><span style="font-size: 0.7cqw; color: #4a4754">A blank page for your own notes</span></span>
+                </button>
+                <div style="display: flex; flex-direction: column; gap: 0.35cqw">
+                  <h4 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.62cqw; letter-spacing: 0.08em; color: #6e6b78">LESSON</h4>
+                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35cqw">
+                    <sc-for list="{{ w.sections }}" as="it" hint-placeholder-count="5">
+                      <button type="button" onClick="{{ it.pick }}" title="{{ it.title }}" style="min-width: 0; display: flex; align-items: center; gap: 0.4cqw; padding: 0.4cqw 0.55cqw; border: 1px solid #eceaf2; border-radius: 0.55cqw; background: #ffffff; cursor: pointer; text-align: left; font-size: 0.72cqw; font-weight: 700">
+                        <span aria-hidden="true" style="{{ it.dotStyle }}"></span>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ it.title }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.35cqw">
+                  <h4 style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.62cqw; letter-spacing: 0.08em; color: #6e6b78">YOUR PDFS</h4>
+                  <sc-for list="{{ w.pdfs }}" as="it" hint-placeholder-count="2">
+                    <button type="button" onClick="{{ it.pick }}" style="min-width: 0; display: flex; align-items: center; gap: 0.5cqw; padding: 0.4cqw 0.55cqw; border: 1px solid #eceaf2; border-radius: 0.55cqw; background: #ffffff; cursor: pointer; text-align: left">
+                      <span aria-hidden="true" style="flex: none; padding: 0.15cqw 0.35cqw; border-radius: 0.3cqw; background: #3d5ad6; color: #ffffff; font-size: 0.55cqw; font-weight: 800">PDF</span>
+                      <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 0.72cqw; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ it.title }}</span><span style="font-size: 0.62cqw; color: #4a4754; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ it.sub }}</span></span>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <button type="button" aria-label="Resize window (cycles small, medium, large)" onClick="{{ w.grow }}" style="position: absolute; right: 0.25cqw; bottom: 0.25cqw; width: 1.5cqw; height: 1.5cqw; display: grid; place-items: center; padding: 0; border: 0; border-radius: 0.4cqw; background: rgba(255,255,255,0.9); cursor: nwse-resize; color: #8a8794">
+            <svg viewBox="0 0 24 24" style="width: 1cqw; height: 1cqw" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M20 10L10 20M20 16l-4 4"></path></svg>
+          </button>
+        </div>
+      </sc-for>
+
+      <div style="position: absolute; top: 2.4%; left: 50%; transform: translateX(-50%); z-index: 8; display: flex; align-items: center; gap: 1cqw; padding: 0.6cqw 0.9cqw; border-radius: 1.4cqw; background: rgba(255,255,255,0.96); box-shadow: 0 0.8cqw 2.4cqw rgba(60,70,130,0.18)">
+        <div style="display: flex; align-items: center; gap: 0.7cqw">
+          <div aria-hidden="true" style="flex: none; width: 3.2cqw; height: 3.2cqw; border-radius: 50%; background: conic-gradient(#4285f4 0 33%, #e8e6ef 33% 100%); display: grid; place-items: center">
+            <div style="width: 2.5cqw; height: 2.5cqw; border-radius: 50%; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1"><span style="font-size: 0.5cqw; font-weight: 800; color: #7c5cf2">LV</span><span style="font-size: 1.25cqw; font-weight: 800">1</span></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.25cqw; min-width: 11cqw">
+            <span style="display: flex; align-items: center; gap: 0.4cqw; font-size: 0.95cqw; font-weight: 800">Gemini Guy <span style="padding: 0.1cqw 0.45cqw; border-radius: 999px; background: #7c5cf2; color: #ffffff; font-size: 0.55cqw; letter-spacing: 0.05em">ROOKIE</span></span>
+            <span aria-label="20 of 60 XP" style="display: block; height: 0.5cqw; border-radius: 999px; background: #eceaf2; overflow: hidden"><span style="display: block; width: 33%; height: 100%; background: #4285f4"></span></span>
+            <span style="font-size: 0.62cqw; color: #4a4754">Next: <b style="color: #7c5cf2">Spin dance</b> at Lv 2 · <b style="color: #1d1b24">20 / 60 XP</b></span>
+          </div>
+        </div>
+        <span aria-hidden="true" style="width: 1px; height: 2.8cqw; background: #eceaf2"></span>
+        <div style="display: flex; gap: 0.45cqw">
+          <button type="button" style="width: 4.6cqw; padding: 0.45cqw 0; border: 0; border-radius: 0.8cqw; background: #ffc83d; font-size: 0.68cqw; font-weight: 800; cursor: pointer">High five</button>
+          <button type="button" style="width: 4.6cqw; padding: 0.45cqw 0; border: 0; border-radius: 0.8cqw; background: #12a4b4; color: #ffffff; font-size: 0.68cqw; font-weight: 800; cursor: pointer">Catch</button>
+          <button type="button" style="width: 4.6cqw; padding: 0.45cqw 0; border: 0; border-radius: 0.8cqw; background: #ea4335; color: #ffffff; font-size: 0.68cqw; font-weight: 800; cursor: pointer">Snack</button>
+          <button type="button" style="width: 4.6cqw; padding: 0.45cqw 0; border: 0; border-radius: 0.8cqw; background: #7c5cf2; color: #ffffff; font-size: 0.68cqw; font-weight: 800; cursor: pointer">Dance</button>
+          <button type="button" disabled="" aria-label="Cap colours, unlocks at level 4" style="width: 4.6cqw; padding: 0.45cqw 0; border: 0; border-radius: 0.8cqw; background: #eceaf2; color: #6e6b78; font-size: 0.68cqw; font-weight: 800">Cap · Lv 4</button>
+        </div>
+      </div>
+
+      <div style="position: absolute; left: 50%; bottom: 2.4%; transform: translateX(-50%); z-index: 8; width: 62%; display: flex; flex-direction: column; gap: 0.35cqw; padding: 0.7cqw 1.1cqw; border-radius: 1.1cqw; background: rgba(255,255,255,0.97); box-shadow: 0 0.8cqw 2.4cqw rgba(60,70,130,0.16)">
+        <span style="align-self: flex-start; padding: 0.15cqw 0.65cqw; border-radius: 999px; background: #3d5ad6; color: #ffffff; font-size: 0.62cqw; font-weight: 800; letter-spacing: 0.06em">GEMINI GUY</span>
+        <p style="margin: 0; font-size: 1cqw; font-weight: 600; line-height: 1.35">{{ caption }}</p>
+      </div>
+    </section>
+  </div>
+
+  <button type="button" aria-label="Open the Quest drawer" style="flex: none; width: 40px; padding: 14px 0; border: 0; border-radius: 14px; background: #ffffff; box-shadow: 0 2px 10px rgba(29,27,36,0.08); display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3d5ad6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"></path></svg>
+    <span style="writing-mode: vertical-rl; font-size: 13px; font-weight: 800">Quest</span>
+  </button>
+</div>
+
+<div style="width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px">
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 16px; border-radius: 20px; background: #ffffff; box-shadow: 0 2px 12px rgba(29,27,36,0.06)">
+    <span style="padding: 6px 14px; border-radius: 999px; background: #12a4b4; color: #ffffff; font-size: 14px; font-weight: 800">Step 1 of 13</span>
+    <div style="flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 18px; font-weight: 800">Ready, set, learn</span><span style="font-size: 13px; color: #4a4754">Explaining</span></div>
+    <div style="display: flex; align-items: center; gap: 8px">
+      <button type="button" aria-label="Restart the lesson (he spins in again)" onClick="{{ restart }}" style="width: 44px; height: 44px; border: 0; border-radius: 14px; background: #f3f1ec; cursor: pointer; display: grid; place-items: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d1b24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"></path></svg></button>
+      <button type="button" aria-label="Previous step" style="width: 44px; height: 44px; border: 0; border-radius: 14px; background: #f3f1ec; cursor: pointer; display: grid; place-items: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#1d1b24" aria-hidden="true"><path d="M7 5h2v14H7zM19 5v14L10 12z"></path></svg></button>
+      <button type="button" aria-label="Pause" style="width: 54px; height: 54px; border: 0; border-radius: 50%; background: #12a4b4; cursor: pointer; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg></button>
+      <button type="button" aria-label="Next step" style="width: 44px; height: 44px; border: 0; border-radius: 14px; background: #f3f1ec; cursor: pointer; display: grid; place-items: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="#1d1b24" aria-hidden="true"><path d="M15 5h2v14h-2zM5 5v14l9-7z"></path></svg></button>
+      <button type="button" aria-label="Mute voice" style="width: 44px; height: 44px; border: 0; border-radius: 14px; background: #f3f1ec; cursor: pointer; display: grid; place-items: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d1b24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9a4 4 0 0 1 0 6"></path></svg></button>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 20px; background: #ffffff; box-shadow: 0 2px 12px rgba(29,27,36,0.06)">
+    <label for="ask-box" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Ask Gemini Guy a question</label>
+    <input id="ask-box" type="text" placeholder="Ask a question about this lecture…" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 16px; border: 0; border-radius: 14px; background: #f3f1ec; font-family: inherit; font-size: 15px; color: #1d1b24">
+    <button type="button" aria-label="Send question" style="flex: none; width: 44px; height: 44px; border: 0; border-radius: 14px; background: #1d1b24; cursor: pointer; display: grid; place-items: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg></button>
+  </div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      mode: 'study',
+      spinning: true,
+      seq: 10,
+      win: {
+        left: { tabs: [{ id: 'a1', kind: 'notes4' }, { id: 'a2', kind: 'notes3' }, { id: 'a3', kind: 'sheet' }], active: 'a1', size: 0, max: false },
+        right: { tabs: [{ id: 'b1', kind: 'board' }, { id: 'b2', kind: 'quiz' }], active: 'b1', size: 0, max: false },
+      },
+    };
+  }
+
+  kinds() {
+    return {
+      notes4: { title: 'CS111 Lecture 4.pdf', dot: '#12a4b4', path: 'notes/cs111-lecture-4.pdf' },
+      notes3: { title: 'CS111 Lecture 3.pdf', dot: '#7c5cf2', path: 'notes/cs111-lecture-3.pdf' },
+      sheet: { title: 'Scheduling cheat sheet.pdf', dot: '#ffc83d', path: 'notes/scheduling-cheat-sheet.pdf' },
+      board: { title: 'Board · FCFS', dot: '#4285f4', path: 'board/fcfs' },
+      quiz: { title: 'Quick check', dot: '#ea4335', path: 'board/quick-check' },
+      scratch: { title: 'Scratch note', dot: '#34a853', path: 'scratch' },
+      pdf1: { title: 'cs111-fcfs.pdf · p. 1', dot: '#3d5ad6', path: 'docs/cs111-fcfs/page/1' },
+      pdf2: { title: 'cs111-fcfs.pdf · p. 2', dot: '#3d5ad6', path: 'docs/cs111-fcfs/page/2' },
+      newtab: { title: 'New tab', dot: '#b4b2bf', path: 'new-tab' },
+    };
+  }
+
+  cloneWin() {
+    const w = this.state.win;
+    return { left: { ...w.left, tabs: [...w.left.tabs] }, right: { ...w.right, tabs: [...w.right.tabs] } };
+  }
+
+  activate(side, id) {
+    const win = this.cloneWin();
+    win[side].active = id;
+    this.setState({ win });
+  }
+
+  close(side, id) {
+    const win = this.cloneWin();
+    const w = win[side];
+    const at = w.tabs.findIndex((t) => t.id === id);
+    w.tabs = w.tabs.filter((t) => t.id !== id);
+    let seq = this.state.seq;
+    if (!w.tabs.length) {
+      seq += 1;
+      w.tabs = [{ id: 't' + seq, kind: 'newtab' }];
+    }
+    if (!w.tabs.some((t) => t.id === w.active)) w.active = w.tabs[Math.min(Math.max(at, 0), w.tabs.length - 1)].id;
+    this.setState({ win, seq });
+  }
+
+  add(side) {
+    const seq = this.state.seq + 1;
+    const win = this.cloneWin();
+    win[side].tabs = [...win[side].tabs, { id: 't' + seq, kind: 'newtab' }];
+    win[side].active = 't' + seq;
+    this.setState({ win, seq });
+  }
+
+  open(side, kind) {
+    const win = this.cloneWin();
+    const w = win[side];
+    w.tabs = w.tabs.map((t) => (t.id === w.active ? { id: t.id, kind } : t));
+    this.setState({ win });
+  }
+
+  toggleMax(side) {
+    const win = this.cloneWin();
+    const other = side === 'left' ? 'right' : 'left';
+    win[side].max = !win[side].max;
+    win[other].max = false;
+    this.setState({ win });
+  }
+
+  grow(side) {
+    const win = this.cloneWin();
+    win[side].max = false;
+    win[side].size = (win[side].size + 1) % 3;
+    this.setState({ win });
+  }
+
+  geometry(side, w) {
+    if (w.max) return { left: 15, top: 14, width: 70, height: 66, z: 6, tf: 'none', origin: 'center' };
+    const f = [1, 1.14, 1.28][w.size];
+    const width = 30 * f;
+    const height = 46 * f;
+    return {
+      left: side === 'left' ? 3.2 : 100 - 3.2 - width,
+      top: 17.5,
+      width,
+      height,
+      z: w.size ? 5 : 3,
+      tf: side === 'left' ? 'perspective(150cqw) rotateY(10deg)' : 'perspective(150cqw) rotateY(-10deg)',
+      origin: side === 'left' ? 'left center' : 'right center',
+    };
+  }
+
+  windowVals(side) {
+    const K = this.kinds();
+    const w = this.state.win[side];
+    const active = w.tabs.find((t) => t.id === w.active) || w.tabs[0];
+    const g = this.geometry(side, w);
+    const ring = w.max ? '0 0 0 0.25cqw rgba(66,133,244,0.85)' : '0 0 0 1px rgba(29,27,36,0.06)';
+    const is = {};
+    Object.keys(K).forEach((k) => { is[k] = active.kind === k; });
+    const dot = (c) => 'flex: none; width: 0.6cqw; height: 0.6cqw; border-radius: 50%; background: ' + c;
+    return {
+      label: side === 'left' ? 'Notes window tabs' : 'Board window tabs',
+      style: 'position: absolute; left: ' + g.left + '%; top: ' + g.top + '%; width: ' + g.width + '%; height: ' + g.height + '%; z-index: ' + g.z +
+        '; transform: ' + g.tf + '; transform-origin: ' + g.origin +
+        '; transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease, transform 0.35s ease; display: flex; flex-direction: column; overflow: hidden; border-radius: 1.1cqw; background: #ffffff; box-shadow: 0 1.4cqw 3.6cqw rgba(60,70,130,0.22), ' + ring,
+      tabs: w.tabs.map((t) => {
+        const k = K[t.kind];
+        const on = t.id === active.id;
+        return {
+          title: k.title,
+          closeLabel: "Close tab: " + k.title,
+          selected: on ? 'true' : 'false',
+          style: 'flex: 0 1 11cqw; min-width: 3.4cqw; display: flex; align-items: center; gap: 0.25cqw; padding: 0.42cqw 0.35cqw 0.42cqw 0.65cqw; border-radius: 0.7cqw 0.7cqw 0 0; background: ' +
+            (on ? '#ffffff' : 'transparent') + '; color: ' + (on ? '#1d1b24' : '#4a4754'),
+          dotStyle: dot(k.dot),
+          activate: () => this.activate(side, t.id),
+          close: () => this.close(side, t.id),
+        };
+      }),
+      is,
+      path: K[active.kind].path,
+      add: () => this.add(side),
+      toggleMax: () => this.toggleMax(side),
+      grow: () => this.grow(side),
+      maxLabel: w.max ? 'Restore window size' : 'Maximize window',
+      maxPressed: w.max ? 'true' : 'false',
+      showExpand: !w.max,
+      showRestore: w.max,
+      noteId: 'scratch-' + side,
+      openScratch: () => this.open(side, 'scratch'),
+      sections: ['notes4', 'notes3', 'sheet', 'board', 'quiz'].map((kind) => ({ title: K[kind].title, dotStyle: dot(K[kind].dot), pick: () => this.open(side, kind) })),
+      pdfs: [
+        { kind: 'pdf1', sub: 'First-Come, First-Served Scheduling' },
+        { kind: 'pdf2', sub: 'Convoy Effect in FCFS' },
+      ].map((p) => ({ title: K[p.kind].title, sub: p.sub, pick: () => this.open(side, p.kind) })),
+    };
+  }
+
+  renderVals() {
+    const { win, mode } = this.state;
+    const guyLeft = win.left.max ? 91 : win.right.max ? 9 : 50;
+    const pill = (on) => 'padding: 8px 20px; border: 0; border-radius: 999px; font-size: 15px; font-weight: 800; cursor: pointer; background: ' +
+      (on ? '#3d5ad6' : 'transparent') + '; color: ' + (on ? '#ffffff' : '#4a4754');
+    return {
+      windows: [this.windowVals('left'), this.windowVals('right')],
+      guyClass: this.state.spinning ? 'gg-start-spin' : '',
+      guyStyle: 'position: absolute; left: ' + guyLeft + '%; bottom: 18.5%; width: 13.5%; transform: translateX(-50%); transform-origin: 50% 100%; z-index: 4; transition: left 0.6s cubic-bezier(0.34, 1.4, 0.64, 1)',
+      restart: () => {
+        this.setState({ spinning: false });
+        setTimeout(() => this.setState({ spinning: true }), 30);
+      },
+      caption: win.left.max || win.right.max
+        ? 'I stepped aside so you can read the big window. Click restore when you want me back in the middle.'
+        : 'Ready? Today we are learning first-come, first-served scheduling. Let us walk through it together!',
+      playing: mode === 'play',
+      studyPressed: mode === 'study' ? 'true' : 'false',
+      playPressed: mode === 'play' ? 'true' : 'false',
+      studyStyle: pill(mode === 'study'),
+      playStyle: pill(mode === 'play'),
+      setStudy: () => this.setState({ mode: 'study' }),
+      setPlay: () => this.setState({ mode: 'play' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

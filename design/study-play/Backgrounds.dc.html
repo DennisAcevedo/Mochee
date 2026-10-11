@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Study vs Play backgrounds</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&amp;family=DM+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3a3f8f}a:hover{color:#1f2366}
+</style>
+</helmet>
+<div style="width: 1440px; height: 760px; box-sizing: border-box; padding: 40px; background: #F4F2EC; font-family: 'DM Sans', sans-serif; color: #1B1D2A; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; align-items: baseline; gap: 16px">
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 34px">Two worlds: Study and Play</h1>
+<p style="margin: 0; font-size: 16px; color: #4B4F63">Both fill the whole screen. The Study / Play switch swaps the room; the UI floats on top.</p>
+</div>
+<div style="display: flex; gap: 40px">
+
+<section style="width: 660px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 660px; height: 372px; border-radius: 14px; overflow: hidden; background: {{studyWall}}">
+<svg width="660" height="372" viewBox="0 0 660 372" aria-hidden="true" style="position: absolute; inset: 0">
+<rect x="0" y="250" width="660" height="122" fill="{{studyFloor}}"></rect>
+<line x1="0" y1="250" x2="660" y2="250" stroke="#B9C4D6" stroke-width="2"></line>
+<rect x="0" y="236" width="660" height="8" fill="#CFD8E6"></rect>
+<g opacity="0.55"><rect x="500" y="40" width="120" height="90" rx="6" fill="#FFFFFF"></rect><line x1="560" y1="40" x2="560" y2="130" stroke="#CFD8E6" stroke-width="3"></line><line x1="500" y1="85" x2="620" y2="85" stroke="#CFD8E6" stroke-width="3"></line></g>
+<rect x="44" y="52" width="230" height="170" rx="10" fill="#FFFFFF" stroke="#1E9AA8" stroke-width="4"></rect>
+<rect x="44" y="52" width="230" height="24" rx="10" fill="#E7F3F5"></rect>
+<circle cx="58" cy="64" r="4" fill="#F0605D"></circle><circle cx="70" cy="64" r="4" fill="#F5BE3B"></circle><circle cx="82" cy="64" r="4" fill="#4CC38A"></circle>
+<rect x="60" y="92" width="150" height="12" rx="3" fill="#1B1D2A"></rect>
+<rect x="60" y="116" width="190" height="7" rx="3" fill="#B7BCCB"></rect>
+<rect x="56" y="134" width="200" height="20" rx="4" fill="#FFD84D"></rect>
+<rect x="64" y="141" width="150" height="6" rx="3" fill="#1B1D2A"></rect>
+<rect x="60" y="164" width="170" height="7" rx="3" fill="#B7BCCB"></rect>
+<rect x="60" y="180" width="120" height="7" rx="3" fill="#B7BCCB"></rect>
+<rect x="420" y="62" width="200" height="150" rx="10" fill="#FFFFFF" stroke="#5B5CE6" stroke-width="4"></rect>
+<rect x="420" y="62" width="200" height="24" rx="10" fill="#EEEEFC"></rect>
+<rect x="436" y="102" width="130" height="10" rx="3" fill="#1B1D2A"></rect>
+<rect x="436" y="124" width="160" height="7" rx="3" fill="#B7BCCB"></rect>
+<rect x="436" y="140" width="110" height="7" rx="3" fill="#B7BCCB"></rect>
+<path d="M 330 300 C 300 290, 280 280, 262 262" fill="none" stroke="#5B5CE6" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"></path>
+<line x1="274" y1="196" x2="248" y2="148" stroke="#FFB020" stroke-width="3" stroke-dasharray="6 6"></line>
+<circle cx="248" cy="146" r="7" fill="none" stroke="#FFB020" stroke-width="3"></circle>
+<ellipse cx="300" cy="300" rx="52" ry="10" fill="#B9C4D6" opacity="0.7"></ellipse>
+<circle cx="300" cy="248" r="44" fill="#FFFFFF" stroke="#D7DCE7" stroke-width="2"></circle>
+<circle cx="287" cy="244" r="5" fill="#1B1D2A"></circle><circle cx="313" cy="244" r="5" fill="#1B1D2A"></circle>
+<path d="M 292 262 Q 300 268 308 262" fill="none" stroke="#1B1D2A" stroke-width="3" stroke-linecap="round"></path>
+<circle cx="276" cy="202" r="12" fill="#FFFFFF" stroke="#D7DCE7" stroke-width="2"></circle>
+<circle cx="344" cy="270" r="11" fill="#FFFFFF" stroke="#D7DCE7" stroke-width="2"></circle>
+<path d="M 262 210 L 300 196 L 338 210 L 300 222 Z" fill="#7B5CF0"></path>
+<ellipse cx="288" cy="296" rx="12" ry="6" fill="#F27D7D"></ellipse><ellipse cx="314" cy="296" rx="12" ry="6" fill="#F27D7D"></ellipse>
+</svg>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: rgba(255,255,255,0.86)">
+<span style="font-weight: 600; font-size: 13px">Tutor · CS111 · First-come, first-served</span>
+<span style="display: flex; gap: 4px"><span style="padding: 4px 12px; border-radius: 999px; background: #5B5CE6; color: #FFFFFF; font-size: 12px; font-weight: 600">Study</span><span style="padding: 4px 12px; border-radius: 999px; background: #ECEBF5; font-size: 12px; font-weight: 600">Play</span></span>
+</div>
+<div style="position: absolute; left: 110px; right: 110px; bottom: 14px; padding: 10px 14px; border-radius: 12px; background: #FFFFFF; font-size: 13px; font-weight: 600">See the yellow line? That's the convoy effect.</div>
+</div>
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px">Study: a calm, bright classroom</h2>
+<ul style="margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.5; color: #33364A">
+<li>Cool pale wall and floor, a window, no sparkles: the notes and board are the colour.</li>
+<li>He walks to the window he is explaining (dotted path), turns to it and aims his hand at the exact line that lights up.</li>
+<li>He keeps moving between beats: steps to the board for the next idea, back to centre for questions.</li>
+</ul>
+</section>
+
+<section style="width: 660px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 660px; height: 372px; border-radius: 14px; overflow: hidden; background: {{playWall}}">
+<svg width="660" height="372" viewBox="0 0 660 372" aria-hidden="true" style="position: absolute; inset: 0">
+<rect x="0" y="0" width="660" height="60" fill="#FF7A45"></rect>
+<rect x="0" y="60" width="660" height="40" fill="#3BB4F2"></rect>
+<rect x="0" y="100" width="660" height="22" fill="#7B5CF0"></rect>
+<g fill="#FFFFFF" opacity="0.35"><rect x="20" y="70" width="40" height="8" rx="3"></rect><rect x="80" y="70" width="40" height="8" rx="3"></rect><rect x="140" y="70" width="40" height="8" rx="3"></rect><rect x="200" y="70" width="40" height="8" rx="3"></rect><rect x="260" y="70" width="40" height="8" rx="3"></rect><rect x="320" y="70" width="40" height="8" rx="3"></rect><rect x="380" y="70" width="40" height="8" rx="3"></rect></g>
+<rect x="0" y="236" width="660" height="136" fill="{{playFloor}}"></rect>
+<g stroke="#D39A4F" stroke-width="2"><line x1="0" y1="262" x2="660" y2="262"></line><line x1="0" y1="292" x2="660" y2="292"></line><line x1="0" y1="326" x2="660" y2="326"></line></g>
+<path d="M 380 372 Q 520 250 660 268" fill="none" stroke="#FFFFFF" stroke-width="4"></path>
+<rect x="250" y="136" width="160" height="56" rx="8" fill="#1B1D2A"></rect>
+<text x="330" y="160" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="14" font-weight="800" fill="#FFD84D">SHOTS</text>
+<text x="330" y="184" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="22" font-weight="800" fill="#FFFFFF">7 / 10</text>
+<rect x="566" y="120" width="10" height="190" fill="#55596E"></rect>
+<rect x="530" y="112" width="96" height="66" rx="4" fill="#FFFFFF" stroke="#55596E" stroke-width="3"></rect>
+<rect x="562" y="138" width="34" height="24" fill="none" stroke="#F0605D" stroke-width="3"></rect>
+<ellipse cx="560" cy="182" rx="26" ry="6" fill="none" stroke="#F0605D" stroke-width="4"></ellipse>
+<path d="M 540 186 L 548 210 L 572 210 L 580 186" fill="none" stroke="#FFFFFF" stroke-width="2"></path>
+<path d="M 214 176 Q 400 40 552 170" fill="none" stroke="#FF7A45" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"></path>
+<circle cx="400" cy="98" r="15" fill="#F08A24"></circle>
+<path d="M 385 98 L 415 98 M 400 83 L 400 113" stroke="#9A4A0B" stroke-width="2"></path>
+<g><rect x="40" y="262" width="92" height="40" rx="8" fill="#55596E"></rect><circle cx="62" cy="258" r="12" fill="#F08A24"></circle><circle cx="86" cy="258" r="12" fill="#F08A24"></circle><circle cx="110" cy="258" r="12" fill="#F08A24"></circle></g>
+<ellipse cx="200" cy="318" rx="44" ry="9" fill="#C0823C" opacity="0.6"></ellipse>
+<circle cx="200" cy="226" r="44" fill="#FFFFFF" stroke="#D7DCE7" stroke-width="2"></circle>
+<circle cx="188" cy="222" r="5" fill="#1B1D2A"></circle><circle cx="212" cy="222" r="5" fill="#1B1D2A"></circle>
+<path d="M 188 238 Q 200 250 212 238" fill="#1B1D2A"></path>
+<circle cx="176" cy="172" r="12" fill="#FFFFFF" stroke="#D7DCE7" stroke-width="2"></circle>
+<circle cx="222" cy="170" r="12" fill="#FFFFFF" stroke="#D7DCE7" stroke-width="2"></circle>
+<path d="M 162 190 L 200 176 L 238 190 L 200 202 Z" fill="#7B5CF0"></path>
+<ellipse cx="186" cy="284" rx="12" ry="6" fill="#F27D7D"></ellipse><ellipse cx="214" cy="284" rx="12" ry="6" fill="#F27D7D"></ellipse>
+</svg>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: rgba(255,255,255,0.86)">
+<span style="font-weight: 600; font-size: 13px">Tutor · Gemini Guy · Play</span>
+<span style="display: flex; gap: 4px"><span style="padding: 4px 12px; border-radius: 999px; background: #ECEBF5; font-size: 12px; font-weight: 600">Study</span><span style="padding: 4px 12px; border-radius: 999px; background: #FF7A45; color: #1B1D2A; font-size: 12px; font-weight: 600">Play</span></span>
+</div>
+<div style="position: absolute; left: 70px; right: 70px; bottom: 14px; display: flex; gap: 8px; justify-content: center">
+<span style="padding: 8px 12px; border-radius: 10px; background: #FF7A45; font-size: 12px; font-weight: 700">Shoot hoops</span>
+<span style="padding: 8px 12px; border-radius: 10px; background: #3BB4F2; font-size: 12px; font-weight: 700">Dribble</span>
+<span style="padding: 8px 12px; border-radius: 10px; background: #4CC38A; font-size: 12px; font-weight: 700">Kick</span>
+<span style="padding: 8px 12px; border-radius: 10px; background: #FFD84D; font-size: 12px; font-weight: 700">Juggle</span>
+<span style="padding: 8px 12px; border-radius: 10px; background: #B9A6FF; font-size: 12px; font-weight: 700">Dance</span>
+</div>
+</div>
+<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px">Play: a loud, sunny gym</h2>
+<ul style="margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.5; color: #33364A">
+<li>Bold striped wall, wooden court with lines, a hoop and backboard, a ball rack and a scoreboard.</li>
+<li>Activity buttons: Shoot hoops (jump shot, ball arcs into the hoop, score ticks up), Dribble, Kick, Juggle, Dance.</li>
+<li>He still tumbles when you grab and throw him, and earns XP for every make.</li>
+</ul>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"studyWall":{"editor":"color","default":"#E9EEF5"},"studyFloor":{"editor":"color","default":"#DCE3EC"},"playWall":{"editor":"color","default":"#FFE07A"},"playFloor":{"editor":"color","default":"#E8B76A"},"$preview":{"width":1440,"height":760}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+studyWall: this.props.studyWall ?? '#E9EEF5',
+studyFloor: this.props.studyFloor ?? '#DCE3EC',
+playWall: this.props.playWall ?? '#FFE07A',
+playFloor: this.props.playFloor ?? '#E8B76A',
+};
+}
+}
+</script>
+</body>
+</html>

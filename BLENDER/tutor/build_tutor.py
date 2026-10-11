@@ -985,7 +985,7 @@ def write_manifest(clips, pts, height, tris):
     sanitize = lambda n: n.replace('.', '')  # three's PropertyBinding.sanitizeNodeName drops '.'
     manifest = {
         'clips': [{'name': c['name'], 'duration': c['duration'], 'loop': bool(c['loop']), 'face': c['face'],
-                   'fx': c.get('fx', [])} for c in clips],
+                   'fx': c.get('fx', []), **{k: c[k] for k in ('ball', 'rope') if k in c}} for c in clips],
         'bones': BONES,
         'faceNodes': FACE_NODES,
         'threeNames': {n: sanitize(n) for n in BONES + FACE_NODES},

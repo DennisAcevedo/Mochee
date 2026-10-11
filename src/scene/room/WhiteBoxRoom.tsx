@@ -9,9 +9,10 @@ import {
   type InstancedMesh,
   type Texture,
 } from 'three'
-import { FLOOR_Y, PALETTE, ROOM, SPOTS, WINDOWS } from '../layout3d'
+import { useMode } from '../../state/mode'
+import { FLOOR_Y, PALETTE, ROOM, SPOTS, WINDOW } from '../layout3d'
 import { roundedRect } from '../windows/shapes'
-import { blobTexture, glowTexture, surfaceTexture } from './bakedTextures'
+import { blobTexture, glowTexture, surfaceTexture, type Edge, type SurfaceGlow } from './bakedTextures'
 import { BuildIn } from './build'
 import { ROOM_STYLE as S, type DecalKind, type Surface } from './roomStyle'
 
@@ -42,12 +43,62 @@ function useRoomTextures() {
       ceiling: surfaceTexture({ from: t.ceilOuter, to: t.ceilInner, axis: 'y', edges: ['bottom', 'left', 'right'], width: ROOM.width, height: SIDE_LEN }),
       left: surfaceTexture({ from: t.wallOuter, to: t.wallInner, axis: 'x', edges: ['right', 'top', 'bottom'], width: SIDE_LEN, height: ROOM.height }),
       right: surfaceTexture({ from: t.wallInner, to: t.wallOuter, axis: 'x', edges: ['left', 'top', 'bottom'], width: SIDE_LEN, height: ROOM.height }),
+      sky: skyTextures(),
       glow: glowTexture(),
       blob: blobTexture(),
     }
   }, [])
-  useEffect(() => () => Object.values(tex).forEach((t: Texture) => t.dispose()), [tex])
+  useEffect(
+    () => () => {
+      for (const t of [tex.back, tex.floor, tex.ceiling, tex.left, tex.right, tex.glow, tex.blob, ...Object.values(tex.sky)]) t.dispose()
+    },
+    [tex],
+  )
   return tex
+}
+
+// Study mode's surfaces: Ronil's pastel sky (ROOM_STYLE.sky). Texture axes: the
+// left wall runs front (u 0) to back, the right wall back to front, the floor
+// back (v 0) to front, the ceiling front to back.
+function skyTextures() {
+  const k = S.sky
+  const paint = (color: string, glows: SurfaceGlow[], edges: Edge[], width: number, height: number) =>
+    surfaceTexture({ from: color, to: color, edges, width, height, glows, falloff: k.falloff })
+  return {
+    back: paint(
+      k.base,
+      [
+        { x: 0, y: 0.62, rx: 0.48, ry: 0.7, rgb: k.blue, alpha: 0.55 },
+        { x: 1, y: 0, rx: 0.4, ry: 0.55, rgb: k.peach, alpha: 0.55 },
+        { x: 1, y: 0.85, rx: 0.42, ry: 0.6, rgb: k.yellow, alpha: 0.5 },
+      ],
+      ['top', 'right', 'bottom', 'left'],
+      ROOM.width,
+      ROOM.height,
+    ),
+    left: paint(k.base, [{ x: 0.6, y: 0.62, rx: 0.9, ry: 0.85, rgb: k.blue, alpha: 0.5 }], ['right', 'top', 'bottom'], SIDE_LEN, ROOM.height),
+    right: paint(
+      k.base,
+      [
+        { x: 0.4, y: 0, rx: 0.9, ry: 0.6, rgb: k.peach, alpha: 0.5 },
+        { x: 0.4, y: 0.9, rx: 0.9, ry: 0.6, rgb: k.yellow, alpha: 0.45 },
+      ],
+      ['left', 'top', 'bottom'],
+      SIDE_LEN,
+      ROOM.height,
+    ),
+    floor: paint(
+      k.floor,
+      [
+        { x: 0, y: 0.35, rx: 0.5, ry: 0.7, rgb: k.blue, alpha: 0.22 },
+        { x: 1, y: 0.35, rx: 0.5, ry: 0.7, rgb: k.yellow, alpha: 0.25 },
+      ],
+      ['top', 'left', 'right'],
+      ROOM.width,
+      SIDE_LEN,
+    ),
+    ceiling: paint(k.ceiling, [{ x: 1, y: 0.7, rx: 0.6, ry: 0.8, rgb: k.peach, alpha: 0.25 }], ['bottom', 'left', 'right'], ROOM.width, SIDE_LEN),
+  }
 }
 
 // One unlit surface plus the shadow catcher just in front of it.
@@ -180,18 +231,15 @@ function Rug() {
   )
 }
 
-// Soft contact blobs on the floor under the two floating windows.
+// Soft contact blob on the floor under the floating browser window.
 function WindowBlobs({ map }: { map: Texture }) {
-  const { width, depth, opacity, dz } = S.windowBlob
+  const { width, depth, opacity, dz, color } = S.windowBlob
+  const [x, , z] = WINDOW.position
   return (
-    <>
-      {[WINDOWS.notes, WINDOWS.board].map((w, i) => (
-        <mesh key={i} position={[w.position[0], FLOOR_Y + S.lift * 2, w.position[2] + dz]} rotation={[-HALF_PI, 0, 0]} renderOrder={1}>
-          <planeGeometry args={[width, depth]} />
-          <meshBasicMaterial map={map} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
-        </mesh>
-      ))}
-    </>
+    <mesh position={[x, FLOOR_Y + S.lift * 2, z + dz]} rotation={[-HALF_PI, 0, 0]} renderOrder={1}>
+      <planeGeometry args={[width, depth]} />
+      <meshBasicMaterial map={map} color={color} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
+    </mesh>
   )
 }
 
@@ -253,26 +301,32 @@ function Decals() {
 export function WhiteBoxRoom() {
   const tex = useRoomTextures()
   const { floor: floorShadow, walls: wallShadow } = S.shadowOpacity
+  // Study is the calm room: Ronil's pastel sky on every surface, no colour
+  // blocks or confetti. Play keeps the bold white box.
+  const study = useMode((s) => s.mode === 'study')
+  const t = study ? tex.sky : tex
 
   return (
     <group name="white-box-room">
-      <Surface map={tex.back} width={ROOM.width} height={ROOM.height} position={[0, MID_Y, BACK_Z]} rotation={[0, 0, 0]} shadowOpacity={wallShadow} />
-      <Surface map={tex.floor} width={ROOM.width} height={SIDE_LEN} position={[0, FLOOR_Y, SIDE_MID_Z]} rotation={[-HALF_PI, 0, 0]} shadowOpacity={floorShadow} />
-      <Surface map={tex.ceiling} width={ROOM.width} height={SIDE_LEN} position={[0, CEIL_Y, SIDE_MID_Z]} rotation={[HALF_PI, 0, 0]} shadowOpacity={0} />
-      <Surface map={tex.left} width={SIDE_LEN} height={ROOM.height} position={[-HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, HALF_PI, 0]} shadowOpacity={wallShadow} />
-      <Surface map={tex.right} width={SIDE_LEN} height={ROOM.height} position={[HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, -HALF_PI, 0]} shadowOpacity={wallShadow} />
+      <Surface map={t.back} width={ROOM.width} height={ROOM.height} position={[0, MID_Y, BACK_Z]} rotation={[0, 0, 0]} shadowOpacity={wallShadow} />
+      <Surface map={t.floor} width={ROOM.width} height={SIDE_LEN} position={[0, FLOOR_Y, SIDE_MID_Z]} rotation={[-HALF_PI, 0, 0]} shadowOpacity={floorShadow} />
+      <Surface map={t.ceiling} width={ROOM.width} height={SIDE_LEN} position={[0, CEIL_Y, SIDE_MID_Z]} rotation={[HALF_PI, 0, 0]} shadowOpacity={0} />
+      <Surface map={t.left} width={SIDE_LEN} height={ROOM.height} position={[-HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, HALF_PI, 0]} shadowOpacity={wallShadow} />
+      <Surface map={t.right} width={SIDE_LEN} height={ROOM.height} position={[HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, -HALF_PI, 0]} shadowOpacity={wallShadow} />
       {/* The walls, floor and ceiling are the bare box he lands in; everything
           below builds itself in during the intro (build.tsx). */}
-      <BuildIn part="decals" style="pop" pivot={[0, MID_Y, BACK_Z]}>
-        <Decals />
-      </BuildIn>
-      <BuildIn part="skirting" style="rise" distance={0.9}>
-        <Skirting />
-      </BuildIn>
+      <group visible={!study}>
+        <BuildIn part="decals" style="pop" pivot={[0, MID_Y, BACK_Z]}>
+          <Decals />
+        </BuildIn>
+        <BuildIn part="skirting" style="rise" distance={0.9}>
+          <Skirting />
+        </BuildIn>
+      </group>
       <BuildIn part="rug" style="pop" pivot={[SPOTS.center.x, FLOOR_Y, SPOTS.center.z]}>
         <Rug />
       </BuildIn>
-      <BuildIn part="blobs" style="pop" pivot={[0, FLOOR_Y, WINDOWS.notes.position[2]]}>
+      <BuildIn part="blobs" style="pop" pivot={[WINDOW.position[0], FLOOR_Y, WINDOW.position[2]]}>
         <WindowBlobs map={tex.blob} />
       </BuildIn>
       <BuildIn part="ceiling" style="drop" distance={1.4}>

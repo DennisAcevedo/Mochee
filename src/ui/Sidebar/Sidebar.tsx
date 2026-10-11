@@ -1,4 +1,5 @@
 import { useRef, type ChangeEvent } from 'react'
+import { formatLabel, UPLOAD_ACCEPT, uploadFormat } from '../../../shared/docsTypes'
 import { introRef } from '../../intro/targets'
 import { useCurrentTutor } from '../../state/currentTutor'
 import { addTutorFiles } from '../../state/fileStore'
@@ -7,7 +8,8 @@ import { selectIsQuiz, selectSection, useTutorStore } from '../../state/store'
 import { Transcript } from '../Transcript/Transcript'
 import styles from './Sidebar.module.css'
 
-const isPdf = (f: File) => /pdf$/i.test(f.name) || f.type === 'application/pdf'
+// Any format the documents backend reads (shared/docsTypes UPLOAD_FORMATS).
+const isAccepted = (f: File) => uploadFormat(f.name, f.type) !== null
 
 export function Sidebar() {
   const panelOpen = useTutorStore((s) => s.panelOpen)
@@ -20,9 +22,9 @@ export function Sidebar() {
   const tutor = useCurrentTutor()
   const picker = useRef<HTMLInputElement>(null)
 
-  // Upload adds PDFs to this tutor (metadata in the library, the File itself in IndexedDB).
+  // Upload adds files to this tutor (metadata in the library, the File itself in IndexedDB).
   const onPick = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).filter(isPdf)
+    const files = Array.from(e.target.files ?? []).filter(isAccepted)
     e.target.value = ''
     if (!files.length) return
     addFiles(
@@ -55,12 +57,12 @@ export function Sidebar() {
           <button type="button" className={styles.upload} onClick={() => picker.current?.click()}>
             <span className={styles.plus}>+</span>Upload
           </button>
-          <input ref={picker} type="file" accept=".pdf,application/pdf" multiple hidden onChange={onPick} />
+          <input ref={picker} type="file" accept={UPLOAD_ACCEPT} multiple hidden onChange={onPick} />
         </div>
         <div className={styles.list}>
           {tutor.files.map((n, i) => (
             <div key={n.id} className={styles.noteRow} data-active={i === 0}>
-              <div className={styles.pdfIcon}>PDF</div>
+              <div className={styles.pdfIcon}>{formatLabel(n.name)}</div>
               <div className={styles.noteText}>
                 <div className={styles.noteName}>{n.name}</div>
                 <div className={styles.noteMeta}>

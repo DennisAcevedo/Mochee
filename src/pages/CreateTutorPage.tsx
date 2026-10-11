@@ -16,6 +16,7 @@ import {
   type VoiceId,
   type VoiceOption,
 } from '../data/catalog'
+import { formatLabel, UPLOAD_ACCEPT, uploadFormat } from '../../shared/docsTypes'
 import { generateLesson, type StudyFile } from '../lesson/generateLesson'
 import { Lights } from '../scene/Lights'
 import { addTutorFiles } from '../state/fileStore'
@@ -71,7 +72,8 @@ const SAMPLE_FILES: DraftFile[] = [
   { id: 'sample-2', name: 'Scheduling cheat sheet.pdf', size: 412e3, pages: 2, sample: true },
 ]
 
-const isPdf = (f: File) => /pdf$/i.test(f.name) || f.type === 'application/pdf'
+// Any format the documents backend reads (shared/docsTypes UPLOAD_FORMATS).
+const isAccepted = (f: File) => uploadFormat(f.name, f.type) !== null
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 interface Study {
@@ -133,7 +135,7 @@ export function CreateTutorPage() {
 
   const addFiles = (list: FileList | null | undefined) => {
     const add = Array.from(list ?? [])
-      .filter(isPdf)
+      .filter(isAccepted)
       .map((file, i): DraftFile => ({ id: `${Date.now()}-${i}`, name: file.name, size: file.size, file }))
     if (!add.length) return
     setFiles((cur) => [...cur, ...add.filter((a) => !cur.some((f) => f.name === a.name))])
@@ -339,20 +341,20 @@ export function CreateTutorPage() {
 
               {step === 1 && (
                 <>
-                  <Heading title="Add your notes" sub="Lecture slides, readings, problem sets. PDFs work best." />
+                  <Heading title="Add your notes" sub="Lecture slides, readings, research papers, problem sets." />
                   <label className={styles.drop} data-drag={drag} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
-                    <input type="file" accept=".pdf,application/pdf" multiple onChange={onPick} hidden />
+                    <input type="file" accept={UPLOAD_ACCEPT} multiple onChange={onPick} hidden />
                     <div className={styles.dropIcon}>
                       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 17V6M7 10.5L12 5.5l5 5" fill="none" stroke="oklch(0.52 0.1 202)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                         <path d="M5 19h14" stroke="oklch(0.52 0.1 202)" strokeWidth="2.4" strokeLinecap="round" />
                       </svg>
                     </div>
-                    <div className={styles.dropTitle}>{drag ? 'Drop to add' : 'Drop PDFs here'}</div>
+                    <div className={styles.dropTitle}>{drag ? 'Drop to add' : 'Drop files here'}</div>
                     <div className={styles.dropSub}>
                       or <span className={styles.browse}>browse your files</span>
                     </div>
-                    <div className={styles.dropNote}>PDF · up to 50 MB each</div>
+                    <div className={styles.dropNote}>PDF, Word, PowerPoint, text or images · up to 50 MB each</div>
                   </label>
                   {files.length === 0 && (
                     <button
@@ -369,7 +371,7 @@ export function CreateTutorPage() {
                   <div className={styles.fileList}>
                     {files.map((f) => (
                       <div key={f.id} className={styles.fileRow}>
-                        <div className={styles.pdfIcon}>PDF</div>
+                        <div className={styles.pdfIcon}>{formatLabel(f.name)}</div>
                         <div className={styles.fileText}>
                           <div className={styles.fileName}>{f.name}</div>
                           <div className={styles.fileSize}>{formatBytes(f.size)}</div>

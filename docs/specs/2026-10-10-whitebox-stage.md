@@ -16,7 +16,7 @@ Date: 2026-10-10. Owner: RON2K. Branch `ron2k/local-dev` (LOCAL ONLY: never push
 - `src/state/progress.ts`: XP + level contract (`award(reason)`, `xpForLevel`, `levelForXp`, `levelUpId`).
 - `src/scene/layout3d.ts`: world constants (floor, spots, window placements, tutor scale, lesson camera, palette). Tune values HERE, never inline.
 - `src/scene/anchors.ts`: live world positions (tutor head, hands, window centers) written per frame, read by fx/props.
-- `src/data/stageContent.ts`: window content with stable line ids; `BOARD_PARTS` reveal order.
+- `shared/lessonNotes.ts`: notes-window content with stable line ids (the ask server uses it too). `src/data/stageContent.ts`: `BOARD_PARTS` reveal order.
 - Existing tutor store `src/state/store.ts` stays the source for mode (lecture/quiz), mic, transcript, quiz answer. The board window's "Quick check" tab == `mode === 'quiz'` (click → `setMode`). Quiz options call `pick(i)`.
 
 Coordinate space: three.js, Y up, +Z toward the camera, viewer's left = -X. Floor at `FLOOR_Y`.
@@ -66,7 +66,7 @@ Clips (glTF animation names, exact). Loops: `idle`, `talk`, `think`, `listen`, `
 | blender | `blender/tutor/**`, `public/models/tutor.glb`, `public/models/tutor.manifest.json` |
 | room | `src/scene/room/**`, `src/scene/windows/**`, `lab/room.*`, may tune `src/scene/layout3d.ts`, installs `@fontsource/*` |
 | character | `src/character/blender/**`, `lab/character.*` |
-| lesson | `src/lesson/**` (walkthrough, runner, speech, Gemini client), `server/**`, `vite.config.ts`, `tsconfig.node.json`, `src/ui/Walkthrough/**`, `src/ui/Caption/**` |
+| lesson | `src/lesson/**` (walkthrough, runner, speech, Gemini client), `server/**`, `shared/**`, `vite.config.ts`, `tsconfig.node.json`, `src/ui/Walkthrough/**`, `src/ui/Caption/**` |
 | play | `src/play/**`, `src/scene/fx/**`, `src/ui/PlayHud/**`, may implement `src/state/progress.ts` (keep exports) |
 | integrator (later) | `src/scene/Stage.tsx`, `CameraRig.tsx`, `src/pages/LessonPage.tsx`, intro wiring, styles |
 

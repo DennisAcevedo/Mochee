@@ -3,18 +3,24 @@ import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { use, useEffect, useMemo, useRef } from 'react'
 import { Color, Quaternion, Vector3, type Group, type Material, type Mesh, type Object3D } from 'three'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import { INTRO } from '../../animation/config'
+import { entrance, intro } from '../../animation/introState'
+import { laneZ } from '../../lesson/roam'
 import { anchors } from '../../scene/anchors'
 import { FLOOR_Y, SPOTS, TUTOR_SCALE } from '../../scene/layout3d'
-import { entrance } from '../../animation/introState'
 import { useDirector, type FxKind, type Gesture, type LoopClip } from '../../state/director'
 import type { Accessory } from '../look'
 import { useTutorStore } from '../../state/store'
+import { useTumbles } from '../../state/tumbles'
+import { exposeDev, tutorActor } from './actor'
 import { AnimationController, type AnimSnapshot } from './animController'
-import { ACCESSORY_NODES, accessoryMaterial, ANCHOR, ANIM, BOOK_NODE, LOOK, MOTION, TUTOR_ASSETS, type FaceState } from './config'
+import { ACCESSORY_NODES, accessoryMaterial, ANCHOR, ANIM, BOOK_NODE, INTRO_LAYER, LOOK, MOTION, TUTOR_ASSETS, type FaceState } from './config'
 import { TutorFace } from './face'
+import { IntroLayer } from './introLayer'
+import { useTumbleLayer } from './tumbleLayer'
 import { loadManifest, manifestUrl } from './manifest'
 import { mapClipNames, TutorMotion, type MotionPhase } from './motion'
-import { capMeshes, collectRigNodes, meshesWithMaterial, sneakerMeshes } from './rigNodes'
+import { capMeshes, collectRigNodes, meshesWithMaterial, sneakerMeshes, type RigNode } from './rigNodes'
 
 export interface BlenderTutorProps {
   src?: string // GLB url; the manifest is read from next to it. Defaults to /models/tutor.glb
@@ -24,6 +30,7 @@ export interface BlenderTutorProps {
   accessory?: Accessory // shows that accessory node (v3 GLB); 'none' or undefined shows none
   accColor?: string // tints the accessory's acc_<name> material; '' or undefined keeps its Blender colour
   visible?: boolean
+  introDriven?: boolean // plays the start screen and the intro spin from introState (the lesson stage only)
   // Standalone (Home cards): plays `control` instead of the director's loop and
   // one-shots, stands at its own origin, and leaves the room's anchors, fx and
   // status readout alone, so several can render at once.
@@ -41,12 +48,22 @@ export const tutorStatus = {
   loaded: false,
   clip: '' as string, // the contract clip asked for
   playing: '' as string, // the clip actually playing after fallbacks
+  time: 0, // seconds into `playing` after this frame's mixer update (src/scene/hoops times the ball off it)
   phase: 'still' as MotionPhase,
   face: 'neutral' as FaceState,
   missing: [] as string[], // contract clips the GLB does not have
   fxFired: 0,
   anim: null as AnimSnapshot | null, // the animation state machine: state, base loop, one-shot, queue, last transition
+  x: 0, // where he stands (world), roaming included
+  z: 0,
+  yaw: 0, // his root bone's world yaw, radians in (-pi, pi]: the intro spin shows up here
+  // The intro layer's extra yaw this frame, NOT wrapped. A check at a low frame
+  // rate unwraps `yaw` against it, so a long frame mid-spin can't alias a turn away.
+  introYaw: 0,
 }
+
+// What the Playwright checks read off window.__gg.tutorRig (dev only).
+export const tutorRig = { status: tutorStatus, actor: tutorActor }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const damp = (a: number, b: number, k: number, dt: number) => a + (b - a) * (1 - Math.exp(-k * dt))
@@ -58,6 +75,25 @@ if (typeof window !== 'undefined') {
     pointer.x = e.clientX
     pointer.y = e.clientY
   })
+}
+
+// The intro's hand fling on one hand bone, after the mixer: spread out and up
+// from the root, then trail the spin by `lag` (about the vertical axis).
+function flingHand(h: RigNode | undefined, out: number, lag: number, lagQ: Quaternion) {
+  if (!h) return
+  const p = h.node.position
+  const x = p.x * (1 + INTRO_LAYER.handSpread * out)
+  const z = p.z
+  const c = Math.cos(lag)
+  const s = Math.sin(lag)
+  p.set(x * c + z * s, p.y + INTRO_LAYER.handLift * out, -x * s + z * c)
+  h.node.quaternion.premultiply(lagQ)
+}
+
+function restore(h: RigNode | undefined) {
+  if (!h) return
+  h.node.position.copy(h.restPos)
+  h.node.quaternion.copy(h.restQuat)
 }
 
 // Product of local rotations from `from` up to (not including) `stop`.
@@ -78,6 +114,7 @@ export function BlenderTutor({
   accessory = 'none',
   accColor,
   visible = true,
+  introDriven = false,
   standalone = false,
   control,
   bare = false,
@@ -87,14 +124,9 @@ export function BlenderTutor({
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   const placement = useRef<Group>(null)
+  const noRoot = useRef<Group>(null) // standalone cards never tumble
   const controlRef = useRef(control)
   controlRef.current = control
-  // What he plays: the director, or the card's own control.
-  const source = () => {
-    const d = useDirector.getState()
-    const c = controlRef.current
-    return { loop: c?.loop ?? d.loop, gesture: c ? c.gesture : d.gesture, target: standalone ? ORIGIN : SPOTS[d.spot] }
-  }
 
   // Own copy of the scene (useGLTF caches one per URL) with own cap, sneaker and accessory materials.
   const scene = useMemo(() => {
@@ -123,17 +155,24 @@ export function BlenderTutor({
   }, [scene])
   const clipNames = useMemo(() => mapClipNames(gltf.animations.map((c) => c.name)), [gltf.animations])
   const { actions } = useAnimations(gltf.animations, scene)
+  useTumbleLayer(standalone ? noRoot : placement, { height: 2.6 * TUTOR_SCALE, hasClip: (c) => clipNames.has(c) })
 
   // Director -> state machine (priorities, cooldowns, queue) -> motion (mixer fades and walking).
   const { motion, anim } = useMemo(() => {
-    const d = source()
-    const motion = new TutorMotion((name) => actions[name], clipNames, manifest, d.target, 0)
-    const ctrl = new AnimationController((clip) => motion.gestureSeconds(clip), d.loop, 0, d.gesture?.id ?? 0)
+    const d = useDirector.getState()
+    const c = controlRef.current
+    const motion = new TutorMotion((name) => actions[name], clipNames, manifest, standalone ? ORIGIN : SPOTS[d.spot], 0)
+    const ctrl = new AnimationController((clip) => motion.gestureSeconds(clip), c?.loop ?? d.loop, 0, (c ? c.gesture : d.gesture)?.id ?? 0)
     return { motion, anim: { ctrl, clock: 0, seen: -1 } }
   }, [actions, clipNames, manifest])
   const face = useMemo(() => new TutorFace(nodes, scene), [nodes, scene])
   const look = useMemo(
     () => ({ yaw: 0, pitch: 0, t: 0, q: new Quaternion(), q2: new Quaternion(), qp: new Quaternion(), v: new Vector3(), fx: [] as FxKind[] }),
+    [],
+  )
+  // The intro spin layer and its scratch (no allocations in the frame loop).
+  const spin = useMemo(
+    () => ({ layer: new IntroLayer(), touched: false, lagQ: new Quaternion(), capQ: new Quaternion(), q: new Quaternion(), fwd: new Vector3(), lane: { x: 0, z: 0 } }),
     [],
   )
 
@@ -204,27 +243,50 @@ export function BlenderTutor({
     const dt = Math.min(MOTION.maxDt, delta)
     const body = nodes.body
     if (body) body.node.quaternion.copy(body.restQuat)
-    const d = source()
-    const target = d.target
+    if (spin.touched) {
+      // Undo the last fling and cap pop: a clip without those tracks would keep them.
+      restore(nodes.handL)
+      restore(nodes.handR)
+      restore(nodes.cap)
+      spin.touched = false
+    }
+    const d = useDirector.getState()
+    const c = controlRef.current
+    // A card plays its own control at its origin. In the room: stepped aside >
+    // roaming > the lesson's spot. Roam targets ride the lane's depth.
+    const free = standalone ? null : (d.asideX ?? d.roamX)
+    const target = standalone ? ORIGIN : free === null ? SPOTS[d.spot] : spin.lane
+    if (free !== null) {
+      spin.lane.x = free
+      spin.lane.z = laneZ(free, SPOTS)
+    }
+    const faceYaw = standalone ? null : d.faceYaw
     anim.clock += Math.min(ANIM.maxDt, delta) // real seconds: cooldowns and clip ends match the mixer
     const out = anim.ctrl.sync(anim.clock, {
-      loop: d.loop,
+      loop: c?.loop ?? useTumbles.getState().hold ?? d.loop, // a tumble outranks the lesson's loop
       speaking: !standalone && useTutorStore.getState().mic === 'speaking',
-      gesture: d.gesture,
-      moving: motion.willMove(target),
+      gesture: c ? c.gesture : d.gesture,
+      moving: motion.willMove(target, faceYaw),
     })
-    motion.update(dt, { target, loop: out.loop, speaking: false, gesture: out.gesture, loopFade: out.loopFade, cut: out.cut })
+    motion.update(dt, { target, loop: out.loop, speaking: false, gesture: out.gesture, loopFade: out.loopFade, cut: out.cut, face: faceYaw })
+    // The intro spin: extra yaw, rise and stretch on the placement (scaled about his feet).
+    const L = introDriven ? spin.layer.update(dt, intro) : spin.layer.rest()
     const g = placement.current
     if (g && bare) {
       g.position.set(0, 0, 0)
-      g.rotation.y = 0
+      g.rotation.set(0, 0, 0)
       g.scale.setScalar(1)
     } else if (g) {
       // entrance: the intro drops him in from above and squashes him on landing (feet pivot).
-      g.position.set(motion.pos.x, FLOOR_Y + (standalone ? 0 : entrance.dropY), motion.pos.z)
-      g.rotation.y = motion.yaw
+      const dropY = standalone ? 0 : entrance.dropY
       const sq = standalone ? 0 : entrance.squash
-      g.scale.set(TUTOR_SCALE * (1 + sq * 0.5), TUTOR_SCALE * (1 - sq), TUTOR_SCALE * (1 + sq * 0.5))
+      g.position.set(motion.pos.x, FLOOR_Y + L.y + dropY, motion.pos.z)
+      g.rotation.set(0, motion.yaw + L.yaw, 0) // full write: the tumble layer's tilt must not carry into next frame
+      g.scale.set(
+        TUTOR_SCALE * (1 - L.k * 0.5) * (1 + sq * 0.5),
+        TUTOR_SCALE * (1 + L.k) * (1 - sq),
+        TUTOR_SCALE * (1 - L.k * 0.5) * (1 + sq * 0.5),
+      )
     }
   }, -1)
 
@@ -239,6 +301,20 @@ export function BlenderTutor({
     const faceState = motion.face()
     face.update(dt, look.t, faceState, speaking || motion.requested === 'talk')
 
+    // The intro's flung-out hands and popped cap, on top of the clip.
+    const L = spin.layer
+    if (L.handOut > 0) {
+      spin.lagQ.setFromAxisAngle(look.v.set(0, 1, 0), -L.lag)
+      flingHand(nodes.handL, L.handOut, -L.lag, spin.lagQ)
+      flingHand(nodes.handR, L.handOut, -L.lag, spin.lagQ)
+      spin.touched = true
+    }
+    if (L.capPop !== 0 && nodes.cap) {
+      nodes.cap.node.position.y += L.capPop
+      nodes.cap.node.quaternion.multiply(spin.capQ.setFromAxisAngle(look.v.set(0, 0, 1), L.capPop * INTRO.wake.capTilt))
+      spin.touched = true
+    }
+
     // The look's accessory; while reading, the book instead of the mic.
     const reading = motion.playing === 'read'
     for (const [name, node] of props3.acc) node.visible = name === accessory && !(reading && name === 'mic')
@@ -246,7 +322,7 @@ export function BlenderTutor({
 
     // Cursor look: head-to-cursor in NDC, small, damped, quieter during clips.
     // Off while reading or asleep (as in tutor-3d.js): the head eases back to centre.
-    const calm = reading || motion.playing === 'sleep'
+    const calm = reading || motion.requested === 'sleep' || motion.playing === 'sleep'
     let yawT = 0
     let pitchT = 0
     if (!calm && pointer.x !== null && pointer.y !== null && size.width && size.height) {
@@ -293,8 +369,20 @@ export function BlenderTutor({
     if (nodes.handL) nodes.handL.node.getWorldPosition(anchors.handL)
     if (nodes.handR) nodes.handR.node.getWorldPosition(anchors.handR)
 
+    // His facing in the world (root bone forward, +Z in the model), for the checks.
+    const root = nodes.root?.node
+    if (root) {
+      spin.fwd.set(0, 0, 1).applyQuaternion(root.getWorldQuaternion(spin.q))
+      tutorStatus.yaw = Math.atan2(spin.fwd.x, spin.fwd.z)
+    }
+    tutorStatus.introYaw = L.yaw
+    tutorStatus.x = motion.pos.x
+    tutorStatus.z = motion.pos.z
+    exposeDev('tutorRig', tutorRig)
+
     tutorStatus.clip = motion.requested ?? ''
     tutorStatus.playing = motion.playing ?? ''
+    tutorStatus.time = motion.current?.time ?? 0
     tutorStatus.phase = motion.phase
     tutorStatus.face = faceState
     if (motion.missing.size !== tutorStatus.missing.length) tutorStatus.missing = [...motion.missing]

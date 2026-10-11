@@ -34,6 +34,8 @@ export function ModeSwitch() {
               : -1
     if (to < 0) return
     e.preventDefault()
+    // The arrows are the lesson's Next / Back everywhere else (WalkthroughBar's window listener).
+    e.stopPropagation()
     setMode(options[to].id)
     refs.current[to]?.focus()
   }

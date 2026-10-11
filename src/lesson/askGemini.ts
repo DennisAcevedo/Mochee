@@ -1,4 +1,4 @@
-import { sanitizeReply, type AskReply, type AskRequest } from './askTypes'
+import { sanitizeReply, type AskReply, type AskRequest } from '../../shared/askTypes'
 
 // Browser side of the ask box: POSTs to the dev server's Gemini proxy
 // (server/geminiProxy.ts). Never sees the key. Returns null on any failure so
@@ -15,6 +15,7 @@ export async function askGemini(request: AskRequest, signal?: AbortSignal): Prom
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), ASK.timeoutMs)
   const onAbort = () => ctrl.abort()
+  if (signal?.aborted) { clearTimeout(timer); return null }
   signal?.addEventListener('abort', onAbort)
   try {
     const res = await fetch(ASK.url, {

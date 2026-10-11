@@ -1,6 +1,6 @@
 import { LoopOnce, LoopRepeat, type AnimationAction } from 'three'
 import type { Clip, FxKind, Gesture, LoopClip, OneShotClip } from '../../state/director'
-import { CLIP_FALLBACK, DEFAULT_FACE, MOTION, WALK, type FaceState } from './config'
+import { MOTION, WALK, defaultFace, fallbackOf, type FaceState } from './config'
 import type { ClipMeta, Manifest } from './manifest'
 
 // The tutor's motion controller: which clip plays, crossfades, one-shots and
@@ -17,6 +17,7 @@ export interface MotionInput {
   gesture: (Gesture & { fade?: number }) | null // a new id starts it; fade defaults to MOTION.fadeGesture
   loopFade?: number // crossfade between base loops (defaults to MOTION.fadeLoop)
   cut?: boolean // drop the one-shot in progress (or waiting) and fade to the loop now
+  face?: number | null // the yaw he settles to when standing (null / unset = the camera, 0): the Play tab turns him to the hoop
 }
 
 const TAU = Math.PI * 2
@@ -86,10 +87,10 @@ export class TutorMotion {
     return clip ? this.manifest[clip] : undefined
   }
 
-  // Follow CLIP_FALLBACK until a clip the GLB actually has.
+  // Follow the fallback chain (CLIP_FALLBACK, then dance_* -> dance_bounce) until a clip the GLB actually has.
   private resolve(clip: Clip): { clip: Clip; action: AnimationAction } | null {
     const seen = new Set<Clip>()
-    for (let c: Clip | undefined = clip; c && !seen.has(c); c = CLIP_FALLBACK[c]) {
+    for (let c: Clip | undefined = clip; c && !seen.has(c); c = fallbackOf(c)) {
       seen.add(c)
       const glb = this.names.get(c)
       const action = glb ? this.getAction(glb) : null
@@ -140,9 +141,13 @@ export class TutorMotion {
     return (duration * this.reps(hit.clip, duration)) / MOTION.timeScale
   }
 
-  // Whether he is walking, settling, or about to start toward `target`.
-  willMove(target: { x: number; z: number }): boolean {
-    return this.phase !== 'still' || Math.hypot(target.x - this.pos.x, target.z - this.pos.z) > WALK.arriveEps
+  // Whether he is walking, settling, or about to start toward `target` (or to turn to `face`).
+  willMove(target: { x: number; z: number }, face?: number | null): boolean {
+    return (
+      this.phase !== 'still' ||
+      Math.hypot(target.x - this.pos.x, target.z - this.pos.z) > WALK.arriveEps ||
+      Math.abs(angleDiff(this.yaw, face ?? 0)) > WALK.settleAngle
+    )
   }
 
   private startGesture(clip: OneShotClip, fade: number): void {
@@ -155,8 +160,8 @@ export class TutorMotion {
   }
 
   // Walking: turn toward the travel direction, accelerate, ease into the spot,
-  // then turn back to the camera. Returns true while he is not settled.
-  private walk(dt: number, target: { x: number; z: number }): boolean {
+  // then turn back to the camera (or to `face`). Returns true while he is not settled.
+  private walk(dt: number, target: { x: number; z: number }, face = 0): boolean {
     const dx = target.x - this.pos.x
     const dz = target.z - this.pos.z
     const dist = Math.hypot(dx, dz)
@@ -180,8 +185,8 @@ export class TutorMotion {
       return true
     }
     this.speed = 0
-    this.yaw = dampAngle(this.yaw, 0, WALK.turnBackK, dt)
-    if (Math.abs(this.yaw) > WALK.settleAngle) {
+    this.yaw = dampAngle(this.yaw, face, WALK.turnBackK, dt)
+    if (Math.abs(angleDiff(this.yaw, face)) > WALK.settleAngle) {
       this.phase = 'settling'
       return true
     }
@@ -201,7 +206,7 @@ export class TutorMotion {
       this.pending = null
     }
 
-    const moving = this.walk(dt, input.target)
+    const moving = this.walk(dt, input.target, input.face ?? 0)
 
     if (moving) {
       // A spot change cuts a one-shot; requests made mid-walk wait for arrival.
@@ -230,7 +235,7 @@ export class TutorMotion {
   // Face for the dominant clip (the manifest wins over DEFAULT_FACE).
   face(): FaceState {
     if (this.phase === 'walking') return 'neutral'
-    const asked = this.requested ? DEFAULT_FACE[this.requested] : undefined
+    const asked = this.requested ? defaultFace(this.requested) : undefined
     const own = this.meta(this.playing)?.face
     // A stand-in clip plays the requested clip's mood (sleep -> idle keeps closed eyes).
     if (this.playing !== this.requested) return asked ?? own ?? 'neutral'

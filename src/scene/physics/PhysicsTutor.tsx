@@ -5,17 +5,20 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { MathUtils, Quaternion, Vector3, type Group, type Object3D, type Vector3Tuple } from 'three'
 import { useDirector, type LoopClip } from '../../state/director'
 import { useMode } from '../../state/mode'
+import { useTumbles } from '../../state/tumbles'
 import { PHYSICS, PLAY_CLIPS, ROOM_BOX } from './config'
 import { clampLength, Grabber, spinFromVelocity } from './grab'
 import { playHandlers, usePlayBody, type PlayBodyState } from './playBody'
+import { TumbleJudge } from './tumbleCause'
 
-// The tutor as one physical body. In study mode he is kinematic and simply
-// follows wherever the director puts him. In play / celebrate mode a held
-// press picks him up (he dangles on a spring under the pointer, playing the
-// 'dragged' loop), letting go flings him as a whole-body dynamic capsule that
-// tumbles and bounces around the room, and once he settles he pops back
-// upright with a 'recover' one-shot and a burst of stars, standing where he
-// landed. A quick tap is passed to onTap (the existing tickle / poke).
+// The tutor as one physical body. Left alone he is kinematic and simply
+// follows wherever the director puts him. In any mode a held press picks him
+// up (he dangles on a spring under the pointer, playing the 'dragged' loop),
+// letting go flings him as a whole-body dynamic capsule that tumbles and
+// bounces around the room, and once he settles he pops back upright with a
+// 'recover' one-shot and a burst of stars. In play / celebrate mode he stands
+// where he landed; in study mode he glides back to the lesson's spot. A quick
+// tap is passed to onTap (the existing tickle / poke).
 //
 // Drop it around the existing tutor: <PhysicsTutor onTap={poke}><BlenderTutorSafe /></PhysicsTutor>.
 // The child may place itself (BlenderTutor moves its own root to the director's
@@ -59,6 +62,7 @@ class TutorBody {
   placed = false // body teleported onto him at least once
   savedLoop: LoopClip | null = null
   tossSide = 1
+  readonly judge = new TumbleJudge() // what knocked him over, told to useTumbles when he lands
 }
 
 export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
@@ -83,9 +87,10 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
     if (!r) return
     const d = useDirector.getState()
     if (body.state === 'idle') body.savedLoop = d.loop
+    body.judge.pick()
     r.setBodyType(ROT_KINEMATIC, true)
     if (PLAY_CLIPS.pickUp) d.play(PLAY_CLIPS.pickUp)
-    if (d.loop !== PLAY_CLIPS.held) d.setLoop(PLAY_CLIPS.held)
+    useTumbles.getState().setHold(PLAY_CLIPS.held) // held over the lesson's loop changes
     body.euler.x = body.euler.z = 0
     setState('held')
   }
@@ -102,7 +107,7 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
     r.setRotation(body.quat, true)
     r.setLinvel(vel, true)
     r.setAngvel(body.spin, true)
-    if (d.loop !== PLAY_CLIPS.flying) d.setLoop(PLAY_CLIPS.flying)
+    useTumbles.getState().setHold(PLAY_CLIPS.flying)
     body.settle = 0
     body.flight = 0
     body.prevCenter.copy(body.center)
@@ -122,9 +127,12 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
     const feetY = body.base.y + body.pivot.y - C.centerY
     body.to.set(MathUtils.clamp(body.center.x, -L.xMax, L.xMax), feetY + C.centerY, MathUtils.clamp(body.center.z, L.zMin, L.zMax))
     body.recover = 0
+    // What knocked him over picks the tumble variant.
+    const verdict = body.judge.land(feetY)
+    if (verdict) useTumbles.getState().knock(verdict.cause, verdict.dir)
     const d = useDirector.getState()
-    // Hand-off rule (animController): setLoop then play in one tick, or the tumble loop (100) blocks the recover (90).
-    d.setLoop(body.savedLoop ?? 'idle')
+    // Hand-off rule (animController): drop the hold and play in one tick, or the tumble loop (100) blocks the recover (90).
+    useTumbles.getState().setHold(null)
     body.savedLoop = null
     if (PLAY_CLIPS.recover) d.play(PLAY_CLIPS.recover)
     setState('recovering')
@@ -139,6 +147,8 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
       // Toss toward the room's middle when he stands off to one side.
       const side = Math.abs(body.center.x) > 1 ? -Math.sign(body.center.x) : body.tossSide
       body.quat.identity()
+      body.judge.reset()
+      body.judge.release(side * t.side, t.up, t.back, true)
       enterFlying(body.v.set(side * t.side, t.up, t.back))
       return true
     }
@@ -158,11 +168,23 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
     }
   }, [gl, playing])
 
-  // Leaving or unmounting mid-drag: drop the pointer and the cursor.
+  // The e2e reads the last knock off <body data-gg-tumble="cause" data-gg-tumble-id="n">.
+  useEffect(
+    () =>
+      useTumbles.subscribe((st) => {
+        if (!st.last) return
+        document.body.dataset.ggTumble = st.last.cause
+        document.body.dataset.ggTumbleId = String(st.last.id)
+      }),
+    [],
+  )
+
+  // Leaving or unmounting mid-drag: drop the pointer, the cursor and any held clip.
   useEffect(
     () => () => {
       body.grab.cancel()
       document.body.style.cursor = ''
+      if (body.state === 'held' || body.state === 'flying') useTumbles.getState().setHold(null)
     },
     [body],
   )
@@ -185,13 +207,18 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
     else body.pivot.set(0, 0, 0)
     body.pivot.y += C.centerY
 
-    // Pointer.
-    const canPick = play && (body.state === 'idle' || body.state === 'flying')
+    // Pointer. Study mode picks him up too (it is the default mode, so a
+    // play-only drag read as "the mouse does nothing"); PhysicsRoom runs the
+    // world while he is off his feet.
+    const canPick = body.state === 'idle' || body.state === 'flying'
     const ev = body.grab.update(dt, state.camera, state.size, body.center, canPick)
     if (ev === 'tap' && body.state === 'idle') props.current.onTap?.()
     else if (ev === 'pick') enterHeld()
-    else if (ev === 'release') enterFlying(body.v.copy(body.grab.releaseVel))
-    if (!play && (body.state === 'held' || body.state === 'flying')) enterRecovering()
+    else if (ev === 'release') {
+      const rv = body.grab.releaseVel
+      body.judge.release(rv.x, rv.y, rv.z)
+      enterFlying(body.v.copy(rv))
+    }
 
     switch (body.state) {
       case 'idle': {
@@ -210,6 +237,7 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
       case 'held': {
         const g = body.grab
         body.center.copy(g.pos)
+        body.judge.held(dt, g.vel.x)
         const s = C.swing
         const k = 1 - Math.exp(-s.damp * dt)
         body.euler.z += (MathUtils.clamp(-g.vel.x * s.gain, -s.max, s.max) - body.euler.z) * k
@@ -230,6 +258,15 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
         const speed = body.center.distanceTo(body.prevCenter) / Math.max(dt, 1e-4)
         const spin = (2 * Math.acos(Math.min(1, Math.abs(body.quat.dot(body.prevQuat))))) / Math.max(dt, 1e-4)
         body.settle = speed < C.settleSpeed && spin < C.settleSpin ? body.settle + dt : 0
+        const inv = 1 / Math.max(dt, 1e-4)
+        body.judge.flying(
+          body.center.x,
+          body.center.y,
+          body.center.z,
+          (body.center.x - body.prevCenter.x) * inv,
+          (body.center.y - body.prevCenter.y) * inv,
+          (body.center.z - body.prevCenter.z) * inv,
+        )
         body.prevCenter.copy(body.center)
         body.prevQuat.copy(body.quat)
         const lost =
@@ -276,12 +313,12 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     body.grab.press(e.nativeEvent.clientX, e.nativeEvent.clientY, e.pointerId, gl.domElement)
-    if (useMode.getState().mode !== 'study') document.body.style.cursor = 'grabbing'
+    document.body.style.cursor = 'grabbing'
   }
   const onPointerOver = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     hover.current = true
-    if (!body.grab.active) document.body.style.cursor = useMode.getState().mode === 'study' ? 'pointer' : 'grab'
+    if (!body.grab.active) document.body.style.cursor = 'grab'
   }
   const onPointerOut = () => {
     hover.current = false

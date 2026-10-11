@@ -5,7 +5,8 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 // XP persists in localStorage through a wrapper that swallows every storage
 // error, so private windows and blocked site data just start fresh each visit.
 
-export type XpReason = 'poke' | 'highfive' | 'catch' | 'snack' | 'dance' | 'stepDone' | 'quizCorrect' | 'lessonDone'
+// hoops = a made jump shot, trick = a dribble / kick / juggle / dunk (src/scene/hoops).
+export type XpReason = 'poke' | 'highfive' | 'catch' | 'snack' | 'dance' | 'stepDone' | 'quizCorrect' | 'lessonDone' | 'hoops' | 'trick'
 
 export const XP_REWARD: Record<XpReason, number> = {
   poke: 5,
@@ -16,6 +17,8 @@ export const XP_REWARD: Record<XpReason, number> = {
   stepDone: 20,
   quizCorrect: 50,
   lessonDone: 100,
+  hoops: 15,
+  trick: 10,
 }
 
 // Short label for the floating "+N XP" toast, per reason.
@@ -28,6 +31,8 @@ export const XP_LABEL: Record<XpReason, string> = {
   stepDone: 'Step done',
   quizCorrect: 'Correct!',
   lessonDone: 'Lesson complete',
+  hoops: 'Swish!',
+  trick: 'Nice moves!',
 }
 
 // Total XP needed to reach `level` (level 1 needs 0).
@@ -42,8 +47,17 @@ export function levelForXp(xp: number): number {
 }
 
 // Level at which each dance unlocks. The quiz celebration and the dance party
-// pick from the unlocked ones.
-export const DANCE_UNLOCKS = { dance_bounce: 1, dance_spin: 2, dance_robot: 3 } as const
+// pick from the unlocked ones. Every dance is open by level 4.
+export const DANCE_UNLOCKS = {
+  dance_bounce: 1,
+  dance_spin: 2,
+  dance_shuffle: 2,
+  dance_robot: 3,
+  dance_wave: 3,
+  dance_floss: 3,
+  dance_disco: 4,
+  dance_twist: 4,
+} as const
 export type Dance = keyof typeof DANCE_UNLOCKS
 
 export function unlockedDances(level: number): Dance[] {
@@ -52,7 +66,7 @@ export function unlockedDances(level: number): Dance[] {
 
 // Everything a level unlocks, in level order. The HUD lists the next one as a
 // goal and the level-up banner announces the new ones.
-export type UnlockId = 'dance_spin' | 'dance_robot' | 'rainbow_cap' | 'party_lights'
+export type UnlockId = Exclude<Dance, 'dance_bounce'> | 'rainbow_cap' | 'party_lights'
 
 export interface Unlock {
   id: UnlockId
@@ -63,7 +77,12 @@ export interface Unlock {
 
 export const LEVEL_UNLOCKS: readonly Unlock[] = [
   { id: 'dance_spin', level: DANCE_UNLOCKS.dance_spin, label: 'Spin dance', blurb: 'He can twirl on the spot' },
+  { id: 'dance_shuffle', level: DANCE_UNLOCKS.dance_shuffle, label: 'Shuffle dance', blurb: 'Side-step shuffle, fists pumping' },
   { id: 'dance_robot', level: DANCE_UNLOCKS.dance_robot, label: 'Robot dance', blurb: 'Beep boop, robot moves' },
+  { id: 'dance_wave', level: DANCE_UNLOCKS.dance_wave, label: 'Wave dance', blurb: 'A ripple rolls from hand to hand' },
+  { id: 'dance_floss', level: DANCE_UNLOCKS.dance_floss, label: 'Floss dance', blurb: 'Arms whip, hips swing the other way' },
+  { id: 'dance_disco', level: DANCE_UNLOCKS.dance_disco, label: 'Disco dance', blurb: 'Point up, point down, disco fever' },
+  { id: 'dance_twist', level: DANCE_UNLOCKS.dance_twist, label: 'Twist dance', blurb: 'Twist down low and back up' },
   { id: 'rainbow_cap', level: 4, label: 'Rainbow cap', blurb: 'Recolour his graduation cap' },
   { id: 'party_lights', level: 5, label: 'Party lights', blurb: 'Dance parties light up the room' },
 ]
@@ -129,7 +148,8 @@ export interface ProgressState {
   levelUpId: number // bumps on every level-up, so the UI can celebrate once per bump
   levelFrom: number // level before the latest level-up, for the banner's unlock list
   lastAward: XpAward | null
-  award: (reason: XpReason) => void
+  // `xp` overrides the reason's XP_REWARD (a student's own basket pays HOOPS.basket.xp as 'hoops').
+  award: (reason: XpReason, xp?: number) => void
   resetProgress: () => void
 }
 
@@ -141,9 +161,9 @@ export const useProgress = create<ProgressState>()(
       levelUpId: 0,
       levelFrom: 1,
       lastAward: null,
-      award: (reason) =>
+      award: (reason, amount) =>
         set((s) => {
-          const gained = XP_REWARD[reason]
+          const gained = amount !== undefined && Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : XP_REWARD[reason]
           const xp = s.xp + gained
           const level = levelForXp(xp)
           const lastAward = { id: (s.lastAward?.id ?? 0) + 1, reason, xp: gained }

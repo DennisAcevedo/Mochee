@@ -32,7 +32,7 @@ export interface WalkStep {
   wait?: 'quiz' // stay on this step until the quick check is answered
 }
 
-// Notes tabs (stageContent.notesTabs order).
+// Notes tabs (index into notesTabs, shared/lessonNotes.ts).
 const LECTURE_4 = 0
 const CHEAT_SHEET = 2
 const ALL_BOARD = BOARD_PARTS.length
@@ -83,11 +83,11 @@ export const WALKTHROUGH: WalkStep[] = [
     title: 'To the board',
     say: "Let's try it on the board. Three jobs, **P1, P2 and P3**, all arrive at time **zero**.",
     color: 'sun',
-    spot: 'right',
+    spot: 'left',
     focus: 'board',
     mode: 'lecture',
     boardReveal: reveal('heading'),
-    loop: 'point_right',
+    loop: 'point_left',
   },
   {
     id: 'p1',
@@ -95,7 +95,7 @@ export const WALKTHROUGH: WalkStep[] = [
     say: '**P1** got in line first, so it runs first, for a long **24 milliseconds**.',
     color: 'teal',
     boardReveal: reveal('p1'),
-    loop: 'point_right',
+    loop: 'point_left',
   },
   {
     id: 'p2p3',
@@ -103,7 +103,7 @@ export const WALKTHROUGH: WalkStep[] = [
     say: 'Then **P2** and **P3** take just **3 ms** each. P2 starts at **24**, and P3 starts at **27**.',
     color: 'pink',
     boardReveal: reveal('ticks'),
-    loop: 'point_right',
+    loop: 'point_left',
   },
   {
     id: 'working',
@@ -149,10 +149,10 @@ export const WALKTHROUGH: WalkStep[] = [
     title: 'Quick check',
     say: "**Quick check!** Same jobs, new order: **P2, P3, then P1**. What's the average wait under **FCFS**? Tap an answer.",
     color: 'sun',
-    spot: 'right',
+    spot: 'left',
     focus: 'board',
     mode: 'quiz',
-    loop: 'point_right',
+    loop: 'point_left',
     gesture: 'hop',
     wait: 'quiz',
   },

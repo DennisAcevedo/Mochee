@@ -131,7 +131,7 @@ function buildFull() {
   tl.to(els(T.zs), { scale: 0, autoAlpha: 0, duration: E.duration - pop, ease: 'power2.in' }, pop)
   tl.set(els(T.overlay), { autoAlpha: 0 }, E.duration)
 
-  // 2. Camera pushes in on the face.
+  // 2. Camera pushes in on the face (the hidden classic rig's; IntroTutor follows it).
   tl.to(sceneRig.cam, { px: P.position[0], py: P.position[1], pz: P.position[2], tx: P.target[0], ty: P.target[1], tz: P.target[2], duration: P.duration, ease: P.ease }, P.at)
 
   // 3. Wake: eyes pop open with a twinkle, surprised hop, cap pops off and lands.

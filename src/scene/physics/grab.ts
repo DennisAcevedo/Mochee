@@ -12,6 +12,23 @@ import { PHYSICS, ROOM_BOX } from './config'
 
 export type GrabEvent = 'none' | 'tap' | 'pick' | 'held' | 'release'
 
+// An optional pull toward a point (the ball over the hoop's rim): when the pointer's ray passes
+// within `outer` of it, the target slides from the drag plane toward the ray's closest point to
+// it, all the way within `inner`, so a held thing can reach that depth (the drag plane stays
+// at the depth it was picked up from). Both points lie on the pointer's ray, so on screen the
+// held thing stays under the pointer while its depth changes; the spring stiffens toward `rate`
+// as the pull engages, so it gets there in a blink rather than lagging metres behind. A release
+// while engaged lets go from the pulled target (not the lagging spring) and keeps only `keep` of
+// the throw: over the hoop, letting go is a drop. The fling velocity never counts the pull's own
+// depth jump (it is measured on the drag plane).
+export interface GrabMagnet {
+  point: Vector3
+  inner: number
+  outer: number
+  rate: number // spring rate (1/s) once fully engaged
+  keep: number // share of the release velocity kept once fully engaged
+}
+
 const G = PHYSICS.grab
 
 interface CanvasRect {
@@ -27,8 +44,12 @@ export class Grabber {
   readonly vel = new Vector3() // spring velocity
   readonly target = new Vector3() // pointer point on the drag plane, lifted and clamped
   readonly releaseVel = new Vector3() // pointer velocity at release (world units / s)
+  magnet: GrabMagnet | null = null
+  engaged = 0 // how far the magnet's pull is engaged this frame (0..1)
 
+  private readonly free = new Vector3() // the target without the magnet's pull: what the fling velocity is measured on
   private readonly plane = new Plane()
+  private readonly near = new Vector3()
   private readonly ray = new Raycaster()
   private readonly ndc = new Vector2()
   private readonly hit = new Vector3()
@@ -84,6 +105,7 @@ export class Grabber {
   cancel() {
     this.detach()
     this.phase = 'none'
+    this.engaged = 0
     this.releaseVel.set(0, 0, 0)
   }
 
@@ -95,6 +117,8 @@ export class Grabber {
     this.pos.copy(center)
     this.vel.set(0, 0, 0)
     this.target.copy(center)
+    this.free.copy(center)
+    this.engaged = 0
     this.sampleCount = 0
   }
 
@@ -119,18 +143,26 @@ export class Grabber {
       return 'none'
     }
 
-    // Held: chase the pointer.
+    // Held: chase the pointer (stiffer as a magnet's pull engages).
     this.pointTarget(camera, rect)
     this.pushSample(now)
-    const k = G.springRate
+    const m = this.magnet
+    const w = m ? this.engaged : 0
+    const k = m ? G.springRate + (Math.max(m.rate, G.springRate) - G.springRate) * w : G.springRate
     const decay = Math.exp(-k * dt)
     springAxis(this, 'x', k, dt, decay)
     springAxis(this, 'y', k, dt, decay)
     springAxis(this, 'z', k, dt, decay)
     if (!this.upPending) return 'held'
     this.measureVelocity(now)
+    if (m && w > 0) {
+      // Let go over the magnet: from where the pull puts it, mostly dropped rather than flung.
+      this.pos.lerp(this.target, w)
+      this.releaseVel.multiplyScalar(1 - w * (1 - m.keep))
+    }
     this.detach()
     this.phase = 'none'
+    this.engaged = 0
     return 'release'
   }
 
@@ -140,16 +172,35 @@ export class Grabber {
     this.ndc.set(((this.x - rect.left) / rect.width) * 2 - 1, -((this.y - rect.top) / rect.height) * 2 + 1)
     this.ray.setFromCamera(this.ndc, camera)
     if (!this.ray.ray.intersectPlane(this.plane, this.hit)) return
+    this.free.copy(this.hit)
+    this.free.y += G.lift
+    this.free.clamp(this.min, this.max)
+    this.pull()
     this.hit.y += G.lift
     this.target.copy(this.hit).clamp(this.min, this.max)
   }
 
+  // The magnet: blend the plane point toward the ray's closest point to it (smoothstep in the miss distance).
+  private pull() {
+    this.engaged = 0
+    const m = this.magnet
+    if (!m || !(m.outer > m.inner)) return
+    const r = this.ray.ray
+    r.closestPointToPoint(m.point, this.near)
+    const miss = this.near.distanceTo(m.point)
+    if (miss >= m.outer) return
+    const u = Math.min(1, (m.outer - miss) / (m.outer - m.inner))
+    this.engaged = u * u * (3 - 2 * u)
+    this.hit.lerp(this.near, this.engaged)
+  }
+
+  // The fling velocity's samples: the drag-plane point (the magnet's pull is not the student's throw).
   private pushSample(now: number) {
     const i = this.sampleHead * 4
     this.samples[i] = now
-    this.samples[i + 1] = this.target.x
-    this.samples[i + 2] = this.target.y
-    this.samples[i + 3] = this.target.z
+    this.samples[i + 1] = this.free.x
+    this.samples[i + 2] = this.free.y
+    this.samples[i + 3] = this.free.z
     this.sampleHead = (this.sampleHead + 1) % G.samples
     this.sampleCount = Math.min(this.sampleCount + 1, G.samples)
   }

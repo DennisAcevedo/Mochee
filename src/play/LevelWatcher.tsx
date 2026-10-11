@@ -3,12 +3,17 @@ import { useDirector } from '../state/director'
 import { levelTitle, unlocksBetween, useProgress } from '../state/progress'
 import { PLAY } from './config'
 import { usePlay } from './playStore'
+import { useLessonMode } from './useLessonMode'
 
 // Celebrates every level-up exactly once: the levelup clip, the big burst and
 // the banner (new level + what it unlocked). Mount it once, anywhere in the
 // React tree; it renders nothing. Level-ups that happened before it mounted
-// (or that were restored from storage) are not replayed.
+// (or that were restored from storage) are not replayed. It also keeps the
+// guided lesson quiet in play mode (useLessonMode), since the lesson page
+// mounts it for as long as the lesson is open.
 export function LevelWatcher() {
+  useLessonMode()
+
   useEffect(() => {
     let timer = 0
     const unsubscribe = useProgress.subscribe((s, prev) => {

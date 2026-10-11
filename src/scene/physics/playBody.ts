@@ -1,3 +1,4 @@
+import type { RapierRigidBody } from '@react-three/rapier'
 import { create } from 'zustand'
 
 // Where the tutor's physics body is and what it is doing, for the camera,
@@ -30,6 +31,16 @@ export const usePlayBody = create<PlayBodyStore>((set) => ({
 export const playHandlers = {
   toss: null as (() => boolean) | null,
   shoot: null as (() => boolean) | null,
+  ball: null as BallHandle | null,
+}
+
+// The ball, for the Play tab's ball moves (src/scene/hoops/BallProp.tsx): they
+// take its body over (kinematic) and hide its mesh while they draw the ball in
+// his hands, then hand it back mid-flight, so only one ball ever shows.
+export interface BallHandle {
+  body: () => RapierRigidBody | null
+  busy: () => boolean // a pointer holds it
+  show: (shown: boolean) => void
 }
 
 // Toss the tutor into the air (play / celebrate mode only).

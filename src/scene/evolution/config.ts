@@ -1,56 +1,67 @@
-import { FLOOR_Y, ROOM } from '../layout3d'
+import { FLOOR_Y } from '../layout3d'
+import { frameAt } from '../room/stageSpace'
 import type { PaletteKey } from '../../growth/abilities'
 
-// Placement and look of everything the growth system adds to the room: the
-// library shelf (one book per document), topic posters on the upper side
-// walls, the trophy shelf (one trophy per mastered topic), the ability props
-// and the return experiment's scheduler race. Positions are world units and
-// are chosen to stay clear of the two windows and the
-// tutor's walking line (tuned against LESSON_CAMERA at 16:9).
+// Placement and look of everything the growth system adds to the stage: the
+// library shelf (one book per document), topic posters, the trophy shelf (one
+// trophy per mastered topic), the ability props and the return experiment's
+// scheduler race. The shelf islands are placed by where they land in the
+// 16:9 frame (frameAt, against LESSON_CAMERA), clear of the HUD, the browser
+// window, the tutor and the caption; the posters hang on the white box's back
+// wall beside the study room's window.
 
-const BACK_Z = -ROOM.backZ
-const HALF_W = ROOM.width / 2
-const CEIL_Y = FLOOR_Y + ROOM.height
+// Shelf islands sit in the frame's lower corners (the left one below the
+// browser window), turned a little toward the centre so their books read in 3D.
+const LIBRARY_AT = frameAt(0.165, 0.775, 0.2)
+const TROPHIES_AT = frameAt(0.835, 0.775, 0.2)
+
+// Poster slots on the white box's back wall, right of the study room's window
+// (x -1.52..1.52, world y 0.33..2.87) and above its trophy shelf (top near
+// world y 1.0): three across, two rows, top row first. World units, a little
+// off the wall so a poster turned toward the camera never cuts into it.
+const POSTER_Z = -6.8
+const POSTER_SLOTS: [number, number, number][] = [
+  [2.2, 2.55, POSTER_Z],
+  [3.1, 2.55, POSTER_Z],
+  [4.0, 2.55, POSTER_Z],
+  [2.2, 1.78, POSTER_Z],
+  [3.1, 1.78, POSTER_Z],
+  [4.0, 1.78, POSTER_Z],
+]
 
 export const EVOLUTION = {
-  // Library: a floating shelf on the back wall, upper left of the arch.
+  // Library: a floating shelf island, lower left.
   library: {
-    position: [-1.75, 1.6, BACK_Z + 0.16] as [number, number, number], // shelf top centre
+    position: LIBRARY_AT, // shelf top centre
+    yaw: 0.32, // toward the frame centre
+    scale: 0.68,
     width: 2.3,
     plank: { height: 0.08, depth: 0.26, color: '#ffffff', edge: 'violet' as PaletteKey },
     book: { width: 0.24, gap: 0.04, depth: 0.22, heights: [0.72, 0.64, 0.78, 0.68, 0.6], spineText: 0.07 },
     colors: ['violet', 'teal', 'coral', 'sun', 'indigo', 'lime', 'pink'] as PaletteKey[],
     max: 7, // books beyond this are left off the shelf
-    plaque: { text: 'LIBRARY', size: 0.1, dy: -0.17 },
+    plaque: { text: 'LIBRARY', size: 0.12, dy: -0.2 }, // under the shelf's front edge
   },
 
-  // Trophies: a matching shelf upper right of the arch, a pedestal per trophy.
+  // Trophies: the matching island, lower right, a pedestal per trophy.
   trophies: {
-    position: [1.75, 1.6, BACK_Z + 0.16] as [number, number, number],
+    position: TROPHIES_AT,
+    yaw: -0.32,
+    scale: 0.68,
     width: 2.3,
     plank: { height: 0.08, depth: 0.26, color: '#ffffff', edge: 'sun' as PaletteKey },
     pedestal: { width: 0.4, height: 0.2, color: '#ffffff', band: 'indigo' as PaletteKey },
     cup: { color: '#f2b51e', metalness: 0.85, roughness: 0.22, scale: 0.5 },
     spacing: 0.54,
     max: 4,
-    plaque: { text: 'TROPHIES', size: 0.1, dy: -0.17 },
+    plaque: { text: 'TROPHIES', size: 0.12, dy: -0.2 },
   },
 
-  // Posters on the upper side walls: above the windows on screen, below the
-  // ceiling. Slots fill left wall then right wall, front to back.
+  // Posters hang on the back wall right of the study window, facing the camera.
   posters: {
-    size: [1.2, 0.86] as [number, number], // along the wall (z), height
-    y: CEIL_Y - 0.9, // centre height
-    wallInset: 0.012,
-    slots: [
-      { side: -1, z: -2.4 },
-      { side: 1, z: -2.4 },
-      { side: -1, z: -3.85 },
-      { side: 1, z: -3.85 },
-      { side: -1, z: -5.3 },
-      { side: 1, z: -5.3 },
-    ] as { side: -1 | 1; z: number }[],
-    halfWidth: HALF_W,
+    size: [1.2, 0.86] as [number, number], // width, height
+    scale: 0.68, // three fit across the wall between the window and the corner
+    slots: POSTER_SLOTS,
     frame: 0.07,
     colors: ['violet', 'coral', 'teal', 'indigo', 'pink', 'lime'] as PaletteKey[],
     keyword: { size: 0.22, maxWidth: 1.0, charWidth: 0.6 }, // size shrinks so the keyword fits on one line
@@ -76,14 +87,15 @@ export const PROPS = {
 } as const
 
 // The return experiment's scheduler race: two vertical lanes flanking the
-// tutor's centre spot (FCFS left, SJF right). A lane's bottom slot is the CPU;
-// the job in it drains as it runs and the queue above drops into place.
+// tutor's centre spot (FCFS left, SJF right), standing on the platform. A
+// lane's bottom slot is the CPU; the job in it drains as it runs and the
+// queue above drops into place.
 export const RACE_SCENE = {
   lanes: [
-    { x: -1.22, color: 'coral' as PaletteKey },
-    { x: 1.22, color: 'lime' as PaletteKey },
+    { x: -0.98, color: 'coral' as PaletteKey },
+    { x: 0.98, color: 'lime' as PaletteKey },
   ],
-  z: -0.15,
+  z: 0.35, // inside the platform's ellipse at both lanes
   baseY: FLOOR_Y + 0.08, // top of the CPU plate
   width: 0.62,
   unit: 0.05, // block height per ms of burst

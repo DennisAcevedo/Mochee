@@ -1,12 +1,17 @@
 import { create } from 'zustand'
 import { lectureBoard, quiz } from '../data/mockLesson'
-import { boardShows, notesTabs, type BoardPart } from '../data/stageContent'
+import { boardShows, type BoardPart } from '../data/stageContent'
+import { notesTabs } from '../../shared/lessonNotes'
 import { useDirector } from '../state/director'
 import { useTutorStore } from '../state/store'
+import { useMode } from '../state/mode'
 import { askGemini, mockReply, type AskSource } from './askGemini'
-import { ASK_LIMITS, ASK_LINES, isLoopGesture, isOneShotGesture, type AskReply, type AskTurn } from './askTypes'
+import { ASK_LIMITS, ASK_LINES, type AskReply, type AskTurn } from '../../shared/askTypes'
+import { isLoopGesture, isOneShotGesture } from './askGestures'
 import { stripMarks } from './markup'
+import { startLatency, type LatencyTrace } from './latency'
 import { sayLine, useWalkthrough } from './runner'
+import { startLoop } from '../scene/windows/pointGate'
 import { isRecognizing, startRecognition, stopRecognition, stopSpeaking } from './speech'
 
 // The ask box and the mic, end to end: the student's line goes in the
@@ -15,7 +20,6 @@ import { isRecognizing, startRecognition, stopRecognition, stopSpeaking } from '
 // window the answer is about, points, highlights the line and says it.
 
 const ASK_FLOW = {
-  minThinkMs: 700, // let the think pose read even when the answer is instant
   offlineToast: 'Gemini is offline, so I used my notes.',
 } as const
 
@@ -28,6 +32,7 @@ export const useAskStatus = create<{ pending: boolean; source: AskSource | null;
 
 let seq = 0
 let finishing = false
+let pendingAnswer: AbortController | null = null
 
 const BOARD_TEXT: Record<BoardPart, string> = {
   heading: lectureBoard.heading,
@@ -73,10 +78,8 @@ function recentHistory(): AskTurn[] {
     .map((l) => ({ who: l.who, text: l.text }))
 }
 
-const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
-
 // Walk, focus, highlight, gesture, then say the answer; the lesson resumes after.
-function deliver(reply: AskReply) {
+function deliver(reply: AskReply, trace: LatencyTrace) {
   const d = useDirector.getState()
   const line = reply.highlight ? ASK_LINES.find((l) => l.id === reply.highlight) : undefined
   const focus = line ? 'notes' : reply.focus
@@ -84,49 +87,78 @@ function deliver(reply: AskReply) {
     d.setNotesTab(line.tabIndex)
     d.setHighlight(line.id)
   }
-  if (focus === 'notes') d.walkTo('left')
-  if (focus === 'board') d.walkTo('right')
-  if (focus !== 'none') d.setFocus(focus)
+  // Notes, board and quick check are all tabs of the one window on his left.
+  if (focus !== 'none') {
+    d.walkTo('left')
+    d.setFocus(focus)
+  }
 
-  const pointing = focus === 'notes' ? 'point_left' : focus === 'board' ? 'point_right' : 'talk'
-  const loop = isLoopGesture(reply.gesture) && reply.gesture !== 'talk' ? reply.gesture : pointing
-  if (isOneShotGesture(reply.gesture)) d.play(reply.gesture)
+  const pointing = focus === 'none' ? 'talk' : 'point_left'
+  // Everything he can point at lives in the window on his left: a model 'point_right' means that window too.
+  const g = reply.gesture === 'point_right' ? 'point_left' : reply.gesture
+  const loop = isLoopGesture(g) && g !== 'talk' ? g : pointing
+  if (isOneShotGesture(reply.gesture)) d.play(reply.gesture, { vary: true })
 
-  const w = useWalkthrough.getState()
-  w.setLoopOverride(loop)
+  // A point waits for the camera to settle on the focused window (talk until
+  // then), and with no window focused he talks instead (pointGate.ts).
+  const my = seq
+  startLoop(loop, (l) => useWalkthrough.getState().setLoopOverride(l), () => my === seq && useWalkthrough.getState().loopOverride === 'talk')
   sayLine(reply.answer, () => {
     useWalkthrough.getState().setLoopOverride(null)
     useWalkthrough.getState().release()
-  })
+  }, undefined, trace)
 }
 
 // Called by store.ask() after the student's line is in the transcript.
 export function askTutor(question: string, fallback: string) {
   const my = ++seq
+  pendingAnswer?.abort()
+  const abort = new AbortController()
+  pendingAnswer = abort
+  const trace = startLatency('question')
   useWalkthrough.getState().hold()
   stopSpeaking()
   useDirector.getState().setCaption(null)
   useAskStatus.setState({ pending: true })
-  const t0 = performance.now()
-  void askGemini({ question, context: lessonContext(), history: recentHistory() }).then(async (reply) => {
-    const left = ASK_FLOW.minThinkMs - (performance.now() - t0)
-    if (left > 0) await wait(left)
-    if (my !== seq) return // a newer question owns the flow now
+  const unsubscribe = useTutorStore.subscribe((state, previous) => {
+    if ((previous.awaitingReply && !state.awaitingReply) || (state.phase !== previous.phase && state.phase !== 'live')) {
+      abort.abort()
+      if (pendingAnswer === abort) {
+        pendingAnswer = null
+        useAskStatus.setState({ pending: false })
+      }
+    }
+  })
+  const unsubscribeMode = useMode.subscribe((state, previous) => {
+    if (state.mode === previous.mode || pendingAnswer !== abort) return
+    abort.abort()
+    useTutorStore.setState({ awaitingReply: false })
+    useWalkthrough.setState({ held: false })
+  })
+  void askGemini({ question, context: lessonContext(), history: recentHistory() }, abort.signal).then((reply) => {
+    unsubscribe()
+    unsubscribeMode()
+    if (my !== seq || abort.signal.aborted) { trace.finish('cancelled'); return }
+    pendingAnswer = null
+    trace.mark('answerReady')
     // Something else took the floor while he thought (a quiz pick, a mode
     // switch, a reset): drop the answer, but free the chat and the lesson.
     if (!useTutorStore.getState().awaitingReply) {
       useAskStatus.setState({ pending: false })
       useWalkthrough.setState({ held: false })
+      trace.finish('cancelled')
       return
     }
     useAskStatus.setState({ pending: false, source: reply ? 'gemini' : 'mock', model: reply?.model ?? null })
     if (!reply) useTutorStore.getState().showToast(ASK_FLOW.offlineToast)
-    deliver(reply ?? mockReply(fallback))
+    if (!reply) trace.mark('answerFallback')
+    deliver(reply ?? mockReply(fallback), trace)
   })
 }
 
 // store.startListening(): he stops talking and listens; the field shows what he hears.
 export function beginListening() {
+  useTutorStore.setState({ awaitingReply: false })
   useWalkthrough.getState().hold()
   stopSpeaking()
   useDirector.getState().setCaption(null)

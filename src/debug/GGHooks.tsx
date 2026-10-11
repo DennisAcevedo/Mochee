@@ -11,12 +11,15 @@ import { useWalkthrough } from '../lesson/runner'
 import { RESOLVED_STEPS } from '../lesson/walkthrough'
 import { anchors } from '../scene/anchors'
 import { ROOM_BOX, shootBall, tossTutor, usePlayBody } from '../scene/physics'
+import { shown, windowRects } from '../scene/windows/registry'
+import { WIN } from '../scene/windows/tabModel'
 import { useDirector } from '../state/director'
 import { useDrawers } from '../state/drawers'
 import { useGrowth } from '../state/growth'
 import { useMode } from '../state/mode'
 import { useProgress } from '../state/progress'
 import { useTutorStore } from '../state/store'
+import { useWindows } from '../state/windows'
 
 // Dev-only hooks for the end-to-end tests (tests/e2e/lesson_e2e.py, study_play_e2e.py):
 // window.__gg exposes the stores, the walkthrough steps, the loaded model's
@@ -42,6 +45,8 @@ interface GG {
   played: { clip: string; t: number }[] // one-shots the tutor really started (performance.now() ms)
   loops: { clip: string; t: number }[] // base loops he switched to
   drops: { clip: string; reason: string; t: number }[] // one-shots the state machine dropped
+  // The Chrome window: its store, and each tab's / button's / grip's screen rect for real mouse drags.
+  windows: { store: typeof useWindows; rects: () => ReturnType<typeof windowRects> }
 }
 
 declare global {
@@ -147,6 +152,17 @@ export function GGHooks() {
       steps: RESOLVED_STEPS,
       model,
       screenOf: (name) => {
+        // Off the stage when it or any ancestor is hidden, and anything in a
+        // closed or folded window (its group stays put, hidden inside; the
+        // store flips before the fold's animation hides it).
+        const obj = scene.getObjectByName(name)
+        if (!obj || !shown(obj)) return null
+        let inWindow = false
+        for (let o: Object3D | null = obj; o && !inWindow; o = o.parent) inWindow = o.name === `${WIN}-window`
+        if (inWindow) {
+          const w = useWindows.getState()
+          if (w.closed || w.minimized) return null
+        }
         const p = aimPoint(scene, name, v)
         return p ? project(p, camera, canvas) : null
       },
@@ -157,6 +173,7 @@ export function GGHooks() {
       played,
       loops,
       drops,
+      windows: { store: useWindows, rects: () => windowRects(camera, canvas) },
     }
     return () => {
       delete window.__gg

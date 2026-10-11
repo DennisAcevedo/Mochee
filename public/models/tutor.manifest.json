@@ -297,6 +297,678 @@
       "loop": true,
       "face": "focused",
       "fx": []
+    },
+    {
+      "name": "dance_shuffle",
+      "duration": 2.4,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.4,
+          "ring"
+        ],
+        [
+          2.07,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "dance_wave",
+      "duration": 2.4,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.25,
+          "ring"
+        ],
+        [
+          2.06,
+          "hearts"
+        ]
+      ]
+    },
+    {
+      "name": "dance_floss",
+      "duration": 2.0,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.12,
+          "ring"
+        ],
+        [
+          1.72,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "dance_disco",
+      "duration": 2.4,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.15,
+          "stars"
+        ],
+        [
+          1.15,
+          "ring"
+        ],
+        [
+          2.1,
+          "confetti"
+        ]
+      ]
+    },
+    {
+      "name": "dance_twist",
+      "duration": 2.2,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.9,
+          "ring"
+        ],
+        [
+          1.97,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "emote_laugh",
+      "duration": 1.3,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.24,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "emote_shy",
+      "duration": 1.4,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.3,
+          "hearts"
+        ]
+      ]
+    },
+    {
+      "name": "emote_doubletake",
+      "duration": 1.1,
+      "loop": false,
+      "face": "surprised",
+      "fx": [
+        [
+          0.4,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "emote_fistpump",
+      "duration": 1.0,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.26,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "emote_facepalm",
+      "duration": 1.3,
+      "loop": false,
+      "face": "closed",
+      "fx": []
+    },
+    {
+      "name": "emote_nod",
+      "duration": 0.9,
+      "loop": false,
+      "face": "happy",
+      "fx": []
+    },
+    {
+      "name": "emote_headshake",
+      "duration": 1.0,
+      "loop": false,
+      "face": "closed",
+      "fx": []
+    },
+    {
+      "name": "emote_love",
+      "duration": 1.5,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.3,
+          "hearts"
+        ],
+        [
+          0.9,
+          "hearts"
+        ]
+      ]
+    },
+    {
+      "name": "emote_salute",
+      "duration": 1.2,
+      "loop": false,
+      "face": "focused",
+      "fx": [
+        [
+          0.26,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "emote_thumbsup",
+      "duration": 1.0,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.26,
+          "sparkles"
+        ]
+      ]
+    },
+    {
+      "name": "play_shoot",
+      "duration": 1.2,
+      "loop": false,
+      "face": "focused",
+      "fx": [
+        [
+          0.76,
+          "ring"
+        ]
+      ],
+      "ball": {
+        "radius": 0.2,
+        "events": [
+          {
+            "kind": "grab",
+            "t": 0.1,
+            "frame": 6,
+            "pos": [
+              0.0,
+              0.7,
+              1.08
+            ]
+          },
+          {
+            "kind": "release",
+            "t": 0.5,
+            "frame": 30,
+            "pos": [
+              0.0,
+              2.5,
+              1.04
+            ]
+          }
+        ],
+        "follow": {
+          "bone": "hand.R",
+          "node": "handR",
+          "offset": [
+            0.31,
+            0.03,
+            0.0
+          ]
+        },
+        "launch": [
+          0.0,
+          0.9912,
+          0.1322
+        ]
+      }
+    },
+    {
+      "name": "play_dribble",
+      "duration": 0.8,
+      "loop": true,
+      "face": "happy",
+      "fx": [],
+      "ball": {
+        "radius": 0.2,
+        "events": [
+          {
+            "kind": "catch",
+            "t": 0.0,
+            "frame": 0,
+            "pos": [
+              1.18,
+              0.74,
+              0.42
+            ]
+          },
+          {
+            "kind": "push",
+            "t": 0.1,
+            "frame": 6,
+            "pos": [
+              1.18,
+              0.45,
+              0.42
+            ]
+          },
+          {
+            "kind": "bounce",
+            "t": 0.2,
+            "frame": 12,
+            "pos": [
+              1.18,
+              0.2,
+              0.42
+            ]
+          },
+          {
+            "kind": "catch",
+            "t": 0.4,
+            "frame": 24,
+            "pos": [
+              1.18,
+              0.74,
+              0.42
+            ]
+          },
+          {
+            "kind": "push",
+            "t": 0.5,
+            "frame": 30,
+            "pos": [
+              1.18,
+              0.45,
+              0.42
+            ]
+          },
+          {
+            "kind": "bounce",
+            "t": 0.6,
+            "frame": 36,
+            "pos": [
+              1.18,
+              0.2,
+              0.42
+            ]
+          }
+        ],
+        "follow": {
+          "bone": "hand.L",
+          "node": "handL",
+          "offset": [
+            0.0,
+            -0.31,
+            0.0
+          ]
+        },
+        "launch": [
+          0.0,
+          -1.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "name": "play_dunk",
+      "duration": 1.5,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.82,
+          "sparkles"
+        ],
+        [
+          1.06,
+          "ring"
+        ]
+      ],
+      "ball": {
+        "radius": 0.2,
+        "events": [
+          {
+            "kind": "grab",
+            "t": 0.1,
+            "frame": 6,
+            "pos": [
+              1.12,
+              0.53,
+              0.42
+            ]
+          },
+          {
+            "kind": "release",
+            "t": 0.8,
+            "frame": 48,
+            "pos": [
+              0.8,
+              2.39,
+              0.9
+            ]
+          }
+        ],
+        "follow": {
+          "bone": "hand.L",
+          "node": "handL",
+          "offset": [
+            0.0,
+            -0.31,
+            0.0
+          ]
+        },
+        "launch": [
+          0.1278,
+          -0.9583,
+          0.2556
+        ]
+      }
+    },
+    {
+      "name": "play_kick",
+      "duration": 1.1,
+      "loop": false,
+      "face": "focused",
+      "fx": [
+        [
+          0.35,
+          "ring"
+        ]
+      ],
+      "ball": {
+        "radius": 0.2,
+        "events": [
+          {
+            "kind": "rest",
+            "t": 0.0,
+            "frame": 0,
+            "pos": [
+              0.3,
+              0.2,
+              0.72
+            ]
+          },
+          {
+            "kind": "contact",
+            "t": 0.35,
+            "frame": 21,
+            "pos": [
+              0.3,
+              0.2,
+              0.72
+            ],
+            "bone": "foot.L"
+          }
+        ],
+        "launch": [
+          -0.2494,
+          0.449,
+          0.858
+        ]
+      }
+    },
+    {
+      "name": "play_juggle",
+      "duration": 0.8,
+      "loop": true,
+      "face": "happy",
+      "fx": [],
+      "ball": {
+        "radius": 0.2,
+        "events": [
+          {
+            "kind": "contact",
+            "t": 0.0,
+            "frame": 0,
+            "pos": [
+              0.36,
+              0.46,
+              0.93
+            ],
+            "bone": "foot.L"
+          },
+          {
+            "kind": "apex",
+            "t": 0.2,
+            "frame": 12,
+            "pos": [
+              0.0,
+              0.656,
+              0.93
+            ]
+          },
+          {
+            "kind": "contact",
+            "t": 0.4,
+            "frame": 24,
+            "pos": [
+              -0.36,
+              0.46,
+              0.93
+            ],
+            "bone": "foot.R"
+          },
+          {
+            "kind": "apex",
+            "t": 0.6,
+            "frame": 36,
+            "pos": [
+              0.0,
+              0.656,
+              0.93
+            ]
+          }
+        ],
+        "launch": [
+          -0.6764,
+          0.7365,
+          0.0
+        ]
+      }
+    },
+    {
+      "name": "play_catch_throw",
+      "duration": 1.3,
+      "loop": false,
+      "face": "happy",
+      "fx": [
+        [
+          0.3,
+          "ring"
+        ]
+      ],
+      "ball": {
+        "radius": 0.2,
+        "events": [
+          {
+            "kind": "catch",
+            "t": 0.3,
+            "frame": 18,
+            "pos": [
+              0.0,
+              0.62,
+              1.18
+            ]
+          },
+          {
+            "kind": "release",
+            "t": 0.65,
+            "frame": 39,
+            "pos": [
+              0.0,
+              0.72,
+              1.44
+            ]
+          }
+        ],
+        "follow": {
+          "bone": "hand.R",
+          "node": "handR",
+          "offset": [
+            0.31,
+            0.03,
+            0.0
+          ]
+        },
+        "launch": [
+          0.0,
+          0.1483,
+          0.9889
+        ]
+      }
+    },
+    {
+      "name": "play_jumprope",
+      "duration": 0.5,
+      "loop": true,
+      "face": "happy",
+      "fx": [],
+      "rope": {
+        "bones": [
+          "hand.L",
+          "hand.R"
+        ],
+        "nodes": [
+          "handL",
+          "handR"
+        ],
+        "events": [
+          {
+            "kind": "rope_over",
+            "t": 0.0,
+            "frame": 0
+          },
+          {
+            "kind": "rope_under",
+            "t": 0.25,
+            "frame": 15
+          }
+        ],
+        "phase": "rope angle = 360 deg * t / 0.5 s, 0 = overhead, 180 = under his feet (front at 90 deg)"
+      }
+    },
+    {
+      "name": "tumble_knockback",
+      "duration": 1.4,
+      "loop": false,
+      "face": "surprised",
+      "fx": [
+        [
+          0.42,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_spin",
+      "duration": 1.2,
+      "loop": false,
+      "face": "closed",
+      "fx": [
+        [
+          0.5,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_spin_l",
+      "duration": 1.2,
+      "loop": false,
+      "face": "closed",
+      "fx": [
+        [
+          0.5,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_splat",
+      "duration": 1.1,
+      "loop": false,
+      "face": "surprised",
+      "fx": [
+        [
+          0.04,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_bonk",
+      "duration": 1.3,
+      "loop": false,
+      "face": "closed",
+      "fx": [
+        [
+          0.04,
+          "stars"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_dizzy",
+      "duration": 1.6,
+      "loop": false,
+      "face": "focused",
+      "fx": [
+        [
+          0.1,
+          "stars"
+        ],
+        [
+          1.13,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_dizzy_l",
+      "duration": 1.6,
+      "loop": false,
+      "face": "focused",
+      "fx": [
+        [
+          0.1,
+          "stars"
+        ],
+        [
+          1.13,
+          "ring"
+        ]
+      ]
+    },
+    {
+      "name": "tumble_faceplant",
+      "duration": 1.2,
+      "loop": false,
+      "face": "surprised",
+      "fx": [
+        [
+          0.43,
+          "stars"
+        ]
+      ]
     }
   ],
   "bones": [

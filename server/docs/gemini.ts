@@ -13,6 +13,8 @@ export interface GeminiCall {
   schema: Record<string, unknown>
   temperature: number
   maxOutputTokens: number
+  inline?: { mimeType: string; base64: string } // inline file part, sent before the text (lecture audio, a PDF, an image)
+  timeoutMs?: number // default DOCS_CONFIG.timeoutMs
 }
 
 export const geminiModel = () => process.env.GEMINI_MODEL?.trim() || DOCS_CONFIG.defaultModel
@@ -33,7 +35,7 @@ export async function callGemini(call: GeminiCall): Promise<GeminiResult> {
       headers: { 'content-type': 'application/json', 'x-goog-api-key': call.key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: call.system }] },
-        contents: [{ role: 'user', parts: [{ text: call.user }] }],
+        contents: [{ role: 'user', parts: [...(call.inline ? [{ inlineData: { mimeType: call.inline.mimeType, data: call.inline.base64 } }] : []), { text: call.user }] }],
         generationConfig: {
           temperature: call.temperature,
           maxOutputTokens: call.maxOutputTokens,
@@ -42,7 +44,7 @@ export async function callGemini(call: GeminiCall): Promise<GeminiResult> {
           ...(thinking ? { thinkingConfig: thinking } : {}),
         },
       }),
-      signal: AbortSignal.timeout(DOCS_CONFIG.timeoutMs),
+      signal: AbortSignal.timeout(call.timeoutMs ?? DOCS_CONFIG.timeoutMs),
     })
   } catch (e) {
     const timedOut = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')

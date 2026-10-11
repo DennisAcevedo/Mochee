@@ -12,6 +12,11 @@ import styles from './LevelUpBanner.module.css'
 const UNLOCK_LOOK: Record<UnlockId, { icon: string; color: string }> = {
   dance_spin: { icon: '🌀', color: PALETTE.teal },
   dance_robot: { icon: '🤖', color: PALETTE.indigo },
+  dance_shuffle: { icon: '👟', color: PALETTE.coral },
+  dance_wave: { icon: '🌊', color: PALETTE.sun },
+  dance_floss: { icon: '💫', color: PALETTE.lime },
+  dance_disco: { icon: '💃', color: PALETTE.violet },
+  dance_twist: { icon: '🌪️', color: PALETTE.teal },
   rainbow_cap: { icon: '🎓', color: PALETTE.coral },
   party_lights: { icon: '🪩', color: PALETTE.violet },
 }

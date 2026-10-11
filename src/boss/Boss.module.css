@@ -1,0 +1,197 @@
+/* Beat the Boss. Two looks: the picker (an opaque layer with a centred card)
+   and the fight (a transparent HUD over the lesson stage, where the 3D arena
+   plays). z-index: .backdrop 60 < the stage canvas (61, set by fight.ts) <
+   .fightLayer 62; keep in sync with ARENA_Z in arena/config.ts. Beat timings
+   arrive as CSS variables from BossLayer (--t-hit, --t-miss, --t-ko ...). */
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  font-family: 'Figtree', system-ui, sans-serif;
+  color: #1d1b24;
+  background: rgba(246, 243, 251, 0.94);
+  outline: none;
+}
+.fightLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 62;
+  font-family: 'Figtree', system-ui, sans-serif;
+  color: #1d1b24;
+  background: transparent;
+  outline: none;
+  overflow: hidden;
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: radial-gradient(55% 60% at 74% 92%, #ffd7e4 0%, rgba(255, 215, 228, 0) 100%),
+    radial-gradient(50% 60% at 14% 18%, #dbe4ff 0%, rgba(219, 228, 255, 0) 100%),
+    radial-gradient(40% 40% at 90% 10%, #fff0c6 0%, rgba(255, 240, 198, 0) 100%), #f8f6fc;
+}
+/* Above .battle (a full-window layer painted after it), so the close button stays clickable. */
+.header { position: absolute; z-index: 3; left: 0; right: 0; top: 0; height: 72px; display: flex; align-items: center; gap: 14px; padding: 0 24px; }
+.badge { padding: 6px 12px; border-radius: 999px; background: #1d1b24; color: #fff; font-size: 13px; font-weight: 800; }
+.title { margin: 0; font-size: 22px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flex { flex: 1; }
+.fightTag { padding: 6px 12px; border-radius: 999px; background: #ffe4d6; color: #b8452f; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.close { width: 40px; height: 40px; border: 0; border-radius: 12px; background: #fff; font-size: 24px; font-weight: 800; cursor: pointer; box-shadow: 0 0 0 1px rgba(29, 27, 36, 0.08); }
+.main {
+  position: absolute; left: 16px; right: 16px; top: 80px; bottom: 16px; border-radius: 28px; overflow: hidden;
+  background: radial-gradient(55% 60% at 74% 92%, #ffd7e4 0%, rgba(255, 215, 228, 0) 100%),
+    radial-gradient(50% 60% at 14% 18%, #dbe4ff 0%, rgba(219, 228, 255, 0) 100%),
+    radial-gradient(40% 40% at 90% 10%, #fff0c6 0%, rgba(255, 240, 198, 0) 100%), #f8f6fc;
+  box-shadow: inset 0 0 0 1px rgba(29, 27, 36, 0.05);
+}
+.layer button:focus-visible, .fightLayer button:focus-visible { outline: 3px solid #7c5cf2; outline-offset: 2px; }
+.tw1, .tw2, .tw3 { position: absolute; animation: twinkle 3s ease-in-out infinite; }
+.tw1 { left: 8%; top: 30%; width: 26px; }
+.tw2 { left: 46%; top: 20%; width: 18px; animation-delay: 0.5s; }
+.tw3 { right: 7%; top: 34%; width: 22px; animation-delay: 1s; }
+
+/* picker */
+.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(820px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 14px; padding: 24px; border-radius: 26px; background: #fff; box-shadow: 0 24px 48px -28px rgba(61, 90, 214, 0.55), 0 0 0 1px rgba(29, 27, 36, 0.05); }
+.cardTitle { margin: 0; font-size: 28px; font-weight: 900; }
+.cardText { font-size: 15px; color: #4a4756; line-height: 1.4; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.pick { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border: 2px solid #ebe9f2; border-radius: 16px; background: #fff; cursor: pointer; text-align: left; transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1); font-family: inherit; color: inherit; }
+.pick:hover { transform: translateY(-2px); }
+.pickName { font-size: 18px; font-weight: 900; letter-spacing: 0.06em; }
+.pickTag { font-size: 14px; font-weight: 700; color: #4a4756; }
+.pickMeta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #77738a; }
+.status { position: relative; margin: 0; font-size: 15px; font-weight: 700; color: #4a4756; }
+.main > .status { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 18px; }
+.primary { padding: 10px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #7c5cf2, #3d5ad6); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; align-self: flex-start; }
+.secondary { padding: 10px 16px; border: 0; border-radius: 12px; background: #f1eff7; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; color: inherit; align-self: flex-start; }
+.row { display: flex; gap: 8px; margin-top: 6px; }
+
+/* fight: the HUD over the arena */
+.battle { position: absolute; inset: 0; }
+.hud, .hudShake { position: absolute; left: 24px; top: 84px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 18px; background: rgba(255, 255, 255, 0.86); box-shadow: 0 10px 24px -16px rgba(61, 90, 214, 0.6); animation: hudInL 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+/* The slide-in stays first in the list, so switching to the shake class only
+   adds the shake (and switching back drops it): the slide-in never replays. */
+.hudShake { animation: hudInL 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both, shakeHard 420ms ease-out var(--t-miss) both; }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #77738a; }
+.hearts { display: flex; gap: 6px; }
+.heartBox { position: relative; display: block; width: 28px; height: 28px; }
+.heart, .heartEmpty, .heartEmptyLate { display: block; }
+.heart { animation: heartBeat 1.6s ease-in-out infinite; transform-origin: 50% 60%; }
+.heartEmptyLate { animation: fadeIn 1ms linear var(--t-miss) both; }
+.halfL, .halfR { position: absolute; left: 0; top: 0; display: block; }
+.halfL { clip-path: polygon(0 0, 52% 0, 44% 30%, 58% 52%, 46% 74%, 52% 100%, 0 100%); animation: crackL 620ms cubic-bezier(0.4, 0, 0.7, 1) var(--t-miss) both; }
+.halfR { clip-path: polygon(52% 0, 100% 0, 100% 100%, 52% 100%, 46% 74%, 58% 52%, 44% 30%); animation: crackR 620ms cubic-bezier(0.4, 0, 0.7, 1) var(--t-miss) both; }
+.streak { font-size: 13px; font-weight: 800; color: #4a4756; }
+.bossHud, .bossHudHit { position: absolute; right: 24px; top: 84px; width: min(340px, 40%); display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 18px; background: rgba(29, 27, 36, 0.88); color: #fff; box-shadow: 0 10px 24px -16px rgba(29, 27, 36, 0.8); animation: hudInR 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.bossHudHit { animation: hudInR 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both, shakeSoft 360ms ease-out var(--t-hit) both; }
+.bossTitle { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.bossName { font-size: 18px; font-weight: 900; letter-spacing: 0.06em; }
+.bossGuards { font-size: 12px; font-weight: 700; color: #c9c6d8; }
+.hp { position: relative; display: block; height: 14px; border-radius: 7px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
+.hpGhost, .hpFill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; }
+.hpGhost { background: #ffe1a6; transition: width 620ms cubic-bezier(0.5, 0, 0.6, 1) calc(var(--t-hit-after) + 260ms); }
+.hpFill { background: linear-gradient(90deg, #ea4335, #ff8a5b 60%, #fbbc04); transition: width 340ms cubic-bezier(0.2, 0.9, 0.3, 1) var(--t-hit-after); }
+.hpTicks { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--segs) - 2px), rgba(29, 27, 36, 0.88) calc(100% / var(--segs) - 2px) calc(100% / var(--segs))); }
+
+/* over the fighters: the arena writes --guy-x/y and --boss-x/y (px) */
+.combo, .comboLate { position: absolute; left: var(--guy-x, 30%); top: calc(var(--guy-y, 40%) - 54px); transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: linear-gradient(90deg, #4285f4, #ea4335, #fbbc04, #34a853); color: #fff; font-size: 14px; font-weight: 900; letter-spacing: 0.06em; white-space: nowrap; pointer-events: none; box-shadow: 0 8px 18px -10px rgba(61, 90, 214, 0.8); animation: comboPop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.comboLate { animation-delay: var(--t-hit); }
+.dmg { position: absolute; left: var(--boss-x, 70%); top: calc(var(--boss-y, 40%) - 10px); font-size: 40px; font-weight: 900; color: #ea4335; text-shadow: 0 3px 0 #fff, 0 6px 12px rgba(234, 67, 53, 0.35); white-space: nowrap; pointer-events: none; animation: dmgUp 900ms cubic-bezier(0.2, 0.8, 0.3, 1) var(--t-hit) both; }
+.dizzy { position: absolute; left: var(--guy-x, 30%); top: calc(var(--guy-y, 40%) - 16px); width: 96px; height: 32px; pointer-events: none; animation: orbit 900ms linear calc(var(--t-miss) + 700ms) infinite, fadeIn 200ms ease-out calc(var(--t-miss) + 700ms) both; }
+.dz1, .dz2, .dz3 { position: absolute; }
+.dz1 { left: 0; top: 8px; width: 18px; }
+.dz2 { right: 0; top: 8px; width: 14px; }
+.dz3 { left: 40px; top: 0; width: 12px; }
+.flashHit, .flashMiss, .flashKo { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+/* forwards, not both: during the delay the base opacity (0) holds, so the screen is not washed out until the impact. */
+.flashHit { background: #fff; animation: flash 220ms ease-out var(--t-hit) forwards; --flash: var(--flash-hit); }
+.flashMiss { background: radial-gradient(70% 70% at 50% 50%, rgba(234, 67, 53, 0) 40%, rgba(234, 67, 53, 0.9) 100%); animation: flash 420ms ease-out var(--t-miss) forwards; --flash: var(--flash-miss); }
+.flashKo { background: #fff; animation: flash 380ms ease-out var(--t-ko) forwards; --flash: var(--flash-ko); }
+.koBanner { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: 96px; font-weight: 900; font-style: italic; letter-spacing: 0.02em; color: #fbbc04; -webkit-text-stroke: 4px #1d1b24; text-shadow: 0 8px 0 #1d1b24; pointer-events: none; animation: koPop 1100ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--t-ko) both; }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti span { position: absolute; top: -20px; border-radius: 3px; animation-name: confetti; animation-timing-function: ease-in; animation-fill-mode: both; }
+
+/* question card: slides up per round, after the boss lands on the first */
+.question { position: absolute; left: 50%; bottom: 22px; width: min(820px, calc(100% - 32px)); transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; border-radius: 24px; background: #fff; box-shadow: 0 24px 48px -28px rgba(61, 90, 214, 0.55), 0 0 0 1px rgba(29, 27, 36, 0.05); max-height: 60%; overflow: auto; animation: cardUp 340ms cubic-bezier(0.2, 0.9, 0.3, 1.15) var(--card-delay, 0ms) both; }
+.qText { margin: 0; font-size: 19px; font-weight: 800; line-height: 1.3; }
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.opt, .optPicked, .optRight, .optWrong, .optDim { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; text-align: left; font-size: 15px; font-weight: 800; line-height: 1.3; border: 2px solid #ebe9f2; background: #fff; font-family: inherit; color: inherit; cursor: pointer; transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms; }
+.opt { animation: optIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--card-delay, 0ms) + 120ms + var(--i, 0) * 45ms) both; }
+.opt:hover:not(:disabled) { transform: translateY(-2px); }
+.opt:active:not(:disabled) { transform: scale(0.97); }
+.opt:disabled { cursor: default; }
+.optPicked { border-color: #7c5cf2; background: #f3efff; transform: scale(0.97); cursor: default; }
+.optRight { border-color: #34a853; background: #e8f6ec; cursor: default; animation: optRight 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.optWrong { border-color: #ea4335; background: #fff0ee; cursor: default; animation: optWrong 380ms ease-out both; }
+.optDim { opacity: 0.55; cursor: default; }
+.key { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: #1d1b24; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.optRight .key { background: #34a853; }
+.optWrong .key { background: #ea4335; }
+.feedbackHit, .feedbackMiss { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; animation: feedIn 240ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+.feedbackHit { background: #e8f6ec; color: #155c2c; }
+.feedbackMiss { background: #fff0ee; color: #8e2f24; }
+.feedbackText { flex: 1; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.quote { font-weight: 600; color: #4a4756; }
+.page { flex: none; padding: 3px 9px; border-radius: 999px; background: #fff; color: #3d5ad6; font-size: 12px; font-weight: 800; }
+.nextBtn { flex: none; padding: 9px 16px; border: 0; border-radius: 12px; background: #1d1b24; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: opacity 160ms; }
+/* Next and Try again wait for him to get back up. */
+.nextBtn:disabled, .primary:disabled { opacity: 0.45; cursor: default; }
+
+/* end cards */
+.endWon, .endLost { position: absolute; left: 50%; bottom: 40px; width: min(560px, calc(100% - 32px)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px; border-radius: 26px; background: #fff; text-align: center; animation: cardIn 360ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+.endWon .row, .endLost .row { justify-content: center; }
+.endWon { box-shadow: 0 30px 60px -30px rgba(52, 168, 83, 0.6); }
+.endLost { box-shadow: 0 30px 60px -30px rgba(234, 67, 53, 0.6); }
+.endTagWon, .endTagLost { font-size: 13px; font-weight: 900; letter-spacing: 0.1em; }
+.endTagWon { color: #1f8a43; }
+.endTagLost { color: #c4402f; }
+.endTitle { margin: 0; font-size: 28px; font-weight: 900; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hudInL { from { opacity: 0; transform: translateX(-24px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes hudInR { from { opacity: 0; transform: translateX(24px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes shakeHard { 0% { transform: none; } 15% { transform: translate(-9px, 3px) rotate(-2deg); } 30% { transform: translate(8px, -2px) rotate(1.5deg); } 45% { transform: translate(-6px, 2px); } 60% { transform: translate(4px, -1px); } 80% { transform: translate(-2px, 0); } 100% { transform: none; } }
+@keyframes shakeSoft { 0% { transform: none; } 20% { transform: translate(6px, -2px) rotate(1deg); } 40% { transform: translate(-5px, 1px); } 60% { transform: translate(3px, 0); } 100% { transform: none; } }
+@keyframes heartBeat { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.12); } 90% { transform: scale(0.98); } }
+@keyframes crackL { 0% { transform: none; opacity: 1; } 12% { transform: translate(-1px, 0) rotate(-6deg) scale(1.15); } 100% { transform: translate(-12px, 34px) rotate(-48deg); opacity: 0; } }
+@keyframes crackR { 0% { transform: none; opacity: 1; } 12% { transform: translate(1px, 0) rotate(6deg) scale(1.15); } 100% { transform: translate(12px, 30px) rotate(52deg); opacity: 0; } }
+@keyframes comboPop { 0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.5); } 60% { opacity: 1; transform: translateX(-50%) translateY(-4px) scale(1.12); } 100% { opacity: 1; transform: translateX(-50%) scale(1); } }
+@keyframes dmgUp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.5); } 18% { opacity: 1; transform: translate(-50%, -14px) scale(1.25); } 100% { opacity: 0; transform: translate(-50%, -80px) scale(1); } }
+@keyframes orbit { from { transform: translateX(-50%) rotate(0); } to { transform: translateX(-50%) rotate(360deg); } }
+@keyframes flash { 0% { opacity: var(--flash, 0.3); } 100% { opacity: 0; } }
+@keyframes koPop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2.4) rotate(-8deg); } 25% { opacity: 1; transform: translate(-50%, -50%) scale(0.92) rotate(-4deg); } 40% { transform: translate(-50%, -50%) scale(1.04) rotate(-4deg); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1) rotate(-4deg); } }
+@keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(420px) rotate(540deg); opacity: 0; } }
+@keyframes cardUp { from { opacity: 0; transform: translate(-50%, 60px) scale(0.96); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes cardIn { from { opacity: 0; transform: translate(-50%, 24px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes optIn { from { opacity: 0; transform: translateY(10px) scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes optRight { 0% { transform: scale(1); } 45% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes optWrong { 0% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } 100% { transform: none; } }
+@keyframes feedIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+
+/* Reduced motion: no shakes, slides, orbits or floating numbers; state still
+   changes on the same beats (fades only). The 3D arena scales its own motion. */
+@media (prefers-reduced-motion: reduce) {
+  .tw1, .tw2, .tw3, .heart { animation: none; }
+  .dizzy { animation: fadeIn 200ms ease-out calc(var(--t-miss) + 700ms) both; transform: translateX(-50%); } /* no orbit, same entrance */
+  .hud, .hudShake, .bossHud, .bossHudHit, .opt, .optRight, .optWrong { animation: none; }
+  .question, .endWon, .endLost, .feedbackHit, .feedbackMiss { animation-name: fadeIn; transform: translateX(-50%); }
+  .feedbackHit, .feedbackMiss { transform: none; }
+  .combo, .comboLate { animation-name: fadeIn; }
+  .dmg, .koBanner { animation-name: blip; }
+  .dmg { transform: translate(-50%, -30px); }
+  .combo, .comboLate { transform: translateX(-50%); }
+  .koBanner { transform: translate(-50%, -50%); }
+  .halfL, .halfR { animation-name: fadeOut; }
+  .hpGhost, .hpFill { transition-duration: 120ms; }
+}
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes blip { 0% { opacity: 0; } 15%, 80% { opacity: 1; } 100% { opacity: 0; } }
+@media (max-width: 640px) {
+  .choices { grid-template-columns: 1fr; }
+  .bossHud, .bossHudHit { width: calc(100% - 48px); top: 190px; }
+  .fightTag { display: none; }
+  .koBanner { font-size: 64px; }
+}

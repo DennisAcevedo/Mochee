@@ -12,6 +12,9 @@ export default defineConfig({
   server: {
     port: 5176,
     strictPort: true,
+    // Pre-transform the app at startup so the first page load after a restart
+    // is not ~260 on-demand transforms in a request waterfall.
+    warmup: { clientFiles: ['./src/main.tsx'] }, // its static imports are crawled too
     // The dev server serves the repo root, so the key files, the docs data,
     // scratch output (tts cache, e2e shots), local agent config and the
     // third-party Blender add-on are denied explicitly. This list replaces

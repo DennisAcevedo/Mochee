@@ -2,13 +2,15 @@ import { CuboidCollider, Physics, RigidBody } from '@react-three/rapier'
 import type { ReactNode } from 'react'
 import { useMode } from '../../state/mode'
 import { PHYSICS, ROOM_BOX } from './config'
+import { usePlayBody } from './playBody'
 
 // The physics world for play mode: Rapier with fixed colliders on every face
 // of the white-box room (floor, back wall, side walls, ceiling) plus an
 // invisible front wall just inside the camera's frame, so nothing thrown ever
-// leaves the room or rolls out of view. The two floating windows get thin
-// colliders too. The simulation pauses in study mode (the tutor's body is
-// then moved by hand, and the toys are unmounted).
+// leaves the room or rolls out of view. The floating browser window gets a thin
+// collider too. The simulation pauses in study mode while the tutor is on
+// his feet (his body is then moved by hand, and the toys are unmounted); a
+// pick-up in study mode runs it until he has landed and stood back up.
 //
 // Rapier's WASM loads on first mount, so this suspends once: put it inside a
 // <Suspense>. Everything physical (PhysicsTutor, Toys) goes in as children.
@@ -50,11 +52,13 @@ export function RoomColliders({ windows = true }: { windows?: boolean }) {
 interface PhysicsRoomProps {
   children?: ReactNode
   debug?: boolean // draw Rapier's collider wireframes
-  windows?: boolean // colliders for the two floating windows (default on)
+  windows?: boolean // a collider for the floating browser window (default on)
 }
 
 export function PhysicsRoom({ children, debug = false, windows = true }: PhysicsRoomProps) {
-  const paused = useMode((s) => s.mode === 'study')
+  const study = useMode((s) => s.mode === 'study')
+  const grounded = usePlayBody((s) => s.state === 'idle')
+  const paused = study && grounded
   return (
     <Physics gravity={PHYSICS.gravity} timeStep={PHYSICS.timeStep} paused={paused} debug={debug}>
       <RoomColliders windows={windows} />

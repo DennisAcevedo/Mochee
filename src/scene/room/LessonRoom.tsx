@@ -1,24 +1,27 @@
 import { Suspense } from 'react'
-import { WINDOWS } from '../layout3d'
-import { BoardWindow } from '../windows/BoardWindow'
+import { WINDOW } from '../layout3d'
 import { NotesWindow } from '../windows/NotesWindow'
 import { BuildIn } from './build'
+import { RoomProps } from './RoomProps'
 import { WhiteBoxRoom } from './WhiteBoxRoom'
 
-// The whole lesson set in one element: the white-box room plus the notes
-// window (left) and the board window (right). The windows suspend while
-// their fonts load, so they sit in their own boundary and the room shows
-// straight away.
+// The whole lesson set in one element: the white-box room, Ronil's Study or
+// Play furniture inside it (RoomProps follows the mode) and the browser window
+// left of the tutor (every tab lives in it). The props and the window suspend
+// while their GLBs and fonts load, so each sits in its own boundary and the
+// box shows straight away. During the intro each piece builds itself in.
 export function LessonRoom() {
   return (
     <>
       <WhiteBoxRoom />
       <Suspense fallback={null}>
-        <BuildIn part="notes" style="left" pivot={WINDOWS.notes.position} distance={3.2}>
-          <NotesWindow />
+        <BuildIn part="props" style="rise" distance={2.4}>
+          <RoomProps />
         </BuildIn>
-        <BuildIn part="board" style="right" pivot={WINDOWS.board.position} distance={3.2}>
-          <BoardWindow />
+      </Suspense>
+      <Suspense fallback={null}>
+        <BuildIn part="window" style="left" pivot={WINDOW.position} distance={3.2}>
+          <NotesWindow />
         </BuildIn>
       </Suspense>
     </>

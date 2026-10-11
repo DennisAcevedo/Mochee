@@ -11,7 +11,7 @@ and reads state through the dev-only `window.__gg` hooks:
     steps                                      the walkthrough step data
     model                                      { loaded, clips[] } of tutor.glb
     screenOf(name)                             viewport px {x, y} of a named 3D object, or null
-Named 3D objects: tutor, notes-window, board-window, quiz-option-<i>.
+Named 3D objects: tutor, notes-window (the one browser window, left of the tutor), quiz-option-<i>.
 
 Exit code 0 only if every check passes. Screenshots and report.json land in --out.
 """
@@ -116,12 +116,19 @@ def now_ms(page: Page) -> float:
     return page.evaluate("() => performance.now()")
 
 
+VARIANTS_JS = """async (c) => {
+  try { const m = await import('/src/character/blender/config.ts'); return [...((m.CLIP_VARIANTS || {})[c] || [])] } catch { return [] }
+}"""
+
+
 def played_on_tutor(page: Page, clip: str, since_ms: float, timeout_s: float):
     """The director only records what was asked for; the tutor's animation state
-    machine may queue or drop it. True once the tutor really started `clip`."""
+    machine may queue or drop it. True once the tutor really started `clip`, or
+    one of its CLIP_VARIANTS (a reaction asked for with { vary: true })."""
+    clips = [clip, *page.evaluate(VARIANTS_JS, clip)]
     end = time.time() + timeout_s
     while True:
-        hit = page.evaluate("([c, t]) => ((window.__gg && window.__gg.played) || []).find(p => p.clip === c && p.t >= t) || null", [clip, since_ms])
+        hit = page.evaluate("([cs, t]) => ((window.__gg && window.__gg.played) || []).find(p => cs.includes(p.clip) && p.t >= t) || null", [clips, since_ms])
         if hit or time.time() >= end:
             return hit
         time.sleep(0.1)
@@ -154,6 +161,10 @@ def wait_free(page: Page, timeout_s: float) -> bool:
 
 def gesture_id(s: dict) -> int:
     return s["gesture"]["id"] if s and s["gesture"] else -1
+
+
+def window_closed(page: Page) -> bool:
+    return bool(page.evaluate("() => window.__gg.windows.store.getState().closed"))
 
 
 def screen_of(page: Page, name: str):
@@ -211,16 +222,19 @@ def run(base: str, out: Path, headed: bool) -> int:
         missing = [c for c in CONFIG["required_clips"] if c not in clips]
         r.check("tutor model loaded with all clips", s and s["model"] and s["model"]["loaded"] and not missing, f"missing={missing}")
 
-        # 3. The room renders: real pixels, tutor centred between the two windows.
+        # 3. The room renders: real pixels, one browser window left of the tutor, the right side free.
         time.sleep(1.0)
         ok, detail = canvas_has_content(r.shot(page, "01_live"))
         r.check("canvas renders content", ok, detail)
-        tutor, notes, board = (screen_of(page, n) for n in ("tutor", "notes-window", "board-window"))
+        tutor, window = (screen_of(page, n) for n in ("tutor", "notes-window"))
         vw, vh = CONFIG["viewport"]["width"], CONFIG["viewport"]["height"]
-        on_screen = all(p and 0 <= p["x"] <= vw and 0 <= p["y"] <= vh for p in (tutor, notes, board))
-        r.check("tutor + both windows on screen", on_screen, {"tutor": tutor, "notes": notes, "board": board})
+        on_screen = all(p and 0 <= p["x"] <= vw and 0 <= p["y"] <= vh for p in (tutor, window))
+        r.check("tutor + the window on screen", on_screen, {"tutor": tutor, "window": window})
         if on_screen:
-            r.check("notes left of tutor, board right", notes["x"] < tutor["x"] < board["x"])
+            r.check("the window stands left of the tutor", window["x"] < tutor["x"], {"window": window, "tutor": tutor})
+        r.check("only one browser window", screen_of(page, "board-window") is None)
+        lights = page.evaluate("() => [...document.querySelectorAll('[data-light]')].map(b => b.getAttribute('aria-label'))")
+        r.check("one set of traffic lights", lights == ["Close browser window", "Minimize browser window", "Maximize browser window"], lights)
 
         # 4. Guided walkthrough, step by step, up to the quiz.
         steps = page.evaluate("() => (window.__gg.steps || []).length")
@@ -230,10 +244,17 @@ def run(base: str, out: Path, headed: bool) -> int:
         r.check("walkthrough bar shows 'Step N of M'", bar.is_visible())
         seen = {"spots": set(), "focus": set(), "loops": set(), "highlights": set(), "reveals": set(), "tabs": set(), "captions": 0}
         quiz_step = None
+        closed_at = None  # the step the red light closed the window on, until the lesson brings it back
         i = 0
         for i in range(steps):
             time.sleep(CONFIG["step_settle_s"])
             s = state(page)
+            if closed_at is not None and not window_closed(page):
+                r.check("the lesson reopens the closed window when it next needs a tab", True, {"closed_at": closed_at, "reopened_at": i})
+                closed_at = None
+            elif closed_at is not None and i - closed_at > 3:
+                r.check("the lesson reopens the closed window when it next needs a tab", False, {"closed_at": closed_at, "still_closed_at": i})
+                closed_at = None
             seen["spots"].add(s["spot"]); seen["focus"].add(s["focus"]); seen["loops"].add(s["loop"])
             seen["tabs"].add(s["notesTab"]); seen["reveals"].add(s["boardReveal"])
             if s["highlight"]:
@@ -245,17 +266,30 @@ def run(base: str, out: Path, headed: bool) -> int:
             if s["mode"] == "quiz":
                 quiz_step = s["step"]
                 break
+            if i == 3:
+                # Red light: the window animates out and is gone, with no restore chip (yellow is the chip).
+                page.locator('[data-light="close"]').click(timeout=4000)
+                end = time.time() + 2
+                while time.time() < end and not window_closed(page):
+                    time.sleep(0.1)
+                time.sleep(0.5)
+                chips = page.evaluate("() => [...document.querySelectorAll('button[aria-label^=\"Restore\"]')].filter(b => getComputedStyle(b).visibility === 'visible' && Number(getComputedStyle(b).opacity) > 0.5).length")
+                r.check("red light closes the window with no restore chip", window_closed(page) and chips == 0, {"closed": window_closed(page), "visibleChips": chips})
+                r.shot(page, "02_closed")
+                closed_at = i
             if i == 2:
                 page.get_by_role("button", name=re.compile(r"^next", re.I)).first.click()  # the real button, once
             else:
                 page.evaluate("() => window.__gg.walkthrough.getState().next()")
-        r.check("tutor walked left and right", {"left", "right"} <= seen["spots"], sorted(seen["spots"]))
-        r.check("focused notes and board", {"notes", "board"} <= seen["focus"], sorted(seen["focus"]))
-        r.check("pointed at both windows", {"point_left", "point_right"} & seen["loops"] != set(), sorted(seen["loops"]))
+        r.check("tutor walked from the centre to the window", {"center", "left"} <= seen["spots"], sorted(seen["spots"]))
+        r.check("focused the notes and the board tabs", {"notes", "board"} <= seen["focus"], sorted(seen["focus"]))
+        r.check("pointed at the window", "point_left" in seen["loops"], sorted(seen["loops"]))
         r.check("highlighted 3+ notes lines", len(seen["highlights"]) >= 3, sorted(seen["highlights"]))
         r.check("switched notes tabs", len(seen["tabs"]) >= 2, sorted(map(str, seen["tabs"])))
         r.check("revealed the board in steps", len([v for v in seen["reveals"] if v != "all"]) >= 3, sorted(map(str, seen["reveals"])))
         r.check("every step has a caption", seen["captions"] >= min(steps, i + 1) - 1, seen["captions"])
+        if closed_at is not None:
+            r.check("the lesson reopens the closed window when it next needs a tab", not window_closed(page), {"closed_at": closed_at})
         if not r.check("walkthrough reaches the quiz", quiz_step is not None):
             return finish(r, browser)
 

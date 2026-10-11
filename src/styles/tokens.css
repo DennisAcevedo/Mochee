@@ -5,6 +5,14 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   --bg: #ece9e3;
+  /* The sparkle stage's pastel sky (design/sparkle-stage/Main.dc.html): a blue
+     glow low on the left, peach top right, warm yellow bottom right over
+     off-white. ROOM_STYLE.sky paints the study room with the same colours. */
+  --sparkle-sky:
+    radial-gradient(48% 70% at 0% 62%, rgba(140, 182, 255, 0.55) 0%, rgba(140, 182, 255, 0) 100%),
+    radial-gradient(40% 55% at 100% 0%, rgba(255, 184, 170, 0.55) 0%, rgba(255, 184, 170, 0) 100%),
+    radial-gradient(42% 60% at 100% 85%, rgba(255, 230, 150, 0.5) 0%, rgba(255, 230, 150, 0) 100%),
+    #f8f7f4;
   --stage-a: #fffdf9;
   --stage-b: #f4f0e9;
   --stage-c: #e8e2d7;

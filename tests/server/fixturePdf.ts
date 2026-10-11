@@ -1,9 +1,9 @@
-import { notesTabs } from '../../src/data/stageContent.ts'
+import { notesTabs } from '../../shared/lessonNotes.ts'
 
 // A minimal, valid multi-page PDF written by hand (Helvetica text objects, no
 // compression) so the backend tests ingest real bytes without a binary
 // fixture in the repo. The text is the real CS111 lecture content the stage
-// already teaches (src/data/stageContent.ts).
+// already teaches (shared/lessonNotes.ts).
 
 const FIXTURE = {
   pageWidth: 612,

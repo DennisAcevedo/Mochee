@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["../../lab/rooms.tsx", "../../src", "../../shared"]
+}

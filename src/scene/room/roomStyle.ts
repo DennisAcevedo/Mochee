@@ -20,6 +20,21 @@ export const ROOM_STYLE = {
     floorFront: '#dedcd8',
   },
 
+  // Study mode: the box takes the sparkle stage's pastel sky (Stage.module.css,
+  // design/sparkle-stage/Main.dc.html): warm off-white with a blue glow low on
+  // the left, peach top right and warm yellow bottom right. The back wall
+  // carries the CSS gradient as is; the side walls take their side's glows,
+  // and the floor and ceiling a faint echo.
+  sky: {
+    base: '#f8f7f4',
+    floor: '#f3f1ec',
+    ceiling: '#f8f7f4',
+    falloff: 0.55, // softer corners than the white box: the sky is about colour, not depth
+    blue: '140, 182, 255',
+    peach: '255, 184, 170',
+    yellow: '255, 230, 150',
+  },
+
   // Baked corner falloff ("ambient occlusion"): a dark band along every edge
   // where two surfaces meet, `width` world units wide.
   falloff: { color: '20, 20, 40', alpha: 0.14, width: 0.85 },
@@ -51,8 +66,8 @@ export const ROOM_STYLE = {
     dotRing: { radius: 0.62, count: 14, size: 0.045, color: 'pink' as PaletteKey },
   },
 
-  // Soft blob shadows on the floor under each floating window.
-  windowBlob: { width: 2.8, depth: 1.3, opacity: 0.3, dz: 0.1 },
+  // Soft blob shadow on the floor under the floating window (the blob texture is white; this tints it).
+  windowBlob: { width: 2.8, depth: 1.3, opacity: 0.3, dz: 0.1, color: '#1e1e28' },
 
   // Glowing ceiling light panel.
   ceilingLight: {

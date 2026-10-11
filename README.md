@@ -18,6 +18,26 @@ Keys are read only by the dev server, never by the browser:
 
 Both files are git-excluded and denied by the dev server's file serving. Without a Gemini key the document features run in a labelled demo mode (answers built from the best matching passage, quizzes cut from real sentences); without an ElevenLabs key he falls back to the browser voice.
 
+Use Node 24 for the server (older Node builds can lack SQLite FTS5).
+
+Speech starts as ElevenLabs audio arrives, using the same voice and model. Browsers without MP3 MediaSource support use complete-clip playback. Answers and document citations are still validated before speech begins. Interrupting speech cancels its download; concurrent listeners for the same line share one synthesis call, and only complete clips are cached.
+
+With the server running, `npm run warm:voice` prepares the fixed lesson narration and quiz feedback ahead of a demo. It reuses cached audio and obeys the same daily character budget. During normal lessons, a small look-ahead warms upcoming lines instead of generating every line immediately.
+
+For local timing diagnostics, run `window.__GG_LATENCY__.samples()` in the browser console. The most recent 100 records contain elapsed milliseconds for `answerReady`, `ttsRequested`, `audioFirstChunk`, `audioDownloaded`, and `playbackStarted`, where applicable, plus the outcome. Cached clips have an `audioCached` mark. Records contain no conversation text and are never sent to a server. Use `window.__GG_LATENCY__.clear()` to reset them. Compare question records' `playbackStarted` for end-to-end delay; compare `audioFirstChunk - ttsRequested` for speech transport delay. Fallback and cancelled samples should be assessed separately.
+
+The developer check at `/lab/voice-streaming.html` verifies early playback, caching, cancellation, and non-streaming fallback with a controlled audio stream. It fetches the fixed opening line once (a cache hit after `warm:voice`); the remaining checks use local mocks.
+
+## Layout
+
+- `src/`: the frontend. React UI, the 3D stage (react-three-fiber), the lesson runner, play and physics.
+- `public/`: frontend assets, including the Blender-built `models/tutor.glb`.
+- `server/`: the backend. The Gemini ask proxy, the ElevenLabs voice proxy and the document API (PDF ingest, SQLite FTS5, cited answers, quizzes). It runs as Vite plugins, so `npm run dev` serves both.
+- `shared/`: what both sides import. The `/api/ask` contract (`askTypes.ts`), the document API contract (`docsTypes.ts`) and the lesson's notes lines (`lessonNotes.ts`), which the ask server lists in Gemini's prompt.
+- `tests/`: backend and animation unit tests, and the Playwright e2e. `BLENDER/tutor/`: the character build. `lab/`: one page per slice for isolated checks.
+
+`server/` never imports from `src/`, and `shared/` imports from neither; `npm run test:server` fails if that changes.
+
 ## Tests
 
 ```

@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { notesTabs } from '../../data/stageContent'
-import type { DocumentInfo, PageText } from '../../lesson/docsTypes'
+import { notesTabs } from '../../../shared/lessonNotes'
+import { DOCS_ROUTES, type DocumentInfo, type PageText } from '../../../shared/docsTypes'
 import { useDirector } from '../../state/director'
 import { useDrawers } from '../../state/drawers'
+import { useWindows } from '../../state/windows'
+import { WIN, type WinId } from '../../scene/windows/tabModel'
 import { errorText, fetchPage, type DocsErrorCode } from './docsClient'
 import s from './Learning.module.css'
 
 // The Learning drawer's reader. For an uploaded document: one page of stored
 // text with page arrows, and the cited quote marked in violet highlighter and
-// scrolled into view. For the built-in lesson: the notes tab on stage right
-// now, with the line he is pointing at highlighted.
+// scrolled into view, plus "Open in the window" (the real page, in the stage
+// window's tab) and a small link to the browser's own viewer. For the built-in
+// lesson: the notes tab on stage right now, with the line he is pointing at
+// highlighted.
 
 // Finds `quote` in `text` the way the server verifies it: whitespace-normalised,
 // case-sensitive first, then case-insensitive. Returns [start, end) or null.
@@ -25,6 +29,39 @@ export function findQuote(text: string, quote: string): [number, number] | null 
 }
 
 type PageLoad = { state: 'loading' } | { state: 'ok'; page: PageText } | { state: 'error'; error: DocsErrorCode }
+
+const WINDOW_TITLE_MAX = 64 // characters of the title a window tab keeps (as the New tab page's PDF rows)
+
+// The tab to show `docId` in: the one already showing it (the active tab
+// first), else an empty New tab, else a fresh tab. Null when the window's
+// tab strip is full.
+function tabFor(docId: string): [WinId, string] | null {
+  const win = WIN
+  const wt = useWindows.getState().tabs[win]
+  const t = [wt.tabs.find((x) => x.id === wt.active), ...wt.tabs].find((x) => x?.kind === 'pdf' && x.docId === docId)
+  if (t) return [win, t.id]
+  const blank = wt.tabs.find((x) => x.kind === 'newtab')
+  if (blank) return [win, blank.id]
+  useWindows.getState().openTab(win)
+  const after = useWindows.getState().tabs[win]
+  return after !== wt ? [win, after.active] : null
+}
+
+// The primary action: the page pops out into the stage's browser window, in
+// its own tab, maximized so it reads at full size; this drawer folds away so
+// nothing covers it. No room for another tab: the browser's viewer instead.
+function openInWindow(doc: DocumentInfo, page: number) {
+  const target = tabFor(doc.id)
+  if (!target) {
+    window.open(`${DOCS_ROUTES.file(doc.id)}${doc.original === 'pdf' ? `#page=${page}` : ''}`, '_blank', 'noopener')
+    return
+  }
+  const [win, id] = target
+  const w = useWindows.getState()
+  w.turnInto(win, id, { kind: 'pdf', docId: doc.id, page, title: doc.title.slice(0, WINDOW_TITLE_MAX) })
+  w.setMaximized(win) // also brings a minimized window out of its chip
+  useDrawers.getState().close()
+}
 
 export function DocumentPage({ doc }: { doc: DocumentInfo }) {
   const citation = useDrawers((d) => (d.citation?.documentId === doc.id ? d.citation : null))
@@ -82,6 +119,27 @@ export function DocumentPage({ doc }: { doc: DocumentInfo }) {
             &#8250;
           </button>
         </div>
+      </div>
+
+      <div className={s.openRow}>
+        <button type="button" className={s.openFull} onClick={() => openInWindow(doc, page)} data-testid="open-in-window">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" aria-hidden="true">
+            <rect x="2.5" y="3.5" width="15" height="13" rx="2.5" />
+            <path d="M2.5 7.5h15" />
+          </svg>
+          {doc.original === 'pdf' ? 'Open PDF in the window' : 'Open in the window'}
+        </button>
+        <a
+          className={s.openRaw}
+          href={`${DOCS_ROUTES.file(doc.id)}${doc.original === 'pdf' ? `#page=${page}` : ''}`}
+          target="_blank"
+          rel="noopener"
+          data-testid="open-full-doc"
+          title="The original file in your browser's own viewer"
+        >
+          Browser tab<span aria-hidden="true"> &#8599;</span>
+          <span className={s.srOnly}> (opens the original in a new browser tab)</span>
+        </a>
       </div>
 
       {quote && (

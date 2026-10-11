@@ -17,6 +17,19 @@ export interface SurfacePaint {
   edges: Edge[] // edges that meet another surface and get the dark falloff
   width: number // world size of the surface, to keep the falloff band constant
   height: number
+  glows?: SurfaceGlow[] // soft coloured glows over the base (the study room's pastel sky)
+  falloff?: number // scales the corner falloff's strength (default 1)
+}
+
+// An elliptical radial glow like CSS `radial-gradient(rx ry at x y, rgba(c, alpha), transparent)`:
+// centre and radii are shares of the surface (0..1, y down).
+export interface SurfaceGlow {
+  x: number
+  y: number
+  rx: number
+  ry: number
+  rgb: string // 'r, g, b'
+  alpha: number
 }
 
 function makeCanvas(w: number, h: number) {
@@ -51,8 +64,22 @@ export function surfaceTexture(p: SurfacePaint): CanvasTexture {
   ctx.fillStyle = g
   ctx.fillRect(0, 0, size, size)
 
+  // Glows: a unit radial gradient stretched to each ellipse.
+  for (const glow of p.glows ?? []) {
+    ctx.save()
+    ctx.translate(glow.x * size, glow.y * size)
+    ctx.scale(glow.rx * size, glow.ry * size)
+    const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, 1)
+    rg.addColorStop(0, `rgba(${glow.rgb}, ${glow.alpha})`)
+    rg.addColorStop(1, `rgba(${glow.rgb}, 0)`)
+    ctx.fillStyle = rg
+    ctx.fillRect(-1, -1, 2, 2)
+    ctx.restore()
+  }
+
   // Corner falloff, a band of constant world width along each touching edge.
-  const { color, alpha, width } = ROOM_STYLE.falloff
+  const { color, width } = ROOM_STYLE.falloff
+  const alpha = ROOM_STYLE.falloff.alpha * (p.falloff ?? 1)
   for (const edge of p.edges) {
     const across = edge === 'left' || edge === 'right' ? p.width : p.height
     const band = Math.min(0.5, width / across) * size
@@ -83,14 +110,15 @@ export function glowTexture(): CanvasTexture {
   return finish(canvas)
 }
 
-// Soft dark blob for contact shadows under floating things.
+// Soft blob for contact shadows: white centre fading to clear, so the
+// material colour sets the shadow's tint.
 export function blobTexture(): CanvasTexture {
   const size = 256
   const { canvas, ctx } = makeCanvas(size, size)
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-  g.addColorStop(0, 'rgba(30,30,40,0.9)')
-  g.addColorStop(0.45, 'rgba(30,30,40,0.35)')
-  g.addColorStop(1, 'rgba(30,30,40,0)')
+  g.addColorStop(0, 'rgba(255,255,255,0.9)')
+  g.addColorStop(0.45, 'rgba(255,255,255,0.4)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = g
   ctx.fillRect(0, 0, size, size)
   return finish(canvas)

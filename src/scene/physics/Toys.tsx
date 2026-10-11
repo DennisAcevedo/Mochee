@@ -1,29 +1,23 @@
 import figtree800 from '@fontsource/figtree/files/figtree-latin-800-normal.woff?url'
 import { RoundedBox, Text } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import {
-  BallCollider,
-  CuboidCollider,
-  CylinderCollider,
-  RigidBody,
-  useAfterPhysicsStep,
-  type RapierCollider,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { BallCollider, CuboidCollider, RigidBody, useAfterPhysicsStep, type RapierRigidBody } from '@react-three/rapier'
 import type { RigidBodyType } from '@dimforge/rapier3d-compat'
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { DoubleSide, Quaternion, Vector3, type Object3D, type Vector3Tuple } from 'three'
+import { DoubleSide, Quaternion, Vector3, type Group, type Object3D, type Vector3Tuple } from 'three'
+import { Basketball } from '../hoops/Basketball'
+import { armStudentShot, disarmStudentShot, HOOP_MAGNET, stepStudentShot } from '../hoops/studentShot'
 import { useDirector } from '../../state/director'
 import { useMode } from '../../state/mode'
-import { useProgress } from '../../state/progress'
-import { PHYSICS, PLAY_CLIPS, ROOM_BOX } from './config'
-import { clampLength, Grabber, spinFromVelocity } from './grab'
+import { HOOP_BOARD, PHYSICS, PLAY_CLIPS, ROOM_BOX } from './config'
+import { clampLength, Grabber, spinFromVelocity, type GrabMagnet } from './grab'
 import { playHandlers, usePlayBody } from './playBody'
 
-// Play-mode toys: a coral ball you can hold and fling, a hoop high on the
-// right wall that celebrates every basket, and the three FCFS job blocks
-// (P1 / P2 / P3, lengths 24 : 3 : 3) stacked so the tutor can knock them
-// down. Mounted only in play / celebrate mode; each toy starts fresh.
+// Play-mode toys: a basketball you can hold, carry, throw or drop, a hoop high
+// on the right wall that counts the student's own baskets (hoops/studentShot.ts),
+// and the three FCFS job blocks (P1 / P2 / P3, lengths 24 : 3 : 3) stacked so
+// the tutor can knock them down. Mounted only in play / celebrate mode; each
+// toy starts fresh.
 
 const KINEMATIC = 2 as RigidBodyType // RigidBodyType.KinematicPositionBased
 const DYNAMIC = 0 as RigidBodyType // RigidBodyType.Dynamic
@@ -41,6 +35,10 @@ interface ToyProps {
   angularDamping: number
   children: ReactNode // colliders and meshes
   onReady?: (api: ToyApi) => void
+  magnet?: GrabMagnet // a pull toward a point while held (the ball over the hoop)
+  onPick?: () => void // picked up
+  onRelease?: (pos: Vector3) => void // let go: a dynamic body again, flying from `pos`
+  onRespawn?: () => void // escaped the room and put back at the spawn
 }
 
 // What a toy exposes to its owner (shootBall uses the ball's).
@@ -51,11 +49,12 @@ interface ToyApi {
 }
 
 // A dynamic body you can pick up (the same hold / fling as the tutor).
-function GrabbableToy({ name, spawn, reach, spinPerSpeed, linearDamping, angularDamping, children, onReady }: ToyProps) {
+function GrabbableToy({ name, spawn, reach, spinPerSpeed, linearDamping, angularDamping, children, onReady, magnet, onPick, onRelease, onRespawn }: ToyProps) {
   const gl = useThree((s) => s.gl)
   const rb = useRef<RapierRigidBody>(null)
   const probe = useRef<Object3D>(null)
   const toy = useMemo(() => ({ grab: new Grabber(reach), center: new Vector3(...spawn), v: new Vector3(), spin: new Vector3(), hover: false }), [reach, spawn])
+  toy.grab.magnet = magnet ?? null
 
   useEffect(() => {
     onReady?.({ body: () => rb.current, center: toy.center, busy: () => toy.grab.active })
@@ -75,7 +74,10 @@ function GrabbableToy({ name, spawn, reach, spinPerSpeed, linearDamping, angular
     const dt = Math.min(delta, PHYSICS.maxDt)
     toy.center.copy(o.position)
     const ev = toy.grab.update(dt, state.camera, state.size, toy.center, true)
-    if (ev === 'pick') r.setBodyType(KINEMATIC, true)
+    if (ev === 'pick') {
+      r.setBodyType(KINEMATIC, true)
+      onPick?.()
+    }
     if (ev === 'pick' || ev === 'held') r.setNextKinematicTranslation(toy.grab.pos)
     if (ev === 'release') {
       clampLength(toy.v.copy(toy.grab.releaseVel), PHYSICS.tutor.maxFlingSpeed)
@@ -84,6 +86,7 @@ function GrabbableToy({ name, spawn, reach, spinPerSpeed, linearDamping, angular
       r.setLinvel(toy.v, true)
       r.setAngvel(spinFromVelocity(toy.v, spinPerSpeed, PHYSICS.tutor.maxSpin * 2, toy.spin), true)
       document.body.style.cursor = toy.hover ? 'grab' : ''
+      onRelease?.(toy.grab.pos)
     }
     // Escaped the room somehow (a tunnelling fling): put it back.
     const m = PHYSICS.respawnMargin
@@ -93,6 +96,7 @@ function GrabbableToy({ name, spawn, reach, spinPerSpeed, linearDamping, angular
       r.setRotation(IDENTITY, true)
       r.setLinvel(toy.v.set(0, 0, 0), true)
       r.setAngvel(toy.v, true)
+      onRespawn?.()
     }
   })
 
@@ -122,13 +126,8 @@ function GrabbableToy({ name, spawn, reach, spinPerSpeed, linearDamping, angular
 }
 
 // Aim point: just under the rim plane, at the rim's centre.
-const AIM = new Vector3(HOOP.rim[0], HOOP.rim[1] - HOOP.sensor.below, HOOP.rim[2])
+const AIM = new Vector3(HOOP.rim[0], HOOP.rim[1] - HOOP.aimBelow, HOOP.rim[2])
 const shotVel = new Vector3()
-// The ball's collider, so the hoop can test it against its sensor after every step.
-const ballRefs = { collider: null as RapierCollider | null }
-const setBallCollider = (c: RapierCollider | null) => {
-  ballRefs.collider = c
-}
 const shotSpin = new Vector3()
 const shotFrom = new Vector3()
 const aim = new Vector3()
@@ -136,6 +135,25 @@ const aim = new Vector3()
 export function Ball() {
   const api = useRef<ToyApi | null>(null)
   const onReady = useMemo(() => (a: ToyApi) => (api.current = a), [])
+  const look = useRef<Group>(null)
+
+  // The Play tab's ball moves borrow it (src/scene/hoops/BallProp.tsx). The student-shot watch is
+  // module state: a fresh ball starts unwatched, and one going away (Study, leaving the page) drops
+  // its throw, or the next visit's first step would read the jump to the spawn as the ball's flight.
+  useEffect(() => {
+    disarmStudentShot()
+    playHandlers.ball = {
+      body: () => api.current?.body() ?? null,
+      busy: () => api.current?.busy() ?? false,
+      show: (shown) => {
+        if (look.current) look.current.visible = shown
+      },
+    }
+    return () => {
+      playHandlers.ball = null
+      disarmStudentShot()
+    }
+  }, [])
 
   // shootBall(): a ballistic arc whose apex stays under the ceiling and that
   // comes down through the rim (the HUD's keyboard alternative to throwing).
@@ -166,6 +184,7 @@ export function Ball() {
       shotVel.set(((aim.x - p0.x) / t) * drag, vy, ((aim.z - p0.z) / t) * drag)
       r.setLinvel(shotVel, true)
       r.setAngvel(spinFromVelocity(shotVel, B.spinPerSpeed, PHYSICS.tutor.maxSpin * 2, shotSpin), true)
+      armStudentShot(p0) // a shot like any throw: the hoop counts it
       return true
     }
     return () => {
@@ -182,33 +201,30 @@ export function Ball() {
       linearDamping={B.linearDamping}
       angularDamping={B.angularDamping}
       onReady={onReady}
+      magnet={HOOP_MAGNET}
+      onPick={disarmStudentShot}
+      onRelease={armStudentShot}
+      onRespawn={disarmStudentShot}
     >
-      <BallCollider ref={setBallCollider} args={[B.radius]} density={B.density} restitution={B.restitution} friction={B.friction} />
-      <mesh castShadow>
-        <sphereGeometry args={[B.radius, 32, 24]} />
-        <meshStandardMaterial color={B.color} roughness={0.38} />
-      </mesh>
-      {/* A sun band so the spin reads. */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[B.radius * 0.995, B.radius * 0.09, 10, 40]} />
-        <meshStandardMaterial color={B.stripe} roughness={0.4} />
-      </mesh>
+      <BallCollider args={[B.radius]} density={B.density} restitution={B.restitution} friction={B.friction} />
+      {/* A basketball: the seams make the spin read. */}
+      <group ref={look}>
+        <Basketball radius={B.radius} />
+      </group>
     </GrabbableToy>
   )
 }
 
-// A static hoop on the right wall. The rim collider is a ring of small balls;
-// a thin sensor disc just under it scores a ball that drops through. The
-// sensor is polled after every physics step rather than through intersection
-// events: on a slow frame several steps run back to back and a fast ball can
-// enter and leave the disc between two event drains, which drops the event.
-export function Hoop() {
-  const last = useRef(-Infinity)
-  const sensor = useRef<RapierCollider>(null)
-  const inside = useRef(false)
+// A static hoop on the right wall: the board and a rim collider made of a ring
+// of small balls; the net is drawn only, so a ball that drops through falls
+// straight out of it. After every physics step the student-shot watch reads
+// the ball (hoops/basket.ts: down through the rim plane inside the rim = a
+// make), stepped per step rather than per frame so a fast ball can't cross the
+// rim between two looks on a slow frame. `drawn` false keeps the colliders and
+// the watch but draws nothing: the play room's Blender hoop (room/RoomProps)
+// sits on the same rim and board.
+export function Hoop({ drawn = true }: { drawn?: boolean }) {
   const [rx, ry, rz] = HOOP.rim
-  const wallX = ROOM_BOX.halfW
-  const bd = HOOP.board
   const rimBalls = useMemo(
     () =>
       Array.from({ length: HOOP.rimBalls }, (_, i) => {
@@ -218,40 +234,31 @@ export function Hoop() {
     [rx, ry, rz],
   )
 
-  useAfterPhysicsStep((world) => {
-    const s = sensor.current
-    const ball = ballRefs.collider
-    if (!s || !ball) return
-    const now = world.intersectionPair(s, ball)
-    const entered = now && !inside.current
-    inside.current = now
-    if (!entered) return
-    const body = ball.parent()
-    if (body && body.linvel().y < 0) score() // only balls coming down through the rim
+  useAfterPhysicsStep(() => {
+    const body = playHandlers.ball?.body()
+    if (body && !body.isKinematic()) stepStudentShot(body, PHYSICS.timeStep)
   })
 
-  const score = () => {
-    const now = performance.now()
-    if (now - last.current < HOOP.cooldownMs) return
-    last.current = now
-    const d = useDirector.getState()
-    d.burst('confetti', 'tutor')
-    d.play(PLAY_CLIPS.score)
-    useProgress.getState().award('catch')
-    usePlayBody.getState().scoreHoop()
-  }
-
-  const boardX = wallX - bd.thick / 2
-  const boardY = ry + bd.above
-  const netH = HOOP.net.depth
   return (
     <RigidBody type="fixed" colliders={false} name="physics-hoop">
-      <CuboidCollider args={[bd.thick / 2, bd.height / 2, bd.width / 2]} position={[boardX, boardY, rz]} restitution={PHYSICS.restitution} />
+      <CuboidCollider args={HOOP_BOARD.half} position={HOOP_BOARD.center} restitution={PHYSICS.restitution} />
       {rimBalls.map((p, i) => (
-        <BallCollider key={i} args={[HOOP.tube * 1.4]} position={p} restitution={0.5} />
+        <BallCollider key={i} args={[HOOP.rimBallRadius]} position={p} restitution={0.5} />
       ))}
-      <CylinderCollider ref={sensor} sensor args={[HOOP.sensor.halfHeight, HOOP.rimRadius - HOOP.sensor.inset]} position={[rx, ry - HOOP.sensor.below, rz]} />
 
+      {drawn && <HoopArt />}
+    </RigidBody>
+  )
+}
+
+// The code-drawn hoop: board, frame, target square, bracket, rim and net.
+function HoopArt() {
+  const [rx, ry, rz] = HOOP.rim
+  const bd = HOOP.board
+  const [boardX, boardY] = HOOP_BOARD.center
+  const netH = HOOP.net.depth
+  return (
+    <>
       {/* Backboard: white glass slab with a cobalt frame and target square. */}
       <mesh position={[boardX, boardY, rz]} castShadow>
         <boxGeometry args={[bd.thick, bd.height, bd.width]} />
@@ -279,7 +286,7 @@ export function Hoop() {
         <cylinderGeometry args={[HOOP.rimRadius, HOOP.rimRadius * HOOP.net.bottomScale, netH, 16, 3, true]} />
         <meshBasicMaterial color={HOOP.net.color} wireframe transparent opacity={HOOP.net.opacity} toneMapped={false} />
       </mesh>
-    </RigidBody>
+    </>
   )
 }
 
@@ -343,7 +350,7 @@ export function Toys() {
   return (
     <>
       <Ball />
-      <Hoop />
+      <Hoop drawn={false} />
       <Suspense fallback={null}>
         <Blocks />
       </Suspense>
