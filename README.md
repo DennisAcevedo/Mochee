@@ -69,7 +69,7 @@ Each item below is asserted by an e2e check. The checks read what the tutor actu
 - A Study/Play mode switch. In Play he can be dragged, flung and tumbled, he recovers on landing and stays inside the room, and a ball and hoop come out (a basket gives confetti and XP).
 - Mastery: getting a topic right on the first try teaches him an ability (`queue_juggle`). He says so, invites the student to play, and performs it on request with props.
 - The room grows from what was learned: a book per uploaded document and a trophy per mastered topic.
-- On a return visit the next calendar day (`?return=1` to preview) he shows an experiment built from the last lesson ("scheduler race"). The lesson waits for it to finish, and a seen experiment never repeats.
+- On a return visit the next calendar day (`?return=1` to preview) he shows off an ability he learned from a topic mastered last time ("While you were away I practised my …"). The lesson waits for it to finish, and a seen experiment never repeats.
 - Documents: PDF upload (topics extracted), page-cited chat answers (each chip opens the page with the quote highlighted), honest abstaining on off-topic questions, and a quiz whose answers stay on the server until submitted, with idempotent resubmits.
 - No-key demo mode is labelled in the UI. The e2e checks the label with a mocked response; `test:server` covers the demo answers themselves.
 

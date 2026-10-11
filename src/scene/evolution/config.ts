@@ -1,11 +1,10 @@
-import { FLOOR_Y } from '../layout3d'
 import { frameAt } from '../room/stageSpace'
 import type { PaletteKey } from '../../growth/abilities'
 
 // Placement and look of everything the growth system adds to the stage: the
 // library shelf (one book per document), the trophy shelf (one trophy per
 // mastered topic), the ability props and the return experiment's
-// scheduler race. The shelf islands are placed by where they land in the
+// Skip pill. The shelf islands are placed by where they land in the
 // 16:9 frame (frameAt, against LESSON_CAMERA), clear of the HUD, the browser
 // window, the tutor and the caption.
 
@@ -60,31 +59,9 @@ export const PROPS = {
   flip: { y: 0.45, rise: 0.4, turns: 2, flipFor: 1.4, size: [0.34, 0.26, 0.07] as [number, number, number] },
 } as const
 
-// The return experiment's scheduler race: two vertical lanes flanking the
-// tutor's centre spot (FCFS left, SJF right), standing on the platform. A
-// lane's bottom slot is the CPU; the job in it drains as it runs and the
-// queue above drops into place.
-export const RACE_SCENE = {
-  lanes: [
-    { x: -0.98, color: 'coral' as PaletteKey },
-    { x: 0.98, color: 'lime' as PaletteKey },
-  ],
-  z: 0.35, // inside the platform's ellipse at both lanes
-  baseY: FLOOR_Y + 0.08, // top of the CPU plate
-  width: 0.62,
-  unit: 0.05, // block height per ms of burst
-  minHeight: 0.14,
-  gap: 0.035,
-  panel: { pad: 0.12, height: 0.62, opacity: 0.9, radius: 0.08 }, // header card behind title + readouts
-  rail: { width: 0.025, color: 'ink' as const, opacity: 0.18 },
-  title: { y: 1.12, size: 0.15 },
-  avg: { y: 0.92, size: 0.085 },
-  waits: { y: 0.8, size: 0.06 },
-  clock: { y: 1.55, size: 0.13 },
-  label: 0.075,
-  cpu: { height: 0.07, color: 'ink' as const },
+// The return experiment's Skip pill, above the stage where the tutor performs.
+export const EXPERIMENT_SCENE = {
+  z: 0.35,
   skip: { y: 1.95 },
-  inFor: 0.45, // scale-in seconds
-  outFor: 0.4,
   startDelay: 0.8, // seconds after the lesson goes live before a pending experiment starts
 } as const

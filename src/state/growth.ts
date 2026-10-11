@@ -18,8 +18,8 @@ import { safeStorage } from './progress'
 // - Room evolution: documents become books on a shelf and
 //   mastered topics earn trophies. The room is built from the student's own
 //   material.
-// - Return experiments: on a later visit he presents something he built from a
-//   topic mastered earlier (e.g. a physical FCFS vs SJF "scheduler race").
+// - Return experiments: on a later visit he shows off the ability a topic
+//   mastered earlier taught him.
 //   Deterministic and once-only per topic; eligible from the next calendar day
 //   (dev: ?return=1 makes it eligible now).
 //
@@ -62,8 +62,8 @@ export interface ReturnExperiment {
   id: string // `${topicId}:${kind}`
   topicId: string
   topicTitle: string
-  kind: string // e.g. 'scheduler_race'
-  title: string // e.g. "I built a scheduler race!"
+  kind: string // 'showcase:<abilityId>'
+  title: string // e.g. "I practised my Queue juggle!"
   eligibleAfter: number // epoch ms
   seenAt: number | null
 }

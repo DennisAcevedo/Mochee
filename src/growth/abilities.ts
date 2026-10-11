@@ -14,10 +14,6 @@ export type PaletteKey = keyof typeof PALETTE
 // one with different blocks.
 export type PropRoutine = 'juggle' | 'orbit' | 'sort' | 'stack' | 'bounce' | 'flip'
 
-// What a return experiment for a topic looks like: the purpose-built
-// scheduler race, or a showcase of the ability that topic taught him.
-export type ExperimentKind = 'scheduler_race' | 'showcase'
-
 export interface PropBlock {
   label: string
   color: PaletteKey
@@ -31,7 +27,6 @@ export interface AbilitySpec extends AbilityDef {
   blocks: PropBlock[]
   duration: number // seconds; the props and the beats both end by then
   beats: [number, Beat][] // [seconds from start, beat]
-  experiment: ExperimentKind
 }
 
 const JOBS: PropBlock[] = [
@@ -57,7 +52,6 @@ export const ABILITIES: AbilitySpec[] = [
       [1.75, { play: 'hop' }],
       [2.05, { burst: 'stars' }],
     ],
-    experiment: 'scheduler_race',
   },
   {
     id: 'round_robin_spin',
@@ -76,7 +70,6 @@ export const ABILITIES: AbilitySpec[] = [
       [0.1, { play: 'dance_spin' }],
       [2.2, { burst: 'ring' }],
     ],
-    experiment: 'scheduler_race',
   },
   {
     id: 'shortest_sprint',
@@ -91,7 +84,6 @@ export const ABILITIES: AbilitySpec[] = [
       [0.9, { play: 'hop' }],
       [1.9, { burst: 'sparkles' }],
     ],
-    experiment: 'scheduler_race',
   },
   {
     id: 'stack_tower',
@@ -110,7 +102,6 @@ export const ABILITIES: AbilitySpec[] = [
       [1.75, { play: 'hop' }],
       [2.1, { burst: 'stars' }],
     ],
-    experiment: 'showcase',
   },
   {
     id: 'newton_bounce',
@@ -125,7 +116,6 @@ export const ABILITIES: AbilitySpec[] = [
       [1.9, { play: 'catch' }],
       [2.5, { burst: 'sparkles' }],
     ],
-    experiment: 'showcase',
   },
   {
     id: FALLBACK_ABILITY,
@@ -140,7 +130,6 @@ export const ABILITIES: AbilitySpec[] = [
       [0.2, { play: 'hop' }],
       [1.6, { burst: 'sparkles' }],
     ],
-    experiment: 'showcase',
   },
 ]
 

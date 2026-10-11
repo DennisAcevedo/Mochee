@@ -56,8 +56,8 @@ CONFIG = {
     "topic": "cs111-fcfs",
     "ability": "queue_juggle",
     "quiz_correct": 1,
-    "race_start_s": 8,
-    "race_end_s": 40,
+    "experiment_start_s": 8,
+    "experiment_end_s": 40,
     "no_rerun_watch_s": 5,
     "fixture": ROOT / "tmp" / "fixtures" / "cs111-fcfs.pdf",
     "upload_timeout_s": 90,
@@ -338,20 +338,20 @@ def run(base: str, out: Path, headed: bool) -> int:
 
         # 6. Return experiment: back the next "day" (?return=1), same profile.
         if go_live(page, r, url + "?return=1", "return visit"):
-            began = poll(lambda: "scheduler race" in (gg(page, "g.director.getState().caption") or "").lower(), CONFIG["race_start_s"], 0.1)
-            # Held back, or paused if it got going first (the race's scene mounts a beat later).
+            began = poll(lambda: "while you were away" in (gg(page, "g.director.getState().caption") or "").lower(), CONFIG["experiment_start_s"], 0.1)
+            # Held back, or paused if it got going first.
             waiting = gg(page, "!!g.experiment.getState().run && !(g.walkthrough.getState().started && g.walkthrough.getState().playing)")
-            r.check("return experiment: 'scheduler race' caption", began, gg(page, "g.director.getState().caption"))
+            r.check("return experiment: 'while you were away' caption", began, gg(page, "g.director.getState().caption"))
             r.check("lesson waits while the experiment runs", waiting)
             time.sleep(3.0)
-            r.shot(page, "sp_09_race")
-            ended = poll(lambda: gg(page, "!g.experiment.getState().run"), CONFIG["race_end_s"], 0.3)
+            r.shot(page, "sp_09_experiment")
+            ended = poll(lambda: gg(page, "!g.experiment.getState().run"), CONFIG["experiment_end_s"], 0.3)
             exp = gg(page, "g.growth.getState().experiments.find(e => e.topicId === a) || null", CONFIG["topic"])
             r.check("experiment runs to the end and is marked seen", ended and exp and exp["seenAt"], exp)
             r.check("lesson plays once the experiment ends", poll(lambda: gg(page, "g.walkthrough.getState().started && g.walkthrough.getState().playing"), 5))
 
         if go_live(page, r, url + "?return=1", "second return visit"):
-            rerun = poll(lambda: gg(page, "!!g.experiment.getState().run") or "scheduler race" in (gg(page, "g.director.getState().caption") or "").lower(),
+            rerun = poll(lambda: gg(page, "!!g.experiment.getState().run") or "while you were away" in (gg(page, "g.director.getState().caption") or "").lower(),
                          CONFIG["no_rerun_watch_s"], 0.1)
             r.check("a seen experiment does not run again", not rerun)
             page.evaluate("() => { const w = window.__gg.walkthrough.getState(); if (!w.started) w.start(); w.pause() }")
