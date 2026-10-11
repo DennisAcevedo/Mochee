@@ -48,7 +48,7 @@ function connect(): () => void {
     if (stepApplied(s, p) && s.started) onStep(s.steps[s.index], ctx())
   })
   const offPack = useLessonPack.subscribe((s, p) => {
-    if (s.pack !== p.pack) onPack(lessonNotes().length)
+    if (s.pack !== p.pack || s.empty !== p.empty) onPack(lessonNotes().length)
   })
   const offClose = useWindows.subscribe((s, p) => onWindows(s, p, lessonNotes().length))
   return () => {

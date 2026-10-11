@@ -1,4 +1,5 @@
 import { notesTabs } from '../../../shared/lessonNotes.ts'
+import { STUDY_LIMITS } from '../../../shared/lessonPack.ts'
 import { WINDOW_UI } from './windowConfig.ts'
 
 // The pure tab model of the room's one browser window, Chrome style: every
@@ -39,7 +40,9 @@ export interface TabsState {
   seq: number // last number used for a generated tab id ('t' + seq)
 }
 
-const NOTE_COUNT = notesTabs.length
+// A saved notes tab can be any section a pack may have (lessonSync trims the
+// strip to the running lesson's count once it loads).
+const NOTE_COUNT = Math.max(notesTabs.length, STUDY_LIMITS.maxSections)
 
 // ---- Lesson tabs: unique by content, in a fixed lesson order
 

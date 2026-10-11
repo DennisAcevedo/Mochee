@@ -2,7 +2,6 @@ import { useCursor } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { DocumentInfo } from '../../../shared/docsTypes'
-import { notesTabs } from '../../../shared/lessonNotes'
 import { useWindows } from '../../state/windows'
 import { errorText } from '../../ui/Drawers/docsClient'
 import { useDocs } from '../../ui/Drawers/docsStore'
@@ -10,7 +9,7 @@ import { activateByStudent } from './lessonSync'
 import { ArrowGlyph, Flat, Hit, Label } from './primitives'
 import { roundedRect, roundedRectRing } from './shapes'
 import { ellipsize } from './tabLayout'
-import { BOARD_TITLE, QUIZ_TITLE } from './tabInfo'
+import { boardTitle, lessonNotes, QUIZ_TITLE } from './tabInfo'
 import type { Tab, TabContent, WinId } from './tabModel'
 import type { ContentBox } from './WindowContent'
 import { FONTS, WINDOW_STYLE } from './windowStyle'
@@ -142,8 +141,8 @@ export function NewTabPage({ win, tabId, box }: { win: WinId; tabId: string; box
   const G = NT.grid
   const colW = (iw - G.gap * (G.cols - 1)) / G.cols
   const sections: { title: string; color: string; content: TabContent; key: string }[] = [
-    ...notesTabs.map((t, i) => ({ title: t.title, color: K.notes[i % K.notes.length], content: { kind: 'notes', note: i } as TabContent, key: `notes-${i}` })),
-    { title: BOARD_TITLE, color: K.board, content: { kind: 'board' }, key: 'board' },
+    ...lessonNotes().map((t, i) => ({ title: t.title, color: K.notes[i % K.notes.length], content: { kind: 'notes', note: i } as TabContent, key: `notes-${i}` })),
+    { title: boardTitle(), color: K.board, content: { kind: 'board' }, key: 'board' },
     { title: QUIZ_TITLE, color: K.quiz, content: { kind: 'quiz' }, key: 'quiz' },
   ]
   const gridTop = NT.lessonY + G.top

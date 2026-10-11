@@ -6,6 +6,7 @@ import { BOARD_PARTS, boardShows, type BoardPart } from '../../data/stageContent
 import { useDirector } from '../../state/director'
 import { PALETTE } from '../layout3d'
 import { asStudent } from './lessonNeed'
+import { currentBoard } from './PackBoard'
 import { damp, Flat, Label, usePop } from './primitives'
 import { ellipseStroke } from './shapes'
 import type { ContentBox } from './WindowContent'
@@ -172,7 +173,7 @@ export function useBoardReplay() {
   useEffect(() => () => clearTimeout(timer.current), [])
   return useCallback(() => {
     const { boardReveal, setBoardReveal } = useDirector.getState()
-    const end = Math.min(boardReveal, BOARD_PARTS.length)
+    const end = Math.min(boardReveal, currentBoard()?.parts ?? BOARD_PARTS.length)
     clearTimeout(timer.current)
     let n = 0
     let last = 0 // what the replay last wrote

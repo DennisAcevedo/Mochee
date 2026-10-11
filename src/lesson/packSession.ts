@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { LessonPack, LessonSection } from '../../shared/lessonPack.ts'
-import { packHeadId, packLineId, type CitedNoteLine, type CitedNoteTab } from '../../shared/lessonNotes.ts'
+import { packHeadId, packLineId, type CitedNoteLine, type CitedNoteTab, type NoteTab } from '../../shared/lessonNotes.ts'
 import type { ResolvedStep, StepColor, WalkStep } from './walkthrough.ts'
 
 // A tutor session built from an uploaded document's LessonPack. The hub's
@@ -17,16 +17,58 @@ import type { ResolvedStep, StepColor, WalkStep } from './walkthrough.ts'
 export interface LessonPackState {
   pack: LessonPack | null
   section: number
+  // No lesson yet: the class's name, for a tutor with no notes of its own
+  // (only the CS111 tutor plays the hand-written lesson). The room then
+  // shows emptyNotesTab / emptyBoard and plays emptyWalkthrough.
+  empty: string | null
   start(pack: LessonPack, section: number): void
+  setEmpty(name: string | null): void
   clear(): void
 }
 
 export const useLessonPack = create<LessonPackState>((set) => ({
   pack: null,
   section: 0,
-  start: (pack, section) => set({ pack, section: clampSection(pack, section) }),
-  clear: () => set({ pack: null, section: 0 }),
+  empty: null,
+  start: (pack, section) => set({ pack, section: clampSection(pack, section), empty: null }),
+  setEmpty: (empty) => set({ pack: null, section: 0, empty }),
+  clear: () => set({ pack: null, section: 0, empty: null }),
 }))
+
+// ---- No notes yet
+
+export function emptyNotesTab(name: string): NoteTab {
+  return {
+    title: 'No notes yet',
+    url: 'notes/none',
+    page: '',
+    lines: [
+      { id: 'empty-title', kind: 'title', text: name },
+      { id: 'empty-1', kind: 'text', text: 'No notes have been added to this class yet.' },
+      { id: 'empty-2', kind: 'key', text: 'Open Learning and upload a PDF, slides or notes.' },
+      { id: 'empty-3', kind: 'text', text: 'Mochee builds the lesson from them.' },
+    ],
+  }
+}
+
+export const emptyBoard = (): PackBoard => ({ sectionLabel: 'No notes yet', heading: 'Nothing on the board yet', lines: ['Upload notes in Learning to fill it in.'], page: 0, parts: 2 })
+
+export function emptyWalkthrough(name: string): WalkStep[] {
+  return [
+    {
+      id: 'empty',
+      title: 'Add your notes',
+      say: `I don't have any notes for **${name}** yet. Open **Learning** and upload your PDFs or slides, and I'll build your lesson from them.`,
+      color: 'teal',
+      spot: 'center',
+      focus: 'none',
+      notesTab: 0,
+      boardReveal: 0,
+      mode: 'lecture',
+      gesture: 'wave',
+    },
+  ]
+}
 
 const clampSection = (pack: LessonPack, section: number) =>
   Math.max(0, Math.min(pack.sections.length - 1, Number.isFinite(section) ? Math.floor(section) : 0))

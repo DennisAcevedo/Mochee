@@ -178,9 +178,15 @@ export function askTutor(question: string, fallback: string) {
     useWalkthrough.setState({ held: false })
   })
   const mode = useMode.getState().mode === 'study' ? 'study' : 'play' // celebrate counts as play
-  // A notebook's lesson describes itself; otherwise the built-in CS111 one.
+  // A notebook's lesson describes itself; a class with no notes yet gets a
+  // general tutor for its name; otherwise the built-in CS111 lesson.
   const notebook = packContext()
-  const request = notebook ? { context: notebook.context, lesson: notebook.lesson } : { context: lessonContext() }
+  const empty = useLessonPack.getState().empty
+  const request = notebook
+    ? { context: notebook.context, lesson: notebook.lesson }
+    : empty !== null
+      ? { context: { step: 'No notes uploaded yet', notes: 'nothing yet', board: 'nothing yet' }, course: { title: empty } }
+      : { context: lessonContext() }
   // Streamed: he starts talking at the answer's first sentence, and the rest
   // follows as it arrives (sayLineStreamed).
   let started = false
@@ -241,6 +247,14 @@ export async function endListening(fallbackQuestion: string, fallbackReply: stri
   try {
     const heard = isRecognizing() ? (await stopRecognition()).trim() : ''
     if (useTutorStore.getState().mic !== 'listening') return
+    // The scripted stand-in question is about the CS111 lesson: a tutor's own
+    // lesson just goes back to listening for nothing heard.
+    const { pack, empty } = useLessonPack.getState()
+    if (!heard && (pack || empty !== null)) {
+      useTutorStore.setState({ mic: 'idle' })
+      useWalkthrough.getState().release()
+      return
+    }
     useTutorStore.getState().ask(heard || fallbackQuestion, fallbackReply)
   } finally {
     finishing = false

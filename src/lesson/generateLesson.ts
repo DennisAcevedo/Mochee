@@ -32,6 +32,7 @@ export interface GeneratedLesson {
   outline: OutlineItem[]
   steps: LessonStep[]
   lessonDoc?: string // the uploaded document the guided lesson is built from
+  builtIn?: boolean // the sample notes: the hand-written CS111 lesson
   pages: Record<string, number> // page counts by file name, for the tutor's file list
 }
 
@@ -127,5 +128,5 @@ async function sampleLesson(onProgress: (p: StudyProgress) => void, signal?: Abo
     onProgress({ index: i, total: labels.length, label })
     await wait(SAMPLE_MS, signal)
   }
-  return { outline: CS111_OUTLINE, steps: [{ section: 1, say: script.greeting }], pages: {} }
+  return { outline: CS111_OUTLINE, steps: [{ section: 1, say: script.greeting }], builtIn: true, pages: {} }
 }

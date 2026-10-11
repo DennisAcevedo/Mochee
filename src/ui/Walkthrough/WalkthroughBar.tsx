@@ -4,7 +4,9 @@ import '@fontsource/fredoka/700.css'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { INK_ON, paletteVars } from '../../lesson/accents'
+import { useHub } from '../../hub/hubStore'
 import { useLessonPack } from '../../lesson/packSession'
+import { useDrawers } from '../../state/drawers'
 import { useWalkthrough, type WalkthroughState } from '../../lesson/runner'
 import { PALETTE } from '../../scene/layout3d'
 import { CloseButton } from '../Closeable/Closeable'
@@ -50,6 +52,11 @@ function statusOf(s: BarView): string {
 // ---- Icons (inline SVG, currentColor)
 
 const Icon = {
+  upload: (
+    <svg viewBox="0 0 24 24" aria-hidden style={{ fill: 'none' }} stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4" />
+    </svg>
+  ),
   play: (
     <svg viewBox="0 0 24 24" aria-hidden>
       <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
@@ -143,7 +150,10 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
   const done = s.phase === 'done'
   const showPause = s.started && s.playing && !done
   const packTitle = useLessonPack((p) => p.pack?.title ?? null)
-  const status = statusOf(s)
+  // A class with no notes: the bar points at Learning instead of a lesson.
+  const noNotes = useLessonPack((p) => p.empty !== null)
+  const status = noNotes ? 'Upload notes in Learning and I’ll build your lesson' : statusOf(s)
+  const introTitle = noNotes ? 'Add your notes' : (packTitle ?? 'First-come, first-served')
   const waiting = s.phase === 'waiting'
 
   return (
@@ -157,7 +167,9 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
       {closeable && <CloseButton id="walkthrough" label="lesson controls" />}
       <div className={styles.row}>
         <div className={styles.chip} data-waiting={waiting} data-testid="walk-step-label">
-          {s.started ? (
+          {noNotes ? (
+            <>No notes</>
+          ) : s.started ? (
             <>
               <b>{s.index + 1}</b> of {s.steps.length}
             </>
@@ -169,7 +181,7 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
         <div className={styles.copy}>
           <div className={styles.head}>
             <div key={s.started ? step.id : 'intro'} className={styles.title} title={packTitle ?? undefined}>
-              {s.started ? step.title : 'First-come, first-served'}
+              {s.started && !noNotes ? step.title : introTitle}
             </div>
             <div className={styles.status} aria-live="polite">
               {status}
@@ -197,7 +209,20 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
         </div>
 
         <div className={styles.controls}>
-          {!s.started ? (
+          {noNotes ? (
+            <button
+              type="button"
+              className={styles.startBtn}
+              onClick={() => {
+                useHub.getState().go('upload')
+                useDrawers.getState().open()
+              }}
+              aria-label="Open Learning to upload notes"
+            >
+              {Icon.upload}
+              <span>Add notes</span>
+            </button>
+          ) : !s.started ? (
             <button type="button" className={styles.startBtn} onClick={actions.start} aria-label="Start the guided lesson">
               {Icon.play}
               <span>Start lesson</span>

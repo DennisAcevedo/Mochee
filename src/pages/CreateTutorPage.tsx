@@ -204,6 +204,7 @@ export function CreateTutorPage() {
         files: files.map(({ id: fid, name: fname, size, pages, sample }) => ({ id: `${id}-${fid}`, name: fname, size, pages: lesson.pages[fname] ?? pages, sample })),
         outline: lesson.outline,
         ...(lesson.lessonDoc ? { lessonDoc: lesson.lessonDoc } : {}),
+        ...(lesson.builtIn ? { builtInLesson: true } : {}),
         sectionsDone: 0,
         lastStudied: null,
         createdAt: Date.now(),

@@ -19,7 +19,7 @@ import { useMode } from '../state/mode'
 import { useShop } from '../state/shop'
 import { ShopVisit } from '../ui/Shop/ShopVisit'
 import { useWindows } from '../state/windows'
-import { useLibrary, useTutor, type LessonStep, type Tutor } from '../state/library'
+import { playsBuiltInLesson, useLibrary, useTutor, type LessonStep, type Tutor } from '../state/library'
 import { useTutorStore } from '../state/store'
 import { Caption } from '../ui/Caption/Caption'
 import { ReopenChip } from '../ui/Closeable/Closeable'
@@ -58,11 +58,11 @@ export function LessonPage() {
   return <Lesson key={tutor.id} tutor={tutor} steps={steps} />
 }
 
-// Tutors without a generated lesson yet still get a greeting that fits.
+// Tutors without a saved greeting: their lesson (their notes, or the "add
+// your notes" step) introduces itself once it starts, so this only says hi.
 function fallbackGreeting(tutor: Tutor) {
   const topic = tutor.name.split(' · ')[1] ?? tutor.name
-  const first = tutor.outline[Math.min(1, tutor.outline.length - 1)]?.title ?? 'the basics'
-  return `Oh! Hi, I'm awake. Today is ${topic}, starting with ${first}.`
+  return `Oh! Hi, I'm awake. This is ${topic}.`
 }
 
 // Phones (the drawers' sheet breakpoint): the stage is too small to carry the
@@ -309,7 +309,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <IntroDirector session={session} />
         <StageDirector />
         <UnlockWatcher />
-        <PackDirector lessonDoc={tutor.lessonDoc} />
+        <PackDirector tutorId={tutor.id} name={tutor.name} builtIn={playsBuiltInLesson(tutor)} lessonDoc={tutor.lessonDoc} />
         <BossLayer tutorId={tutor.id} />
       </div>
       {live && !study && <ShopVisit />}

@@ -6,6 +6,7 @@ import {
 } from '../data/mockLesson'
 import { askTutor, beginListening, endListening } from '../lesson/askFlow'
 import { useQuickCheck } from '../lesson/quickCheck'
+import { useLessonPack } from '../lesson/packSession'
 
 export type Mode = 'lecture' | 'quiz'
 export type Mic = 'idle' | 'listening' | 'speaking'
@@ -119,8 +120,10 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
   setMode: (mode) => {
     if (mode === get().mode) return
-    if (mode === 'quiz') get().tutorSays(script.quizIntro, { mode, answer: null })
-    else get().tutorSays(script.backToLecture, { mode, answer: null })
+    // The scripted lines are about the CS111 lesson; a tutor's own lesson gets plain ones.
+    const own = useLessonPack.getState().pack !== null || useLessonPack.getState().empty !== null
+    if (mode === 'quiz') get().tutorSays(own ? "Let's check what stuck. Pick an answer on the board." : script.quizIntro, { mode, answer: null })
+    else get().tutorSays(own ? 'Back to the notes.' : script.backToLecture, { mode, answer: null })
   },
 
   // The Quick check's answer: the lesson runner checks it (src/lesson/quickCheck.ts) and says the feedback.

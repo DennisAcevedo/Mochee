@@ -216,6 +216,10 @@ export async function answerQuickCheck(choice: number): Promise<CheckOutcome | n
 
 // A document lesson starting fetches its questions while it plays, so they
 // are ready by the Quick check; the built-in lesson's are always there.
+// A class with no notes has no questions to ask (the board says so).
 useLessonPack.subscribe((s, prev) => {
-  if (s.pack?.documentId !== prev.pack?.documentId) prepareQuickCheck(s.pack?.documentId ?? null)
+  if (s.empty !== null && prev.empty === null) {
+    loadSeq++
+    useQuickCheck.setState({ documentId: null, status: 'empty', questions: [], ...fresh })
+  } else if (s.pack?.documentId !== prev.pack?.documentId || (s.empty === null && prev.empty !== null)) prepareQuickCheck(s.pack?.documentId ?? null)
 })

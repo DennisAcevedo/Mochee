@@ -50,6 +50,7 @@ export interface AskRequest {
   history?: AskTurn[]
   mode?: AskMode // which persona answers; study when missing
   lesson?: AskLesson // a notebook's own lesson; the built-in CS111 lesson when missing
+  course?: { title: string } // a class with no notes yet (no lesson): a general tutor for it
 }
 
 export interface AskReply {

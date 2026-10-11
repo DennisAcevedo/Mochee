@@ -52,6 +52,18 @@ export function notebookInstruction(title: string, topics: string[]): string {
   ].join('\n')
 }
 
+// A class with no notes uploaded yet: a general tutor for its subject, with
+// nothing on screen to point at. Exported for tests/server/askPrompt.test.ts.
+export function courseInstruction(title: string): string {
+  return [
+    `You are Mochee, a cheerful, encouraging tutor for the student's class "${title}". No notes have been uploaded for it yet, so the browser window beside you is empty.`,
+    'Answer the student in 1 to 3 short, spoken-friendly sentences (no lists, no markdown except **bold** for at most two key terms), from general knowledge of the subject. Do not claim to have read their notes.',
+    'When it helps, mention once that uploading their notes in Learning lets you build a lesson from them.',
+    'Also choose: gesture (talk for most answers, hop for a fun fact, think for a tricky idea, shrug for "it depends" or a common mistake, celebrate ONLY when praising something the student got right; never point_left or point_right, the window is empty);',
+    'focus = none and highlight = "none" always.',
+  ].join('\n')
+}
+
 // Play mode: the hangout room. No lesson, no browser: he is a chill, chatty
 // buddy who hangs out, jokes around and points the student at the fun stuff.
 // Exported for tests/server/askPrompt.test.ts.
@@ -183,7 +195,8 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
   const context = payload.context && typeof payload.context === 'object' ? (payload.context as Record<string, unknown>) : {}
   const play = payload.mode === 'play'
   const notebook = readLesson(payload.lesson)
-  const instruction = play ? PLAY_INSTRUCTION : notebook ? notebookInstruction(notebook.title, notebook.topics) : SYSTEM_INSTRUCTION
+  const course = !notebook && payload.course && typeof payload.course === 'object' ? clip((payload.course as Record<string, unknown>).title, ASK_LIMITS.lessonTitle) : ''
+  const instruction = play ? PLAY_INSTRUCTION : notebook ? notebookInstruction(notebook.title, notebook.topics) : course ? courseInstruction(course) : SYSTEM_INSTRUCTION
 
   const key = readKey(root)
   if (!key) return send(res, 503, { error: 'no-key' })

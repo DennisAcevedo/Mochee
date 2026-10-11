@@ -36,7 +36,8 @@ export interface Tutor {
   accessoryColors: Partial<Record<Accessory, string>>
   files: TutorFile[]
   outline: OutlineItem[]
-  lessonDoc?: string // the uploaded document its guided lesson is built from; none = the built-in CS111 lesson
+  lessonDoc?: string // the uploaded document its guided lesson is built from
+  builtInLesson?: boolean // made from the sample CS111 notes: plays the hand-written CS111 lesson
   sectionsDone: number
   lastStudied: number | null // ms epoch
   createdAt: number
@@ -202,6 +203,9 @@ export const useLibrary = create<LibraryState>()(
     { name: 'tutor-library', version: 1, partialize: (s) => ({ tutors: s.tutors, steps: s.steps }) },
   ),
 )
+
+// The hand-written CS111 lesson is this tutor's own; every other tutor teaches its notes (PackDirector).
+export const playsBuiltInLesson = (t: Pick<Tutor, 'id' | 'builtInLesson'>) => t.id === CS111_ID || !!t.builtInLesson
 
 export const useTutor = (id: string | undefined) => useLibrary((s) => s.tutors.find((t) => t.id === id))
 

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { notesTabs } from '../../../shared/lessonNotes'
-import { packNotesTabs, useLessonPack } from '../../lesson/packSession'
+import { emptyNotesTab, packNotesTabs, useLessonPack } from '../../lesson/packSession'
+import { currentBoard, PackBoardPage } from './PackBoard'
 import { useDirector } from '../../state/director'
 import { BoardQuiz } from './BoardQuiz'
 import { LectureBoard } from './LectureBoard'
@@ -33,13 +34,21 @@ export const CONTENT_BG: Record<TabKind, string> = {
 function NotesContent({ tabId, note, box, reloads }: { tabId: string; note: number; box: ContentBox; reloads: number }) {
   const highlight = useDirector((s) => s.highlight)
   const pack = useLessonPack((p) => p.pack)
-  const tabs = useMemo(() => (pack && pack.sections.length ? packNotesTabs(pack) : notesTabs), [pack])
+  const empty = useLessonPack((p) => p.empty)
+  const tabs = useMemo(() => (pack && pack.sections.length ? packNotesTabs(pack) : empty !== null ? [emptyNotesTab(empty)] : notesTabs), [pack, empty])
   const tab = tabs[Math.min(Math.max(0, note), tabs.length - 1)]
   return <NotesPage key={`${tabId}-${note}-${reloads}`} tab={tab} box={box} highlight={highlight} />
 }
 
+// A document lesson's board for the section on the notes tab, the empty
+// board, or the hand-written lecture board.
 function BoardContent({ box }: { box: ContentBox }) {
   const reveal = useDirector((s) => s.boardReveal)
+  useDirector((s) => s.notesTab)
+  useLessonPack((p) => p.pack)
+  useLessonPack((p) => p.empty)
+  const board = currentBoard()
+  if (board) return <PackBoardPage key={board.sectionLabel} board={board} box={box} reveal={reveal} />
   return <LectureBoard box={box} reveal={reveal} />
 }
 

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { notesTabs } from '../../../shared/lessonNotes'
 import { DOCS_ROUTES, type DocumentInfo, type PageText } from '../../../shared/docsTypes'
-import { useDirector } from '../../state/director'
 import { useDrawers } from '../../state/drawers'
 import { useWindows } from '../../state/windows'
 import { WIN, type WinId } from '../../scene/windows/tabModel'
@@ -177,64 +175,6 @@ export function DocumentPage({ doc }: { doc: DocumentInfo }) {
           ) : (
             <p className={s.pageText}>{text || 'This page has no text (it may be a scanned image).'}</p>
           ))}
-      </div>
-    </div>
-  )
-}
-
-// The built-in lesson's notes, live with the stage: same tab and highlight.
-export function BuiltInPage() {
-  const tabIndex = useDirector((d) => d.notesTab)
-  const highlight = useDirector((d) => d.highlight)
-  const setNotesTab = useDirector((d) => d.setNotesTab)
-  const tab = notesTabs[tabIndex] ?? notesTabs[0]
-  const markRef = useRef<HTMLLIElement>(null)
-
-  useEffect(() => {
-    markRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [highlight])
-
-  return (
-    <div className={s.viewer}>
-      <div className={s.tabs} role="tablist" aria-label="Lesson notes">
-        {notesTabs.map((t, i) => (
-          <button
-            key={t.title}
-            type="button"
-            role="tab"
-            aria-selected={i === tabIndex}
-            className={s.tab}
-            onClick={() => setNotesTab(i)}
-          >
-            {t.title.replace(/\.pdf$/i, '').replace(/^CS111 /, '')}
-          </button>
-        ))}
-      </div>
-      <div className={s.paper}>
-        <div className={s.paperMeta}>
-          <span>{tab.title}</span>
-          <span>{tab.page}</span>
-        </div>
-        <ul className={s.noteLines}>
-          {tab.lines.map((line) => {
-            const on = line.id === highlight
-            return (
-              <li key={line.id} ref={on ? markRef : undefined} data-kind={line.kind} data-on={on} className={s.noteLine}>
-                {line.cells ? (
-                  <span className={s.cells}>
-                    {line.cells.map((c) => (
-                      <span key={c}>{c}</span>
-                    ))}
-                  </span>
-                ) : on ? (
-                  <mark className={s.mark}>{line.text}</mark>
-                ) : (
-                  line.text
-                )}
-              </li>
-            )
-          })}
-        </ul>
       </div>
     </div>
   )

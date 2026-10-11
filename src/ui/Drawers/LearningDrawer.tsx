@@ -1,6 +1,5 @@
 import { useRef, useState, type CSSProperties, type DragEvent } from 'react'
-import { notesTabs } from '../../../shared/lessonNotes'
-import { DEFAULT_DOC_KIND, DOCS_LIMITS, formatLabel, UPLOAD_ACCEPT, UPLOAD_FORMATS, type DocKind, type DocumentInfo } from '../../../shared/docsTypes'
+import { DEFAULT_DOC_KIND, DOCS_LIMITS, formatLabel, UPLOAD_ACCEPT, type DocKind, type DocumentInfo } from '../../../shared/docsTypes'
 import { ClassSwitcher, StudyHub } from '../../hub/StudyHub'
 import { PALETTE } from '../../scene/layout3d'
 import { useDrawers } from '../../state/drawers'
@@ -8,7 +7,7 @@ import { errorText } from './docsClient'
 import { useDocs, useDocsAutoRefresh } from './docsStore'
 import { UploadIcon } from './icons'
 import s from './Learning.module.css'
-import { BuiltInPage, DocumentPage } from './PageViewer'
+import { DocumentPage } from './PageViewer'
 import { Panel } from './Panel'
 
 // LEFT drawer: what the student is learning from. The built-in lesson is
@@ -18,7 +17,6 @@ import { Panel } from './Panel'
 
 const LEARNING = {
   maxChips: 4, // topic chips per document before "+N"
-  builtInTopics: ['FCFS', 'Ready queue', 'Convoy effect'], // what the built-in lesson covers
   chipColors: [PALETTE.violet, PALETTE.teal, PALETTE.coral, PALETTE.indigo, PALETTE.lime, PALETTE.pink],
   // Class material is taught topic by topic; a paper is walked through by Gemini in one pass.
   kinds: [
@@ -27,8 +25,6 @@ const LEARNING = {
   ] satisfies readonly { id: DocKind; label: string; hint: string }[],
 } as const
 
-// 'CS111 Lecture 4.pdf' -> 'CS111 · Lecture 4'
-const BUILT_IN_LABEL = notesTabs[0].title.replace(/\.pdf$/i, '').replace(' ', ' · ')
 
 export function LearningDrawer() {
   useDocsAutoRefresh()
@@ -53,7 +49,7 @@ export function LearningDrawer() {
               <h3 id="learning-reader" className={s.kicker}>
                 Reader
               </h3>
-              {selected ? <DocumentPage key={selected.id} doc={selected} /> : <BuiltInPage />}
+              {selected ? <DocumentPage key={selected.id} doc={selected} /> : <p className={s.empty}>Pick a document above to read it here.</p>}
             </section>
           </>
         }
@@ -205,17 +201,6 @@ function DocList() {
 
   return (
     <ul className={s.docs}>
-      <li>
-        <DocRow
-          title={BUILT_IN_LABEL}
-          badge={UPLOAD_FORMATS.pdf.label}
-          meta="Built-in lesson"
-          chips={[...LEARNING.builtInTopics]}
-          selected={documentId === null}
-          onSelect={() => selectDocument(null)}
-          accent={PALETTE.violet}
-        />
-      </li>
       {documents.map((doc, i) => (
         <li key={doc.id}>
           <DocRow
