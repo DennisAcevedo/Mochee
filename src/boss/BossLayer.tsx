@@ -12,7 +12,7 @@ import css from './Boss.module.css'
 // One overlay for the whole Beat the Boss flow. Mounted once (LessonPage);
 // renders nothing while closed. Picking notes and a topic happens on an opaque
 // card; the fight itself is a transparent HUD over the lesson stage, where the
-// real Gemini Guy fights a 3D boss (arena/BossArena.tsx, driven by fight.ts).
+// real Mochee fights a 3D boss (arena/BossArena.tsx, driven by fight.ts).
 // Keys: 1-4 pick, Enter continues, Esc closes.
 
 const HEART =
@@ -208,7 +208,7 @@ function Battle() {
     <div ref={battleRef} className={css.battle} style={timingVars(reduced)}>
       {/* HUD cards */}
       <div className={miss ? css.hudShake : css.hud} data-arena-top>
-        <span className={css.mono}>YOU + GEMINI GUY</span>
+        <span className={css.mono}>YOU + MOCHEE</span>
         <Hearts n={hearts} max={3} crack={miss ? hitId : null} />
         <span className={css.streak}>{streak >= 2 ? `Streak ${streak} · keep it going` : 'Answer right to attack'}</span>
       </div>

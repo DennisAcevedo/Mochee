@@ -255,7 +255,7 @@ function AskRow() {
         value={draft}
         onChange={(e) => t.setDraft(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && t.sendDraft()}
-        placeholder="Ask Gemini Guy anything about this lesson..."
+        placeholder="Ask Mochee anything about this lesson..."
         style={{ flex: 1, height: 48, borderRadius: 16, border: 'none', padding: '0 16px', font: 'inherit', fontWeight: 600, background: '#fff' }}
       />
       <button type="button" data-testid="send" onClick={t.sendDraft} style={{ height: 48, padding: '0 18px', borderRadius: 16, border: 'none', fontWeight: 800, background: PALETTE.ink, color: '#fff', cursor: 'pointer' }}>

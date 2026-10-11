@@ -4,6 +4,7 @@ import { introRef } from '../../intro/targets'
 import { useCurrentTutor } from '../../state/currentTutor'
 import { BackButton } from '../BackButton/BackButton'
 import styles from './StartScreen.module.css'
+import { MocheeLogo } from '../Brand/MocheeLogo'
 
 // "Start screen" from design/Tutor.dc.html. Only the HTML lives here; the
 // sleeping character behind the empty slot is the one shared 3D scene, framed
@@ -15,8 +16,7 @@ export function StartScreen() {
       <BackButton className={styles.back} />
       <div className={styles.head}>
         <div ref={introRef('title')} className={styles.logo}>
-          <div className={styles.logoDot} />
-          Tutor
+          <MocheeLogo size={52} />
         </div>
         <div ref={introRef('subtitle')} className={styles.subtitle}>
           Your 3D tutor for {tutor.name}

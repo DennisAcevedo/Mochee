@@ -24,7 +24,7 @@ import { ARENA, BEAT, BOLT, BOSS_SHAPE, BURST } from './config'
 import { arenaFrame } from './frame'
 import { DASH, boltProgress, outCubic, sinceImpact } from './timeline'
 
-// The fight's effects, all driven from arenaFrame: Gemini Guy's star bolt (with
+// The fight's effects, all driven from arenaFrame: Mochee's star bolt (with
 // its trail and glow), the impact ring and sparks, the clash ring when the boss
 // lunges into him, and on a KO the boss bursting into pieces and confetti.
 

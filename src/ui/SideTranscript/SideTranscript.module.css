@@ -147,8 +147,13 @@
   margin-top: 2px;
   border: 2px solid var(--ink);
   border-radius: 7px;
-  background: #4aa8be;
+  background: #ffb3cd;
   font: 700 9px 'Fredoka', sans-serif;
+}
+.badgeFace {
+  width: 84%;
+  height: auto;
+  margin-top: 12%;
 }
 .line[data-who='student'] .badge {
   background: #a98bfa;
@@ -174,7 +179,7 @@
 
 /* The line he is saying right now. */
 .line[data-live] .time {
-  color: #4aa8be;
+  color: #e0668f;
 }
 
 /* A key term: a tint of its accent, with darker accent text. */

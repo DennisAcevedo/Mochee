@@ -8,6 +8,7 @@ import { useDirector } from '../../state/director'
 import { useTutorStore } from '../../state/store'
 import { CloseButton } from '../Closeable/Closeable'
 import styles from './Caption.module.css'
+import { MocheeFace } from '../Brand/MocheeLogo'
 
 interface Props {
   className?: string // placement override; by default it floats bottom-centre of its positioned parent
@@ -37,12 +38,12 @@ export function Caption({ className, closeable = false }: Props) {
       {/* Keyed by the text so each new line pops in. */}
       <div key={caption} className={styles.row}>
         <div className={styles.avatar} aria-hidden>
-          GG
+          <MocheeFace className={styles.avatarFace} />
         </div>
         <div className={styles.bubble} data-closeable={closeable || undefined}>
           {closeable && <CloseButton id="caption" label="captions" inset />}
           <div className={styles.who}>
-            <span className={styles.name}>Gemini Guy</span>
+            <span className={styles.name}>Mochee</span>
             <span className={styles.dots} data-speaking={speaking} aria-hidden>
               <i />
               <i />

@@ -1,0 +1,34 @@
+/* The mochee logo: a pink rounded tile (ink outline, hard offset shadow)
+   holding the mochi face, then the lowercase wordmark in heavy Fredoka.
+   Everything scales off --tile, the tile's side. */
+.logo {
+  --ink: #1d1b24;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--tile) * 0.3);
+  flex-shrink: 0;
+  color: var(--ink);
+}
+
+.tile {
+  width: var(--tile);
+  height: var(--tile);
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: max(2px, calc(var(--tile) * 0.06)) solid var(--ink);
+  border-radius: calc(var(--tile) * 0.26);
+  background: #ffb3cd;
+  box-shadow: calc(var(--tile) * 0.08) calc(var(--tile) * 0.08) 0 var(--ink);
+}
+
+.face {
+  width: 76%;
+  height: auto;
+  margin-top: 8%;
+}
+
+.word {
+  font: 700 calc(var(--tile) * 0.72) / 1 'Fredoka', var(--font-ui, system-ui), sans-serif;
+  letter-spacing: -0.01em;
+}

@@ -3,7 +3,7 @@ import { owns, ownedDances, useProgress, type Dance, type UnlockId } from '../st
 import { CAP_COLORS, PLAY, PROP_COLORS, type PlayAction } from './config'
 import { isCoolingDown, usePlay } from './playStore'
 
-// The ways a student plays with Gemini Guy. Each one fires a one-shot clip
+// The ways a student plays with Mochee. Each one fires a one-shot clip
 // and an effect burst. Playing pays no coins (only learning does, see
 // src/state/progress.ts); every action still has a cooldown, so a new clip
 // never cuts the last one off. Calls during it are ignored and return false.

@@ -14,7 +14,7 @@ import { FLOOR_Y } from '../../scene/layout3d'
 export const ARENA_Z = { backdrop: 60, canvas: 61, hud: 62, over: 63 } as const
 
 export const ARENA = {
-  // Gemini Guy's fight spot: he walks there through director.stepAside, so his
+  // Mochee's fight spot: he walks there through director.stepAside, so his
   // effects (stars, confetti) follow him. Past the lane's end his depth is the left spot's.
   guy: { x: -1.85 },
   face: 0.42, // rad he turns toward the boss once he stands still
@@ -97,7 +97,7 @@ export const JUICE = {
   reduced: { shake: 0.15, flash: 0.3, bob: 0.4 }, // prefers-reduced-motion multipliers
 } as const
 
-// Projectile (Gemini Guy's star bolt) and impact effects.
+// Projectile (Mochee's star bolt) and impact effects.
 export const BOLT = {
   size: 0.42,
   arc: 0.85, // world units the bolt rises above the straight line

@@ -21,6 +21,11 @@ import { QUIZ_FEEDBACK, RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 // experiment (src/growth) owns the stage while it runs: the lesson waits.
 // Play mode shuts the lesson (the gate below, driven by src/play/lessonMode.ts).
 
+// TEMPORARY: lessons start with the voice off (saves ElevenLabs credits); the
+// step bar's speaker button turns it on. Set back to true to restore.
+const VOICE_AT_START = false
+setVoiceEnabled(VOICE_AT_START)
+
 const RUNNER = {
   // Steps should flow like one talk, not stop and start: he starts the next
   // line soon after the last one ends, and talks over the end of a walk.
@@ -424,7 +429,7 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
   ...initialRun(),
   steps: RESOLVED_STEPS,
   reached: [],
-  muted: false,
+  muted: !VOICE_AT_START,
 
   start: () => asStudent(begin),
 

@@ -7,7 +7,7 @@ import { experimentFor, returnFlagOn } from '../growth/schedule'
 import { keywordsFor } from '../growth/topics'
 import { safeStorage } from './progress'
 
-// Gemini Guy grows with what the student actually learns (contract; the logic
+// Mochee grows with what the student actually learns (contract; the logic
 // lives in src/growth/**, the 3D side in src/scene/evolution/**).
 // - Topic mastery: answering a topic's question right on the first try (or 2 of
 //   the last 3) masters it. Topics come from the built-in lesson and from

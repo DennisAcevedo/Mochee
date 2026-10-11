@@ -1,6 +1,6 @@
 import { ARENA, BEAT, JUICE } from './config'
 
-// The fight as pure functions of time: what the boss, Gemini Guy, the bolt and
+// The fight as pure functions of time: what the boss, Mochee, the bolt and
 // the camera do at t ms into a beat. The 3D arena and the HUD both read these,
 // so the two layers stay in step (and a screenshot at a given time is stable).
 
@@ -54,7 +54,7 @@ export function wallMs(kind: BeatKind, beatMs: number): number {
 export interface BossPose {
   x: number // along the arena (world x), from its spot
   y: number
-  lean: number // rad, + tips its top toward Gemini Guy
+  lean: number // rad, + tips its top toward Mochee
   sx: number
   sy: number
   sz: number
@@ -211,7 +211,7 @@ export function bossPose(beat: Beat | null, outcome: Outcome, outcomeAge: number
   return out
 }
 
-// ---- Gemini Guy (offsets layered on the Blender tutor, his parent's frame)
+// ---- Mochee (offsets layered on the Blender tutor, his parent's frame)
 
 export interface GuyPose {
   dx: number // toward the boss (world x)

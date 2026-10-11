@@ -14,7 +14,7 @@ import { bossCues } from './cues'
 
 // The fight director: turns the boss store's answers into beats on the stage.
 // While a fight is up it takes the stage over (the canvas is lifted above the
-// lesson chrome, the lesson is held, Gemini Guy walks to his corner) and
+// lesson chrome, the lesson is held, Mochee walks to his corner) and
 // gives it back when the fight ends. The 3D arena (arena/BossArena.tsx) and
 // the HUD (BossLayer.tsx) both read useFight, so they stay in step.
 

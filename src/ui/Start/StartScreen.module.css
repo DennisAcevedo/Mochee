@@ -35,14 +35,6 @@
   letter-spacing: -0.02em;
 }
 
-.logoDot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent-bright);
-  box-shadow: 0 0 0 6px var(--accent-halo);
-}
-
 .subtitle {
   font-size: 16px;
   color: var(--muted);

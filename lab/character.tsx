@@ -205,7 +205,7 @@ function Lab() {
 
       <aside className="panel">
         <h1>
-          Gemini Guy <em>lab</em>
+          Mochee <em>lab</em>
         </h1>
         <p className="sub">{status.loaded ? 'Blender tutor loaded' : 'tutor.glb not loaded: classic fallback'}</p>
 

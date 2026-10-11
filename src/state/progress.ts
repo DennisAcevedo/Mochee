@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 
-// Gemini Guy's coins. Only learning earns them (a section finished, a right
+// Mochee's coins. Only learning earns them (a section finished, a right
 // answer, the boss beaten, the lesson done); playing with him never does.
 // Coins buy what levels used to unlock: the dances, the rainbow cap and the
 // party lights. Coins and what he owns persist in localStorage through a

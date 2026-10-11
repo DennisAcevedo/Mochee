@@ -10,6 +10,7 @@ import { PALETTE } from '../../scene/layout3d'
 import { useTutorStore } from '../../state/store'
 import { CloseButton } from '../Closeable/Closeable'
 import styles from './SideTranscript.module.css'
+import { MocheeFace } from '../Brand/MocheeLogo'
 
 // Where the learner dragged the card, kept while the page is open so a
 // closed-and-reopened transcript comes back where they left it.
@@ -52,7 +53,7 @@ function useDrag() {
   return { offset, handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp } }
 }
 
-// The conversation so far, beside the stage: every line Gemini Guy said and
+// The conversation so far, beside the stage: every line Mochee said and
 // everything the learner asked, typed or spoken (the tutor store's `lines`).
 // New lines scroll into view, unless the learner has scrolled up to reread.
 interface Props {
@@ -141,18 +142,18 @@ export function SideTranscript({ className, closeable = false, panelRef }: Props
       </div>
       <div ref={scroll} className={styles.scroll} onScroll={onScroll} aria-live="polite">
         {said.length === 0 ? (
-          <p className={styles.empty}>What you and Gemini Guy say shows up here.</p>
+          <p className={styles.empty}>What you and Mochee say shows up here.</p>
         ) : shown.length === 0 ? (
           <p className={styles.empty}>Nothing here matches.</p>
         ) : (
           shown.map((l, i) => (
             <div key={i} className={styles.line} data-who={l.who} data-live={l.live || undefined}>
               <span className={styles.badge} aria-hidden="true">
-                {l.who === 'tutor' ? 'GG' : 'ME'}
+                {l.who === 'tutor' ? <MocheeFace className={styles.badgeFace} /> : 'ME'}
               </span>
               <div className={styles.body}>
                 <div className={styles.time}>
-                  <span className={styles.sr}>{l.who === 'tutor' ? 'Gemini Guy' : 'You'}, </span>
+                  <span className={styles.sr}>{l.who === 'tutor' ? 'Mochee' : 'You'}, </span>
                   {l.time}
                 </div>
                 <p className={styles.text}>

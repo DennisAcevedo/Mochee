@@ -16,7 +16,7 @@ import { arenaFrame } from './frame'
 import { useBoss } from '../bossStore'
 import { bossPose, guyPose, outBack, shake, span, tense } from './timeline'
 
-// The Beat the Boss arena, on the lesson stage itself: the real Gemini Guy
+// The Beat the Boss arena, on the lesson stage itself: the real Mochee
 // fights. Mounted once with the live stage (Stage.tsx); idle until a fight is
 // on. Then it pops the lesson room away, frames the shot on the two fighters,
 // layers the fight on top of his clips (facing the boss, the dash, the hop,
@@ -173,7 +173,7 @@ export function BossArena() {
       return
     }
 
-    // Gemini Guy: turned toward the boss once he stands still, plus the beat's
+    // Mochee: turned toward the boss once he stands still, plus the beat's
     // offsets, pivoting about his feet. His placement is rewritten every frame
     // before the mixer, so nothing here accumulates.
     if (!st.tutor || !st.tutor.parent) st.tutor = scene.getObjectByName(ARENA.tutorName) ?? null

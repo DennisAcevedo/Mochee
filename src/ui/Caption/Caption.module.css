@@ -34,7 +34,7 @@
   place-items: center;
   border: max(2px, calc(3 * var(--px))) solid var(--ink);
   border-radius: calc(12 * var(--px));
-  background: #8b5cf6;
+  background: #ffb3cd;
   color: #fff;
   font: 800 max(10px, calc(17 * var(--px))) / 1 'Figtree', var(--font-ui), sans-serif;
   letter-spacing: 0.02em;
@@ -180,4 +180,11 @@
   .dots i {
     animation: none;
   }
+}
+
+/* The mochi face inside the avatar sticker. */
+.avatarFace {
+  width: 80%;
+  height: auto;
+  margin-top: 10%;
 }

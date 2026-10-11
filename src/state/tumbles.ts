@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { LoopClip } from './director'
 
-// What knocked Gemini Guy over. Each cause plays its own tumble variant.
+// What knocked Mochee over. Each cause plays its own tumble variant.
 export type TumbleCause = 'boss' | 'thrown' | 'dropped' | 'bonk' | 'shaken' | 'flicked'
 
 export interface TumbleEvent {

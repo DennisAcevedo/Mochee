@@ -6,7 +6,7 @@ import { usePlay, type PlayProp } from '../../play/playStore'
 import { anchors } from '../anchors'
 import { PROPS } from './config'
 
-// The things thrown to Gemini Guy: a beach ball that arcs into his hands (he
+// The things thrown to Mochee: a beach ball that arcs into his hands (he
 // holds it, then tosses it back out of frame) and a doughnut that arcs into
 // his mouth and shrinks away. Timings come from PLAY, so the flight lands
 // exactly when actions.ts fires the catch / yum clip and its burst.

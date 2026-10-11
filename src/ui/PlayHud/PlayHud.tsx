@@ -71,7 +71,7 @@ export function PlayHud({ banner = true, className }: Props) {
     <div
       className={[styles.hud, className].filter(Boolean).join(' ')}
       role="region"
-      aria-label="Play with Gemini Guy"
+      aria-label="Play with Mochee"
       // The first press of any button here (or a tickle, actions.ts) retires the tickle hint for good.
       onClickCapture={(e) => {
         if (e.target instanceof Element && e.target.closest('button')) usePlay.getState().seeTickleHint()
@@ -83,8 +83,8 @@ export function PlayHud({ banner = true, className }: Props) {
       </div>
 
       {!hintSeen && (
-        <button type="button" className={styles.hint} onClick={() => poke()} aria-label="Tickle Gemini Guy">
-          <span aria-hidden="true">👆</span> Tap <b>Gemini Guy</b> to tickle him
+        <button type="button" className={styles.hint} onClick={() => poke()} aria-label="Tickle Mochee">
+          <span aria-hidden="true">👆</span> Tap <b>Mochee</b> to tickle him
         </button>
       )}
 

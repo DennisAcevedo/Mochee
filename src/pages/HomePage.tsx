@@ -4,6 +4,7 @@ import { deleteTutorFiles } from "../state/fileStore";
 import { lastStudiedLabel, lookOf, useLibrary } from "../state/library";
 import { CardCharacter, HomeCanvas } from "./HomeScene";
 import styles from "./HomePage.module.css";
+import { MocheeLogo } from '../ui/Brand/MocheeLogo';
 
 // "/": design/Tutor Home.dc.html.
 
@@ -61,10 +62,7 @@ export function HomePage() {
     <div className={styles.page} data-screen-label="Home">
       <div className={styles.wrap}>
         <div className={styles.topBar}>
-          <div className={styles.logo}>
-            <div className={styles.logoDot} />
-            Tutor
-          </div>
+          <MocheeLogo size={36} />
           <div className={styles.searchRow}>
             <div className={styles.search}>
               <svg

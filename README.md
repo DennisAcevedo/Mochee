@@ -1,6 +1,6 @@
-# Gemini Guy
+# Mochee
 
-A 3D study buddy. Gemini Guy stands in a white-box classroom between two browser-style windows (lecture notes on the left, a whiteboard on the right) and walks the student through a lesson: he walks, points, highlights, reveals the board step by step, narrates in a real voice and runs a quick check. Students can also upload their own PDFs and ask him questions; every answer cites the exact page and quote it came from, and he says so when the document does not cover the question.
+A 3D study buddy. Mochee stands in a white-box classroom between two browser-style windows (lecture notes on the left, a whiteboard on the right) and walks the student through a lesson: he walks, points, highlights, reveals the board step by step, narrates in a real voice and runs a quick check. Students can also upload their own PDFs and ask him questions; every answer cites the exact page and quote it came from, and he says so when the document does not cover the question.
 
 Built with Vite 7, React 19, TypeScript, react-three-fiber, drei, Rapier physics, zustand, a Blender-built character and Gemini on a server-side proxy.
 
@@ -89,7 +89,7 @@ Both e2e files also assert no failed requests, no page errors and no console err
 - Server-side XP economy and quest database. XP, levels, mastery and learned abilities persist in the browser (localStorage) for now.
 - Return events stored on the server. Return experiments are scheduled client-side (eligible from the next calendar day, `?return=1` to preview).
 - Teach-back mode (the student explains a topic back to him and he grades it).
-- A mascot redesign. Gemini Guy keeps his original look.
+- A mascot redesign. Mochee keeps his original look.
 - Accounts, document ownership and a delete-document route. All data access sits in `server/docs/store.ts` so auth can be added there.
 - OCR for scanned PDFs (a PDF without a text layer is rejected with `no-text`).
 - Sandboxed PDF parsing. pdfjs runs on the dev server's main thread, so a deliberately hostile PDF (hundreds of KB of compressed text operators) can stall the server for a long time. The fix is a worker thread with a timeout and per-page character caps.

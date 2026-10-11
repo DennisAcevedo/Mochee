@@ -2,7 +2,7 @@ import type { FxKind, LoopClip, OneShotClip } from '../state/director'
 import type { AbilityDef, AbilityId } from '../state/growth'
 import type { PALETTE } from '../scene/layout3d'
 
-// Abilities Gemini Guy learns from mastered topics. Each one is a short,
+// Abilities Mochee learns from mastered topics. Each one is a short,
 // deterministic stage performance: timed director beats (clips, bursts,
 // caption) plus a prop routine drawn by src/scene/evolution/AbilityProps.tsx.
 // A mastered topic teaches the ability whose `match` keywords hit its title or
