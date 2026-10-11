@@ -7,11 +7,10 @@ import type { Group } from 'three'
 // tweens these 0..1 values (src/intro/intro.ts, INTRO.build); 1 = built,
 // which is also the default, so everywhere else the room is simply there.
 
-export type BuildPart = 'rug' | 'skirting' | 'ceiling' | 'decals' | 'blobs' | 'props' | 'window' | 'evolution'
+export type BuildPart = 'rug' | 'ceiling' | 'decals' | 'blobs' | 'props' | 'window' | 'evolution'
 
 export const roomBuild: Record<BuildPart, number> = {
   rug: 1,
-  skirting: 1,
   ceiling: 1,
   decals: 1,
   blobs: 1,

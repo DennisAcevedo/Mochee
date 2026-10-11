@@ -1,12 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   AdditiveBlending,
   BoxGeometry,
   CircleGeometry,
-  Color,
   DoubleSide,
-  Object3D,
-  type InstancedMesh,
   type Texture,
 } from 'three'
 import { useMode } from '../../state/mode'
@@ -19,8 +16,7 @@ import { ROOM_STYLE as S, type DecalKind, type Surface } from './roomStyle'
 // The lesson's white-box room: a one-point-perspective interior (floor, back
 // wall, two side walls, ceiling) with baked soft-white tones and corner
 // falloff, transparent shadow catchers over each surface, and the bold
-// accents (colour-block skirting, rug, ceiling light, confetti
-// decals). Unlit surfaces keep the room the mock's exact tones under any
+// accents (rug, ceiling light, confetti decals). Unlit surfaces keep the room's tones under any
 // light rig; only the shadows come from the scene's key light.
 
 const HALF_W = ROOM.width / 2
@@ -131,70 +127,6 @@ function Surface({
   )
 }
 
-// Colour blocks along the base of the walls, one InstancedMesh for all of
-// them. The colour sequence runs left wall (front to back), back wall (left
-// to right), right wall (back to front), so it wraps the corners unbroken.
-function Skirting() {
-  const ref = useRef<InstancedMesh>(null)
-  const { height, depth, segment, gap, colors, rail } = S.skirting
-
-  const blocks = useMemo(() => {
-    const out: { x: number; z: number; yaw: number; len: number }[] = []
-    const run = (len: number, at: (d: number) => [number, number], yaw: number) => {
-      const n = Math.ceil(len / segment)
-      for (let i = 0; i < n; i++) {
-        const start = i * segment
-        const l = Math.min(segment, len - start) - gap
-        if (l <= 0) continue
-        const [x, z] = at(start + gap / 2 + l / 2)
-        out.push({ x, z, yaw, len: l })
-      }
-    }
-    run(SIDE_LEN, (d) => [-HALF_W + depth / 2, FRONT_Z - d], HALF_PI)
-    run(ROOM.width, (d) => [-HALF_W + d, BACK_Z + depth / 2], 0)
-    run(SIDE_LEN, (d) => [HALF_W - depth / 2, BACK_Z + d], -HALF_PI)
-    return out
-  }, [segment, gap, depth])
-
-  useLayoutEffect(() => {
-    const mesh = ref.current
-    if (!mesh) return
-    const o = new Object3D()
-    const c = new Color()
-    blocks.forEach((b, i) => {
-      o.position.set(b.x, FLOOR_Y + height / 2, b.z)
-      o.rotation.set(0, b.yaw, 0)
-      o.scale.set(b.len, height, depth)
-      o.updateMatrix()
-      mesh.setMatrixAt(i, o.matrix)
-      mesh.setColorAt(i, c.set(PALETTE[colors[i % colors.length]]))
-    })
-    mesh.instanceMatrix.needsUpdate = true
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [blocks, colors, height, depth])
-
-  const railY = FLOOR_Y + height + rail.gapAbove + rail.height / 2
-  return (
-    <group>
-      <instancedMesh ref={ref} args={[undefined, undefined, blocks.length]} castShadow={false}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial toneMapped={false} />
-      </instancedMesh>
-      {/* Ink rail above the blocks: back, left, right. */}
-      <mesh position={[0, railY, BACK_Z + depth / 4]}>
-        <boxGeometry args={[ROOM.width, rail.height, depth / 2]} />
-        <meshBasicMaterial color={rail.color} toneMapped={false} />
-      </mesh>
-      {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * (HALF_W - depth / 4), railY, SIDE_MID_Z]}>
-          <boxGeometry args={[depth / 2, rail.height, SIDE_LEN]} />
-          <meshBasicMaterial color={rail.color} toneMapped={false} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
 // Concentric colour rings under the tutor's centre spot, with a dotted inner ring.
 function Rug() {
   const { radius, squash, rings, ringWidth, center, segments, dotRing } = S.rug
@@ -301,31 +233,32 @@ function Decals() {
 export function WhiteBoxRoom() {
   const tex = useRoomTextures()
   const { floor: floorShadow, walls: wallShadow } = S.shadowOpacity
-  // Study is the calm room: Ronil's pastel sky on every surface, no colour
-  // blocks or confetti. Play keeps the bold white box.
+  // Both modes share the pastel wall gradient. Study also uses the matching
+  // floor and ceiling, while Play keeps its court floor and neutral ceiling.
   const study = useMode((s) => s.mode === 'study')
-  const t = study ? tex.sky : tex
+  const wall = tex.sky
+  const floor = study ? tex.sky.floor : tex.floor
+  const ceiling = study ? tex.sky.ceiling : tex.ceiling
 
   return (
     <group name="white-box-room">
-      <Surface map={t.back} width={ROOM.width} height={ROOM.height} position={[0, MID_Y, BACK_Z]} rotation={[0, 0, 0]} shadowOpacity={wallShadow} />
-      <Surface map={t.floor} width={ROOM.width} height={SIDE_LEN} position={[0, FLOOR_Y, SIDE_MID_Z]} rotation={[-HALF_PI, 0, 0]} shadowOpacity={floorShadow} />
-      <Surface map={t.ceiling} width={ROOM.width} height={SIDE_LEN} position={[0, CEIL_Y, SIDE_MID_Z]} rotation={[HALF_PI, 0, 0]} shadowOpacity={0} />
-      <Surface map={t.left} width={SIDE_LEN} height={ROOM.height} position={[-HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, HALF_PI, 0]} shadowOpacity={wallShadow} />
-      <Surface map={t.right} width={SIDE_LEN} height={ROOM.height} position={[HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, -HALF_PI, 0]} shadowOpacity={wallShadow} />
+      <Surface map={wall.back} width={ROOM.width} height={ROOM.height} position={[0, MID_Y, BACK_Z]} rotation={[0, 0, 0]} shadowOpacity={wallShadow} />
+      <Surface map={floor} width={ROOM.width} height={SIDE_LEN} position={[0, FLOOR_Y, SIDE_MID_Z]} rotation={[-HALF_PI, 0, 0]} shadowOpacity={floorShadow} />
+      <Surface map={ceiling} width={ROOM.width} height={SIDE_LEN} position={[0, CEIL_Y, SIDE_MID_Z]} rotation={[HALF_PI, 0, 0]} shadowOpacity={0} />
+      <Surface map={wall.left} width={SIDE_LEN} height={ROOM.height} position={[-HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, HALF_PI, 0]} shadowOpacity={wallShadow} />
+      <Surface map={wall.right} width={SIDE_LEN} height={ROOM.height} position={[HALF_W, MID_Y, SIDE_MID_Z]} rotation={[0, -HALF_PI, 0]} shadowOpacity={wallShadow} />
       {/* The walls, floor and ceiling are the bare box he lands in; everything
           below builds itself in during the intro (build.tsx). */}
       <group visible={!study}>
         <BuildIn part="decals" style="pop" pivot={[0, MID_Y, BACK_Z]}>
           <Decals />
         </BuildIn>
-        <BuildIn part="skirting" style="rise" distance={0.9}>
-          <Skirting />
+      </group>
+      <group visible={study}>
+        <BuildIn part="rug" style="pop" pivot={[SPOTS.center.x, FLOOR_Y, SPOTS.center.z]}>
+          <Rug />
         </BuildIn>
       </group>
-      <BuildIn part="rug" style="pop" pivot={[SPOTS.center.x, FLOOR_Y, SPOTS.center.z]}>
-        <Rug />
-      </BuildIn>
       <BuildIn part="blobs" style="pop" pivot={[WINDOW.position[0], FLOOR_Y, WINDOW.position[2]]}>
         <WindowBlobs map={tex.blob} />
       </BuildIn>

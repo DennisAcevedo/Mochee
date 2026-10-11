@@ -44,17 +44,6 @@ export const ROOM_STYLE = {
   shadowOpacity: { floor: 0.12, walls: 0.07 },
   lift: 0.004, // gap between stacked floor layers, against z-fighting
 
-  // Colour-block skirting along the base of the three walls.
-  skirting: {
-    height: 0.16,
-    depth: 0.05,
-    segment: 0.9, // length of one colour block
-    gap: 0.04, // white gap between blocks
-    colors: ['teal', 'sun', 'coral', 'violet', 'lime', 'pink', 'indigo'] as PaletteKey[],
-    // A thin ink-dark rail above the blocks.
-    rail: { height: 0.025, color: PALETTE.ink, gapAbove: 0.035 },
-  },
-
   // Round rug under the tutor's centre spot: concentric rings, outside in.
   rug: {
     radius: 1.35,

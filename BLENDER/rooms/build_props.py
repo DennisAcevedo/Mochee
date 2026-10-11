@@ -32,11 +32,11 @@ LIST = '--list' in ARGS
 # mouldings (the white panel frames) included.
 KEEP_PREFIX = ('rail_',)
 # Non-shell objects to drop: the room's own rug (the white box has one under his
-# spot) and, for a calmer study, its LIBRARY bookcase with its books and the
-# potted plant. The ledge's books are ledge_book_*, so 'book_' leaves them.
+# spot), the study bookcase and plant, and the Play foam blocks and purple
+# court paint. The ledge's books are ledge_book_*, so 'book_' leaves them.
 DROP_PREFIX = {
     'study': ('rug', 'bookcase', 'book_', 'pot', 'leaf_'),
-    'play': ('rug',),
+    'play': ('rug', 'block_', 'court_lane', 'court_centre'),
 }
 
 REPO = os.path.abspath(os.path.join(HERE, '..', '..'))

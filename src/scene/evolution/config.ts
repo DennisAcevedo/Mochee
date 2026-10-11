@@ -3,31 +3,16 @@ import { frameAt } from '../room/stageSpace'
 import type { PaletteKey } from '../../growth/abilities'
 
 // Placement and look of everything the growth system adds to the stage: the
-// library shelf (one book per document), topic posters, the trophy shelf (one
-// trophy per mastered topic), the ability props and the return experiment's
+// library shelf (one book per document), the trophy shelf (one trophy per
+// mastered topic), the ability props and the return experiment's
 // scheduler race. The shelf islands are placed by where they land in the
 // 16:9 frame (frameAt, against LESSON_CAMERA), clear of the HUD, the browser
-// window, the tutor and the caption; the posters hang on the white box's back
-// wall beside the study room's window.
+// window, the tutor and the caption.
 
 // Shelf islands sit in the frame's lower corners (the left one below the
 // browser window), turned a little toward the centre so their books read in 3D.
 const LIBRARY_AT = frameAt(0.165, 0.775, 0.2)
 const TROPHIES_AT = frameAt(0.835, 0.775, 0.2)
-
-// Poster slots on the white box's back wall, right of the study room's window
-// (x -1.52..1.52, world y 0.33..2.87) and above its trophy shelf (top near
-// world y 1.0): three across, two rows, top row first. World units, a little
-// off the wall so a poster turned toward the camera never cuts into it.
-const POSTER_Z = -6.8
-const POSTER_SLOTS: [number, number, number][] = [
-  [2.2, 2.55, POSTER_Z],
-  [3.1, 2.55, POSTER_Z],
-  [4.0, 2.55, POSTER_Z],
-  [2.2, 1.78, POSTER_Z],
-  [3.1, 1.78, POSTER_Z],
-  [4.0, 1.78, POSTER_Z],
-]
 
 export const EVOLUTION = {
   // Library: a floating shelf island, lower left.
@@ -55,17 +40,6 @@ export const EVOLUTION = {
     spacing: 0.54,
     max: 4,
     plaque: { text: 'TROPHIES', size: 0.12, dy: -0.2 },
-  },
-
-  // Posters hang on the back wall right of the study window, facing the camera.
-  posters: {
-    size: [1.2, 0.86] as [number, number], // width, height
-    scale: 0.68, // three fit across the wall between the window and the corner
-    slots: POSTER_SLOTS,
-    frame: 0.07,
-    colors: ['violet', 'coral', 'teal', 'indigo', 'pink', 'lime'] as PaletteKey[],
-    keyword: { size: 0.22, maxWidth: 1.0, charWidth: 0.6 }, // size shrinks so the keyword fits on one line
-    title: { size: 0.07, maxWidth: 1.0 },
   },
 
   // New items pop in: a damped spring on scale plus a sparkle burst.
