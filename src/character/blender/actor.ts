@@ -5,6 +5,10 @@
 // (CharacterDirector writes it), for the checks.
 export const tutorActor = {
   classic: false,
+  // The lesson tutor's walk from where his feet now are (world x, z): the
+  // physics body hands him over here after a fling, so he waddles back to his
+  // spot instead of gliding. Null while no Blender tutor is on the stage.
+  relocate: null as ((x: number, z: number) => void) | null,
   roam: {
     enabled: false,
     busy: false,

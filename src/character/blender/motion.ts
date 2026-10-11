@@ -57,6 +57,7 @@ export class TutorMotion {
   gesture: { clip: OneShotClip; elapsed: number; total: number } | null = null
 
   private speed = 0
+  private speedCap = Infinity // a slower top speed for the current walk (relocate), cleared on arrival
   private pending: OneShotClip | null = null
   private pendingFade: number = MOTION.fadeGesture
   private lastGestureId: number
@@ -141,6 +142,15 @@ export class TutorMotion {
     return (duration * this.reps(hit.clip, duration)) / MOTION.timeScale
   }
 
+  // His feet were moved by something other than walking (the physics landing):
+  // stand there, facing as he was, and walk back from it at up to `speedCap`.
+  relocate(x: number, z: number, speedCap = Infinity): void {
+    this.pos.x = x
+    this.pos.z = z
+    this.speed = 0
+    this.speedCap = speedCap
+  }
+
   // Whether he is walking, settling, or about to start toward `target` (or to turn to `face`).
   willMove(target: { x: number; z: number }, face?: number | null): boolean {
     return (
@@ -170,7 +180,7 @@ export class TutorMotion {
       const heading = Math.atan2(dx, dz)
       this.yaw = dampAngle(this.yaw, heading, WALK.turnK, dt)
       if (Math.abs(angleDiff(this.yaw, heading)) < WALK.startAngle) {
-        this.speed = Math.min(this.speed + WALK.accel * dt, WALK.maxSpeed, Math.max(WALK.minSpeed, dist * WALK.arriveK))
+        this.speed = Math.min(this.speed + WALK.accel * dt, WALK.maxSpeed, this.speedCap, Math.max(WALK.minSpeed, dist * WALK.arriveK))
         const step = this.speed * dt
         if (step >= dist - WALK.arriveEps) {
           this.pos.x = target.x
@@ -191,6 +201,7 @@ export class TutorMotion {
       return true
     }
     this.phase = 'still'
+    this.speedCap = Infinity
     return false
   }
 

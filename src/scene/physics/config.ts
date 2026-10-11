@@ -51,7 +51,7 @@ export const PHYSICS = {
     maxFlightSeconds: 6, // recover anyway after this long
     recoverSeconds: 0.5, // ease upright and onto the landing spot
     recoverHop: 0.22, // small hop while he pops upright
-    returnDamp: 3, // study mode: glide back onto the director's spot (exponential rate)
+    returnDamp: 3, // study mode, without a Blender tutor to walk him: glide back onto the director's spot (exponential rate)
     swing: { gain: 0.07, max: 0.45, damp: 9 }, // held: lean against the drag velocity
     toss: { side: 3.2, up: 8.5, back: -0.6 }, // tossTutor(): launch velocity (side alternates)
     landing: { xMax: 3.4, zMin: -3.0, zMax: ROOM_BOX.frontZ - BODY_RADIUS * TUTOR_SCALE }, // where he may stand after a fling

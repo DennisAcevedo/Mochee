@@ -352,6 +352,7 @@ export const WALK = {
   turnBackK: 12, // yaw damping back to the camera on arrival
   startAngle: 0.55, // start moving once the yaw error is under this (rad)
   settleAngle: 0.08, // facing the camera again under this (rad): resume loop + gestures
+  returnSpeed: 0.9, // top speed walking back to his spot after a fling or a drag: an unhurried waddle
 } as const
 
 export const BLINK = {

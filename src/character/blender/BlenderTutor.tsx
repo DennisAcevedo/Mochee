@@ -15,7 +15,7 @@ import { useTutorStore } from '../../state/store'
 import { useTumbles } from '../../state/tumbles'
 import { exposeDev, tutorActor } from './actor'
 import { AnimationController, type AnimSnapshot } from './animController'
-import { ACCESSORY_NODES, accessoryMaterial, ANCHOR, ANIM, BOOK_NODE, INTRO_LAYER, LOOK, MOTION, TUTOR_ASSETS, type FaceState } from './config'
+import { ACCESSORY_NODES, accessoryMaterial, ANCHOR, ANIM, BOOK_NODE, INTRO_LAYER, LOOK, MOTION, TUTOR_ASSETS, WALK, type FaceState } from './config'
 import { TutorFace } from './face'
 import { IntroLayer } from './introLayer'
 import { useTumbleLayer } from './tumbleLayer'
@@ -184,6 +184,16 @@ export function BlenderTutor({
       tutorStatus.loaded = false
     }
   }, [standalone])
+
+  // After a fling the physics body hands his landing spot over: walk back from there.
+  useEffect(() => {
+    if (standalone) return
+    const relocate = (x: number, z: number) => motion.relocate(x, z, WALK.returnSpeed)
+    tutorActor.relocate = relocate
+    return () => {
+      if (tutorActor.relocate === relocate) tutorActor.relocate = null
+    }
+  }, [standalone, motion])
 
   // Cap recolour. The Blender cap is white x an indigo->violet vertex
   // gradient, so a custom colour turns the gradient off (a flat bold cap);

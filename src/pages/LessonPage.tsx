@@ -163,7 +163,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // animates the top bar and the dock itself. A closed card leaves a chip that reopens it.
   const hud = live && (
     <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-      {hudHidden ? <ReopenChip id="hud" label="Play" icon="🎮" /> : <PlayHud banner={false} closeable />}
+      {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
     </div>
   )
   const caption = live && (

@@ -26,11 +26,11 @@ export function CloseButton({ id, label, inset = false }: { id: PanelId; label: 
 }
 
 // What a closed card leaves behind: a small chip that brings it back.
-export function ReopenChip({ id, label, icon, className }: { id: PanelId; label: string; icon: string; className?: string }) {
+export function ReopenChip({ id, label, icon, className }: { id: PanelId; label: string; icon?: string; className?: string }) {
   const show = useHidden((s) => s.show)
   return (
     <button type="button" className={`${styles.chip} ${className ?? ''}`} onClick={() => show(id)} aria-label={`Show ${label}`} title={`Show ${label}`}>
-      <span aria-hidden="true">{icon}</span>
+      {icon && <span aria-hidden="true">{icon}</span>}
       {label}
     </button>
   )

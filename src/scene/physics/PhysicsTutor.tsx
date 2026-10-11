@@ -6,6 +6,7 @@ import { MathUtils, Quaternion, Vector3, type Group, type Object3D, type Vector3
 import { useDirector, type LoopClip } from '../../state/director'
 import { useMode } from '../../state/mode'
 import { useTumbles } from '../../state/tumbles'
+import { tutorActor } from '../../character/blender/actor'
 import { PHYSICS, PLAY_CLIPS, ROOM_BOX } from './config'
 import { clampLength, Grabber, spinFromVelocity } from './grab'
 import { playHandlers, usePlayBody, type PlayBodyState } from './playBody'
@@ -17,7 +18,8 @@ import { TumbleJudge } from './tumbleCause'
 // letting go flings him as a whole-body dynamic capsule that tumbles and
 // bounces around the room, and once he settles he pops back upright with a
 // 'recover' one-shot and a burst of stars. In play / celebrate mode he stands
-// where he landed; in study mode he glides back to the lesson's spot. A quick
+// where he landed; in study mode he walks back to the lesson's spot (the Blender
+// tutor's own walk: he turns toward it, waddles over, turns back). A quick
 // tap is passed to onTap (the existing tickle / poke).
 //
 // Drop it around the existing tutor: <PhysicsTutor onTap={poke}><BlenderTutorSafe /></PhysicsTutor>.
@@ -222,7 +224,17 @@ export function PhysicsTutor({ children, onTap, position }: PhysicsTutorProps) {
 
     switch (body.state) {
       case 'idle': {
-        if (!play) body.offset.multiplyScalar(Math.exp(-C.returnDamp * dt))
+        if (!play && body.offset.lengthSq() > 1e-6) {
+          const relocate = child ? tutorActor.relocate : null
+          if (relocate) {
+            // Hand the landing spot to his walk: his feet stay put this frame
+            // (the child moves by what the offset did) and he waddles home from there.
+            relocate(child!.position.x + body.offset.x, child!.position.z + body.offset.z)
+            child!.position.x += body.offset.x
+            child!.position.z += body.offset.z
+            body.offset.set(0, 0, 0)
+          } else body.offset.multiplyScalar(Math.exp(-C.returnDamp * dt)) // no walk to hand to: glide back
+        }
         p.position.copy(body.base).add(body.offset)
         p.quaternion.identity()
         body.center.copy(p.position).add(body.pivot)
