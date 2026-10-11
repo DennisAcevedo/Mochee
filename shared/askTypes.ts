@@ -22,7 +22,18 @@ export const ASK_LIMITS = {
   history: 6, // most recent turns sent upstream
   historyText: 400, // characters per history turn
   answer: 600, // characters kept from the model's answer
+  lessonTitle: 120, // characters of a notebook's title
+  topics: 8, // topics sent per notebook
+  topic: 80, // characters per topic
 } as const
+
+// The notebook a Study question is about, when it is not the built-in CS111
+// lesson: the document's title and its topics in order. The current topic's
+// notes and board go in `context` as usual.
+export interface AskLesson {
+  title: string
+  topics: string[]
+}
 
 export interface AskTurn {
   who: 'student' | 'tutor'
@@ -38,6 +49,7 @@ export interface AskRequest {
   context: { step: string; notes: string; board: string }
   history?: AskTurn[]
   mode?: AskMode // which persona answers; study when missing
+  lesson?: AskLesson // a notebook's own lesson; the built-in CS111 lesson when missing
 }
 
 export interface AskReply {

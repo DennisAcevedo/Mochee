@@ -6,7 +6,8 @@ import { useDirector } from '../state/director'
 import { useTutorStore } from '../state/store'
 import { useMode } from '../state/mode'
 import { askGemini, mockReply, type AskSource } from './askGemini'
-import { ASK_LIMITS, ASK_LINES, type AskReply, type AskTurn } from '../../shared/askTypes'
+import { ASK_LIMITS, ASK_LINES, type AskLesson, type AskReply, type AskTurn } from '../../shared/askTypes'
+import { packBoard, packBoardShows, packNotes, packStepSection, useLessonPack } from './packSession'
 import { isLoopGesture, isOneShotGesture } from './askGestures'
 import { stripMarks } from './markup'
 import { startLatency, type LatencyTrace } from './latency'
@@ -45,6 +46,29 @@ const BOARD_TEXT: Record<BoardPart, string> = {
 }
 
 // A short text picture of what's on screen, so the answer can refer to it.
+// A notebook's lesson (a pack from an uploaded document): its title and
+// topics, and the current topic's notes and board as the window shows them.
+function packContext(): { context: { step: string; notes: string; board: string }; lesson: AskLesson } | null {
+  const pack = useLessonPack.getState().pack
+  if (!pack || !pack.sections.length) return null
+  const w = useWalkthrough.getState()
+  const d = useDirector.getState()
+  const step = w.steps[w.index]
+  const last = pack.sections.length - 1
+  const section = Math.min(last, Math.max(0, (step && packStepSection(step.id)) ?? d.notesTab ?? 0))
+  const tab = packNotes(pack, section)
+  const board = packBoard(pack, section)
+  const shown = [board.heading, ...board.lines].filter((_, part) => packBoardShows(part, d.boardReveal))
+  return {
+    lesson: { title: pack.title, topics: pack.sections.map((s) => s.title) },
+    context: {
+      step: w.started && step ? `${step.title}: ${stripMarks(step.say)}` : `Lesson not started yet (document: ${pack.title})`,
+      notes: `${tab.title} (${tab.page}): ` + tab.lines.map((l) => `${l.id === d.highlight ? '[highlighted] ' : ''}${l.text}`).join(' / '),
+      board: shown.join(' / ') || 'empty',
+    },
+  }
+}
+
 function lessonContext() {
   const w = useWalkthrough.getState()
   const d = useDirector.getState()
@@ -136,7 +160,10 @@ export function askTutor(question: string, fallback: string) {
     useWalkthrough.setState({ held: false })
   })
   const mode = useMode.getState().mode === 'study' ? 'study' : 'play' // celebrate counts as play
-  void askGemini({ question, context: lessonContext(), history: recentHistory(), mode }, abort.signal).then((reply) => {
+  // A notebook's lesson describes itself; otherwise the built-in CS111 one.
+  const notebook = packContext()
+  const request = notebook ? { context: notebook.context, lesson: notebook.lesson } : { context: lessonContext() }
+  void askGemini({ question, ...request, history: recentHistory(), mode }, abort.signal).then((reply) => {
     unsubscribe()
     unsubscribeMode()
     if (my !== seq || abort.signal.aborted) { trace.finish('cancelled'); return }

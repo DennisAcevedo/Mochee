@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
-import { ASK_FOCUS, ASK_GESTURES, ASK_LIMITS, ASK_LINES, sanitizeReply, type AskTurn } from '../shared/askTypes.ts'
+import { ASK_FOCUS, ASK_GESTURES, ASK_LIMITS, ASK_LINES, sanitizeReply, type AskTurn, type AskLesson } from '../shared/askTypes.ts'
 import { refuseCrossSite } from './requestGuard.ts'
 
 // Server-side Gemini proxy for the ask box: POST /api/ask on the dev and
@@ -34,6 +34,22 @@ export const SYSTEM_INSTRUCTION = [
   'Notes lines you can highlight:',
   ...ASK_LINES.map((l) => `- ${l.id} (${l.tab}): ${l.text}`),
 ].join('\n')
+
+// Study on a notebook (a lesson built from an uploaded document): the same
+// tutor and window, but about that document. Its notes and board are not the
+// built-in ones, so nothing is highlighted. Exported for tests/server/askPrompt.test.ts.
+export function notebookInstruction(title: string, topics: string[]): string {
+  const list = topics.length ? topics.join('; ') : 'not listed'
+  return [
+    `You are Gemini Guy, a cheerful, encouraging tutor teaching the student from their own document, "${title}". Its topics, in order: ${list}.`,
+    'You stand beside one browser window on the student\'s left. Its tabs hold the NOTES (key lines from the document for the current topic), the BOARD (the rule, formula or worked example for that topic) and a quick-check quiz.',
+    'Answer the student in 1 to 3 short, spoken-friendly sentences (no lists, no markdown except **bold** for at most two key terms).',
+    'Ground your answer in the notes and board shown and the document\'s topics. If the document does not cover the question, say so briefly and give a short general answer.',
+    `If the student asks something off-topic, answer briefly and kindly steer back to "${title}".`,
+    'Also choose: gesture (talk for most answers, point_left when the answer is in the notes or on the board (both are tabs of the browser window on the student\'s left; when speaking to the student, refer to it as "on your left"), hop for a fun fact, think for a tricky idea, shrug for "it depends" or a common mistake, celebrate ONLY when praising something the student got right);',
+    'focus (notes, board or none) for the tab your answer refers to; highlight = "none" always.',
+  ].join('\n')
+}
 
 // Play mode: the hangout room. No lesson, no browser: he is a chill, chatty
 // buddy who hangs out, jokes around and points the student at the fun stuff.
@@ -118,6 +134,19 @@ function readBody(req: IncomingMessage): Promise<string> {
   })
 }
 
+// The notebook a question is about, trimmed to the limits; null for the built-in lesson or a malformed one.
+function readLesson(raw: unknown): AskLesson | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const title = clip(r.title, ASK_LIMITS.lessonTitle)
+  if (!title) return null
+  const topics = (Array.isArray(r.topics) ? r.topics : [])
+    .map((t) => clip(t, ASK_LIMITS.topic))
+    .filter(Boolean)
+    .slice(0, ASK_LIMITS.topics)
+  return { title, topics }
+}
+
 function buildContents(question: string, context: Record<string, unknown>, history: unknown, play = false) {
   const turns = (Array.isArray(history) ? history : [])
     .filter((t): t is AskTurn => !!t && typeof t === 'object' && (t.who === 'student' || t.who === 'tutor'))
@@ -150,6 +179,8 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
   if (!question) return send(res, 400, { error: 'bad-request' })
   const context = payload.context && typeof payload.context === 'object' ? (payload.context as Record<string, unknown>) : {}
   const play = payload.mode === 'play'
+  const notebook = readLesson(payload.lesson)
+  const instruction = play ? PLAY_INSTRUCTION : notebook ? notebookInstruction(notebook.title, notebook.topics) : SYSTEM_INSTRUCTION
 
   const key = readKey(root)
   if (!key) return send(res, 503, { error: 'no-key' })
@@ -168,7 +199,7 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: play ? PLAY_INSTRUCTION : SYSTEM_INSTRUCTION }] },
+        systemInstruction: { parts: [{ text: instruction }] },
         contents: buildContents(question, context, payload.history, play),
         generationConfig: {
           temperature: CONFIG.temperature,
