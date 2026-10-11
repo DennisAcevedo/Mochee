@@ -11,7 +11,7 @@ const INTRO_MS = 2600
 
 export type RailItem = 'top' | 'caption' | 'transcript'
 
-const ICONS: Record<'steps' | 'levels' | 'caption' | 'transcript', ReactNode> = {
+const ICONS: Record<'steps' | 'coins' | 'caption' | 'transcript', ReactNode> = {
   // Play triangle over a progress line: the lesson's step controls.
   steps: (
     <>
@@ -19,8 +19,13 @@ const ICONS: Record<'steps' | 'levels' | 'caption' | 'transcript', ReactNode> = 
       <path d="M5 16.5h12" />
     </>
   ),
-  // Rising bars: the level and play HUD.
-  levels: <path d="M6 16v-4M11 16V8M16 16V5" />,
+  // A coin: the balance and play HUD.
+  coins: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <circle cx="11" cy="11" r="3.6" />
+    </>
+  ),
   // Speech bubble: the caption.
   caption: <path d="M5 6.5h12a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 17 15.5H10l-3.5 3v-3H5A1.5 1.5 0 0 1 3.5 14V8A1.5 1.5 0 0 1 5 6.5z" />,
   // Lines of text: the transcript.
@@ -29,7 +34,7 @@ const ICONS: Record<'steps' | 'levels' | 'caption' | 'transcript', ReactNode> = 
 
 export function FocusRail({ study, peek, onPeek }: { study: boolean; peek: RailItem | null; onPeek: (item: RailItem | null) => void }) {
   const items: { id: RailItem; icon: keyof typeof ICONS; label: string }[] = [
-    { id: 'top', icon: study ? 'steps' : 'levels', label: study ? 'Lesson controls' : 'Levels' },
+    { id: 'top', icon: study ? 'steps' : 'coins', label: study ? 'Lesson controls' : 'Coins' },
     { id: 'caption', icon: 'caption', label: 'Captions' },
     { id: 'transcript', icon: 'transcript', label: 'Transcript' },
   ]

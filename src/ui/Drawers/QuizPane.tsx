@@ -16,7 +16,7 @@ import { clearCelebration } from '../../scene/windows/pointGate'
 // The study hub's Quiz view. For an uploaded document: one question at a time with big choice
 // chips. Each submit carries a fresh attemptId (the server's idempotency key)
 // and the server reveals the answer only after it. Every result feeds topic
-// mastery; a first-try correct answer also earns XP and a dance. The built-in
+// mastery; a first-try correct answer also earns coins and a dance. The built-in
 // lesson's quick check lives in the browser window's Quick check tab instead.
 
 const QUIZ_UI = {

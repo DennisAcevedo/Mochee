@@ -10,7 +10,6 @@ import { laneZ } from '../../lesson/roam'
 import { presenting, useWalkthrough } from '../../lesson/runner'
 import { useDirector, type LoopClip, type OneShotClip } from '../../state/director'
 import { useMode } from '../../state/mode'
-import { useProgress } from '../../state/progress'
 import { SPOTS } from '../layout3d'
 import { PHYSICS, ROOM_BOX } from '../physics/config'
 import { clampLength, spinFromVelocity } from '../physics/grab'
@@ -159,9 +158,6 @@ class Move {
   reactSeen = false
   reactDropped = false
   reactMark = 0 // the animation controller's transition count when the reaction was asked
-  levelMark = 0 // the last useProgress.levelUpId seen (the move's start: bumps before it are not its own)
-  levelOwed = false // the move's XP levelled him up and LevelWatcher's 'levelup' has not started yet
-  levelOn = false // a 'levelup' clip is playing
   unwatch: (() => void) | null = null // the walkthrough watch (the lesson taking the stage back)
   yield = false // the lesson took the stage: yield on the next frame...
   yielded = false // ...and, with the ball already in flight, end without a reaction once physics has it
@@ -169,7 +165,7 @@ class Move {
   reset(kind: MoveKind, clip: BallClip, rig: Rig): void {
     Object.assign(this, { kind, clip, rig, t: 0, held: false, backspin: false, face: null, asked: false, started: false, carryX: null, yield: false, yielded: false })
     Object.assign(this, { cycles: 0, lastTime: 0, endAt: null, plan: null, flightT: 0, rimDone: false, scoreDone: false, frames: 0, react: null })
-    Object.assign(this, { reactAsked: false, reactSeen: false, reactDropped: false, reactMark: 0, levelOwed: false, levelOn: false })
+    Object.assign(this, { reactAsked: false, reactSeen: false, reactDropped: false, reactMark: 0 })
   }
 
   get clipName(): OneShotClip | LoopClip {
@@ -284,8 +280,6 @@ export function BallProp() {
     }
     useHoops.getState().begin(kind)
     s.reset(kind, clip, rig)
-    s.levelMark = useProgress.getState().levelUpId
-    s.levelOn = tutorStatus.anim?.oneShot === 'levelup' // one already playing is not the move's
     // The move takes the floor: a lesson still playing pauses, a held one too (so the answer's release
     // can't pick it up under the move). In Play the runner's gate has already paused it; this is the
     // backstop. Should the lesson take the stage back mid-move, the move yields.
@@ -398,7 +392,7 @@ export function BallProp() {
     s.t = 0
   }
 
-  // A one-shot that ranks above the move's clip (a level-up) is on or waiting: the clip would expire in the
+  // A one-shot that ranks above the move's clip (a purchase's 'equip') is on or waiting: the clip would expire in the
   // queue behind it (a one-shot move) or play unseen under it (a loop), so the move holds until it is over.
   const blocked = () => {
     const a = tutorStatus.anim
@@ -423,10 +417,7 @@ export function BallProp() {
     body.setLinvel(s.v, true)
     body.setAngvel(spinFromVelocity(s.v, B.spinPerSpeed, PHYSICS.tutor.maxSpin * 2, tmp.b), true)
     restoreLoop()
-    if (s.kind !== 'shoot') {
-      useProgress.getState().award('trick')
-      s.react = HOOPS.react.trick
-    }
+    if (s.kind !== 'shoot') s.react = HOOPS.react.trick
     s.held = false
     s.frames = 0
     s.phase = 'handoff'
@@ -539,16 +530,6 @@ export function BallProp() {
     s.t += dt
     s.last.copy(s.p)
     const d = useDirector.getState()
-    // A level-up off the move's XP is owed until its clip starts (LevelWatcher plays one per burst of bumps),
-    // so the reaction beat can stand aside for it.
-    const levelUpId = useProgress.getState().levelUpId
-    if (levelUpId !== s.levelMark) {
-      s.levelMark = levelUpId
-      s.levelOwed = true
-    }
-    const levelOn = tutorStatus.anim?.oneShot === 'levelup'
-    if (levelOn && !s.levelOn) s.levelOwed = false
-    s.levelOn = levelOn
 
     switch (s.phase) {
       case 'fetch': {
@@ -602,7 +583,7 @@ export function BallProp() {
         break
       }
       case 'clip': {
-        // Something that outranks the clip came in during the hop (a level-up): hold the ball until it is over,
+        // Something that outranks the clip came in during the hop (a purchase's 'equip'): hold the ball until it is over,
         // then ask again unless the request is still waiting in the controller's queue slot.
         if (!s.started && blocked()) {
           s.t = 0
@@ -628,14 +609,12 @@ export function BallProp() {
           s.rimDone = true
           if (!isMake(s.outcome)) {
             useHoops.getState().recordShot(s.outcome)
-            useProgress.getState().award('trick')
             s.react = HOOPS.react.miss
           }
         }
         if (plan.scoreAt !== null && !s.scoreDone && s.flightT >= plan.scoreAt) {
           s.scoreDone = true
           useHoops.getState().recordShot(s.outcome)
-          useProgress.getState().award('hoops')
           d.burst('confetti', 'tutor')
           s.react = HOOPS.react.make
         }
@@ -687,7 +666,6 @@ export function BallProp() {
             oneShot: a?.oneShot ?? null,
             queued: a?.queued ?? null,
             still: tutorStatus.phase === 'still',
-            levelUp: s.levelOwed,
             t: s.t,
           },
           HOOPS.timeouts,

@@ -124,7 +124,7 @@ function start(s: BossState) {
       el.style.opacity = '0'
     }
   }
-  // The level-up banner a win earns (and toasts) show over the fight.
+  // The coin toast a win earns (and an "Unlocked" banner) show over the fight.
   document.documentElement.style.setProperty('--gg-over-fight', String(ARENA_Z.over))
   const w = useWalkthrough.getState()
   if (w.started && !w.held) {
@@ -212,8 +212,8 @@ function onHit() {
 // the won card is up, each with its own confetti or stars.
 function victoryDance(n: number) {
   if (!take || (n > 0 && useBoss.getState().phase !== 'won')) return
-  // The win's XP can level him up (LevelWatcher plays 'levelup', which outranks a
-  // dance): wait it out rather than queue a dance that expires behind it.
+  // A one-shot that outranks a dance may be playing (a purchase's 'equip'):
+  // wait it out rather than queue a dance that expires behind it.
   const a = tutorStatus.anim
   if (n > 0 && a?.oneShot && ANIM_STATES[a.state].priority > ANIM_STATES.dance.priority) {
     later(BEAT.victory.retry, () => victoryDance(n))

@@ -1,5 +1,5 @@
 import { PALETTE } from '../scene/layout3d'
-import type { XpReason } from '../state/progress'
+import type { CoinReason } from '../state/progress'
 
 // Every timing and colour of the play system. Durations are in milliseconds
 // and line up with the Blender one-shots (giggle, highfive, catch, yum, dances).
@@ -7,11 +7,11 @@ import type { XpReason } from '../state/progress'
 export type PlayAction = 'poke' | 'highfive' | 'catch' | 'snack' | 'dance'
 
 export const PLAY = {
-  // Minimum gap between two uses of the same action, so spamming cannot farm XP.
+  // Minimum gap between two uses of the same action.
   // Roughly the length of each clip, so a new one never cuts the last one off.
   cooldownMs: { poke: 1100, highfive: 1700, catch: 2600, snack: 2400, dance: 2900 } as Record<PlayAction, number>,
 
-  highfive: { contactMs: 300 }, // palm meets palm: stars + XP
+  highfive: { contactMs: 300 }, // palm meets palm: stars
   catch: {
     flightMs: 900, // ball in the air
     clipLeadMs: 280, // start the catch clip this early so his hands are up on arrival
@@ -25,10 +25,9 @@ export const PLAY = {
   dance: {
     starsAtMs: 650, // second wave of effects mid-dance
     sparklesAtMs: 1500,
-    partyMs: 3000, // how long the party lights stay on (level 5+)
+    partyMs: 3000, // how long the party lights stay on (once bought)
   },
-  levelUpDelayMs: 650, // let the action's own reaction read before the level-up takes over
-  bannerMs: 4200,
+  bannerMs: 4200, // the "Unlocked: ..." banner after a purchase
   toastMs: 1500,
   maxToasts: 4,
 } as const
@@ -45,22 +44,16 @@ export const LESSON_RETURN = {
   maxMs: 6000,
 } as const
 
-// Colour of each XP toast, by what earned it.
-export const XP_COLOR: Record<XpReason, string> = {
-  poke: PALETTE.pink,
-  highfive: PALETTE.sun,
-  catch: PALETTE.teal,
-  snack: PALETTE.coral,
-  dance: PALETTE.violet,
-  stepDone: PALETTE.lime,
+// Colour of each "+N coins" toast, by what earned it.
+export const COIN_COLOR: Record<CoinReason, string> = {
+  sectionDone: PALETTE.teal,
   quizCorrect: PALETTE.indigo,
+  bossWin: PALETTE.coral,
   lessonDone: PALETTE.violet,
-  hoops: '#F08A24', // basketball orange
-  trick: PALETTE.coral,
 }
 
 // Ball and snack colours rotate through these.
 export const PROP_COLORS = [PALETTE.coral, PALETTE.teal, PALETTE.sun, PALETTE.violet, PALETTE.lime, PALETTE.pink] as const
 
-// Rainbow cap (level 4): index 0 keeps the model's own indigo.
+// Rainbow cap (once bought): index 0 keeps the model's own indigo.
 export const CAP_COLORS = [null, PALETTE.coral, PALETTE.teal, PALETTE.sun, PALETTE.lime, PALETTE.pink, PALETTE.violet] as const

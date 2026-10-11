@@ -22,7 +22,7 @@ export function CapTint() {
 
   useFrame((_, delta) => {
     since.current += delta
-    const want = capColor(useProgress.getState().level, usePlay.getState().capIndex)
+    const want = capColor(useProgress.getState().owned.includes('rainbow_cap'), usePlay.getState().capIndex)
     if (want === applied.current && since.current < CHECK_EVERY) return
     since.current = 0
     applied.current = want

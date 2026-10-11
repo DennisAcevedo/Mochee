@@ -6,27 +6,20 @@ import { CAP_COLORS, PLAY, type PlayAction } from '../../play/config'
 import { usePlay } from '../../play/playStore'
 import { PALETTE } from '../../scene/layout3d'
 import { useMode } from '../../state/mode'
-import {
-  DANCE_UNLOCKS,
-  XP_REWARD,
-  isUnlocked,
-  levelTitle,
-  nextUnlock,
-  useProgress,
-  xpForLevel,
-  type Dance,
-} from '../../state/progress'
+import { DANCES, SHOP, ownedDances, shopItem, useProgress, type Dance, type UnlockId } from '../../state/progress'
 import { CloseButton } from '../Closeable/Closeable'
 import { HoopsControls } from './HoopsControls'
-import { useCooldown, useXpToasts } from './hooks'
-import { LevelUpBanner } from './LevelUpBanner'
+import { useCoinToasts, useCooldown } from './hooks'
+import { UnlockBanner } from './UnlockBanner'
 import styles from './PlayHud.module.css'
 
-// The play HUD: level badge, XP bar, the play buttons (high five, catch,
-// snack, dance with a dance picker, cap colour), the tickle hint, floating
-// "+N XP" toasts and the level-up banner. A compact strip; the page decides
-// where it sits. Study mode keeps the level, the XP toasts and the banner
-// (steps earn XP too); the buttons, hoops included, and the hint are Play's.
+// The play HUD: the coin balance, the play buttons (high five, catch, snack,
+// dance with a dance picker, cap colour), the tickle hint, floating "+N coins"
+// toasts and the "Unlocked" banner. A compact strip; the page decides where it
+// sits. Playing pays no coins, learning does; the dance menu and the cap
+// button are where coins are spent (src/state/progress.ts SHOP). Study mode
+// keeps the balance and the toasts; the buttons, hoops included, and the hint
+// are Play's.
 
 interface ActionSpec {
   action: PlayAction
@@ -43,8 +36,8 @@ const ACTIONS: ActionSpec[] = [
   { action: 'snack', label: 'Snack', icon: '🍩', color: PALETTE.coral, run: feedSnack },
 ]
 
-// The dance picker, in unlock order (DANCE_UNLOCKS).
-const DANCES: Record<Dance, { label: string; icon: string; color: string }> = {
+// The dance picker, in shop order (DANCES).
+const DANCE_LOOK: Record<Dance, { label: string; icon: string; color: string }> = {
   dance_bounce: { label: 'Bounce', icon: '🕺', color: PALETTE.pink },
   dance_spin: { label: 'Spin', icon: '🌀', color: PALETTE.teal },
   dance_shuffle: { label: 'Shuffle', icon: '👟', color: PALETTE.coral },
@@ -55,7 +48,7 @@ const DANCES: Record<Dance, { label: string; icon: string; color: string }> = {
   dance_twist: { label: 'Twist', icon: '🌪️', color: PALETTE.teal },
 }
 
-const NOPE_MS = 380 // the "not yet" wiggle on a cooling button
+const NOPE_MS = 380 // the "not yet" wiggle on a cooling button or a buy he cannot afford
 const LIGHT_ACCENTS: readonly string[] = [PALETTE.sun, PALETTE.lime] // these take dark text
 
 function LockIcon() {
@@ -67,7 +60,32 @@ function LockIcon() {
   )
 }
 
-// Adds a short wiggle class when an action is refused (cooling down).
+// A gold coin, for the balance and the prices.
+function CoinIcon({ className }: { className?: string }) {
+  return (
+    <svg className={[styles.coinIcon, className].filter(Boolean).join(' ')} viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="7.5" fill="#E9A21A" />
+      <circle cx="8" cy="7.6" r="6.3" fill="#FFC83D" />
+      <circle cx="8" cy="7.6" r="4.3" fill="none" stroke="#E9A21A" strokeWidth="1.2" />
+      <path d="M5.6 5.4a3.4 3.4 0 0 1 2.2-1.1" fill="none" stroke="#FFF1C2" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// What a locked shop item shows: its price, or how far short he is.
+function Price({ price, short }: { price: number; short: number }) {
+  return (
+    <span className={styles.price} data-short={short > 0 || undefined}>
+      <CoinIcon />
+      {short > 0 ? `Need ${short} more` : price}
+    </span>
+  )
+}
+
+const buyLabel = (label: string, price: number, short: number) =>
+  short > 0 ? `${label}, ${price} coins, need ${short} more` : `Buy ${label} for ${price} coins`
+
+// Adds a short wiggle class when an action is refused (cooling down, or a buy he cannot afford).
 function useNope(): [boolean, () => void] {
   const [nope, setNope] = useState(false)
   const timer = useRef(0)
@@ -87,13 +105,12 @@ interface PlayButtonProps {
   label: string
   icon: ReactNode
   color: string
-  xp: number
   onPress: () => boolean
   className?: string
   extra?: ReactNode
 }
 
-function PlayButton({ action, label, icon, color, xp, onPress, className, extra }: PlayButtonProps) {
+function PlayButton({ action, label, icon, color, onPress, className, extra }: PlayButtonProps) {
   const { cooling, until, ms } = useCooldown(action)
   const [nope, wiggle] = useNope()
   return (
@@ -101,7 +118,7 @@ function PlayButton({ action, label, icon, color, xp, onPress, className, extra 
       type="button"
       className={[styles.action, cooling && styles.cooling, nope && styles.nope, className].filter(Boolean).join(' ')}
       style={{ '--c': color } as CSSProperties}
-      aria-label={`${label}, plus ${xp} XP${cooling ? ' (getting ready)' : ''}`}
+      aria-label={`${label}${cooling ? ' (getting ready)' : ''}`}
       aria-disabled={cooling}
       onClick={() => {
         if (!onPress()) wiggle()
@@ -111,19 +128,26 @@ function PlayButton({ action, label, icon, color, xp, onPress, className, extra 
         {icon}
       </span>
       <span className={styles.label}>{label}</span>
-      <span className={styles.xpTag} aria-hidden="true">
-        +{xp}
-      </span>
       {cooling && <span key={until} className={styles.cooldown} style={{ animationDuration: `${ms}ms` }} aria-hidden="true" />}
       {extra}
     </button>
   )
 }
 
-function DanceButton({ level }: { level: number }) {
+function DanceButton() {
+  const owned = useProgress((s) => s.owned)
+  const coins = useProgress((s) => s.coins)
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const [nope, wiggle] = useNope()
+  const mine = ownedDances(owned)
+  const lights = shopItem('party_lights')
+  const lightsShort = Math.max(0, lights.price - coins)
+
+  // A locked item buys on click if he can afford it (the "Unlocked" banner follows), else wiggles.
+  const buy = (id: UnlockId) => {
+    if (!useProgress.getState().spend(id)) wiggle()
+  }
 
   // Close on outside click or Escape.
   useEffect(() => {
@@ -144,14 +168,7 @@ function DanceButton({ level }: { level: number }) {
 
   return (
     <div ref={root} className={styles.danceWrap}>
-      <PlayButton
-        action="dance"
-        label="Dance"
-        icon="🪩"
-        color={PALETTE.violet}
-        xp={XP_REWARD.dance}
-        onPress={() => danceParty()}
-      />
+      <PlayButton action="dance" label="Dance" icon="🪩" color={PALETTE.violet} onPress={() => danceParty()} />
       <button
         type="button"
         className={[styles.more, nope && styles.nope].filter(Boolean).join(' ')}
@@ -166,10 +183,11 @@ function DanceButton({ level }: { level: number }) {
       </button>
       {open && (
         <div className={styles.menu} role="menu" aria-label="Dances">
-          {(Object.keys(DANCES) as Dance[]).map((d) => {
-            const spec = DANCES[d]
-            const need = DANCE_UNLOCKS[d]
-            const locked = need > level
+          {DANCES.map((d) => {
+            const spec = DANCE_LOOK[d]
+            const locked = !mine.includes(d)
+            const price = locked ? shopItem(d as UnlockId).price : 0
+            const short = Math.max(0, price - coins)
             return (
               <button
                 key={d}
@@ -177,10 +195,10 @@ function DanceButton({ level }: { level: number }) {
                 role="menuitem"
                 className={[styles.menuItem, locked && styles.locked].filter(Boolean).join(' ')}
                 style={{ '--c': spec.color } as CSSProperties}
-                aria-disabled={locked}
-                aria-label={locked ? `${spec.label} dance, unlocks at level ${need}` : `${spec.label} dance`}
+                aria-disabled={locked && short > 0}
+                aria-label={locked ? buyLabel(`the ${spec.label} dance`, price, short) : `${spec.label} dance`}
                 onClick={() => {
-                  if (locked) return wiggle()
+                  if (locked) return buy(d as UnlockId)
                   if (danceParty(d)) setOpen(false)
                   else wiggle()
                 }}
@@ -189,93 +207,98 @@ function DanceButton({ level }: { level: number }) {
                   {locked ? <LockIcon /> : spec.icon}
                 </span>
                 <span className={styles.menuLabel}>{spec.label}</span>
-                {locked && <span className={styles.need}>Level {need}</span>}
+                {locked && <Price price={price} short={short} />}
               </button>
             )
           })}
+          {!owned.includes('party_lights') && (
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.buyChip}
+              aria-disabled={lightsShort > 0}
+              aria-label={buyLabel('party lights', lights.price, lightsShort)}
+              title={lights.blurb}
+              onClick={() => buy('party_lights')}
+            >
+              <span aria-hidden="true">💡</span>
+              <span className={styles.buyChipLabel}>Party lights</span>
+              <Price price={lights.price} short={lightsShort} />
+            </button>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function CapButton({ level }: { level: number }) {
+function CapButton() {
   const capIndex = usePlay((s) => s.capIndex)
+  const owned = useProgress((s) => s.owned.includes('rainbow_cap'))
+  const coins = useProgress((s) => s.coins)
   const [nope, wiggle] = useNope()
-  const unlocked = isUnlocked('rainbow_cap', level)
-  const swatch = capColor(level, capIndex) ?? PALETTE.indigo
+  const { price } = shopItem('rainbow_cap')
+  const short = Math.max(0, price - coins)
+  const swatch = capColor(owned, capIndex) ?? PALETTE.indigo
   const nextSwatch = CAP_COLORS[(capIndex + 1) % CAP_COLORS.length] ?? PALETTE.indigo
   return (
     <button
       type="button"
-      className={[styles.action, styles.cap, !unlocked && styles.locked, nope && styles.nope].filter(Boolean).join(' ')}
-      style={{ '--c': unlocked ? swatch : PALETTE.ink, '--next': nextSwatch } as CSSProperties}
-      aria-label={unlocked ? 'Change cap colour' : 'Cap colours, unlocks at level 4'}
-      aria-disabled={!unlocked}
+      className={[styles.action, styles.cap, !owned && styles.locked, nope && styles.nope].filter(Boolean).join(' ')}
+      style={{ '--c': owned ? swatch : PALETTE.ink, '--next': nextSwatch } as CSSProperties}
+      aria-label={owned ? 'Change cap colour' : buyLabel('the rainbow cap', price, short)}
+      aria-disabled={!owned && short > 0}
       onClick={() => {
-        if (!cycleCap()) wiggle()
+        const ok = owned ? cycleCap() : useProgress.getState().spend('rainbow_cap')
+        if (!ok) wiggle()
       }}
     >
       <span className={styles.icon} aria-hidden="true">
-        {unlocked ? '🎓' : <LockIcon />}
+        {owned ? '🎓' : <LockIcon />}
       </span>
       <span className={styles.label}>Cap</span>
-      {!unlocked && <span className={styles.lockTag}>Lv 4</span>}
+      {!owned && (
+        <span className={styles.lockTag} aria-hidden="true">
+          <Price price={price} short={short} />
+        </span>
+      )}
     </button>
   )
 }
 
-function XpMeter() {
-  const xp = useProgress((s) => s.xp)
-  const level = useProgress((s) => s.level)
-  const floor = xpForLevel(level)
-  const next = xpForLevel(level + 1)
-  const pct = Math.min(100, Math.max(0, ((xp - floor) / (next - floor)) * 100))
-  const goal = nextUnlock(level)
+// The balance: a coin badge, his name and the coins, and the cheapest thing still to buy.
+function CoinMeter() {
+  const coins = useProgress((s) => s.coins)
+  const owned = useProgress((s) => s.owned)
+  const next = SHOP.find((i) => !owned.includes(i.id)) ?? null // SHOP is cheapest first
 
   return (
     <div className={styles.meter}>
-      <div key={level} className={styles.badge} aria-label={`Level ${level}`}>
-        <span className={styles.badgeLv}>LV</span>
-        <span className={styles.badgeNum}>{level}</span>
-      </div>
+      <span key={coins} className={styles.coinBadge} aria-hidden="true">
+        <CoinIcon />
+      </span>
       <div className={styles.meterBody}>
-        <div className={styles.meterTop}>
-          <span className={styles.name}>Gemini Guy</span>
-          <span className={styles.title}>{levelTitle(level)}</span>
-        </div>
-        <div
-          className={styles.bar}
-          role="progressbar"
-          aria-label="XP to next level"
-          aria-valuemin={floor}
-          aria-valuemax={next}
-          aria-valuenow={xp}
-        >
-          <div className={styles.fill} style={{ width: `${pct}%` }} />
-        </div>
-        <div className={styles.meterFoot}>
-          <span className={styles.goal}>
-            {goal ? (
-              <>
-                Next: <b>{goal.label}</b> at Lv {goal.level}
-              </>
-            ) : (
-              <b>Everything unlocked!</b>
-            )}
-          </span>
-          <span className={styles.xpText}>
-            <b>{xp}</b> / {next} XP
-          </span>
-        </div>
+        <span className={styles.name}>Gemini Guy</span>
+        <span className={styles.balance} aria-label={`${coins} coins`}>
+          <b>{coins}</b> coins
+        </span>
+        <span className={styles.goal}>
+          {next ? (
+            <>
+              Next: <b>{next.label}</b> for {next.price}
+            </>
+          ) : (
+            <b>Everything bought!</b>
+          )}
+        </span>
       </div>
     </div>
   )
 }
 
-// The "+N XP" toasts, floating up or down from whatever holds them.
-function XpToasts({ direction }: { direction: 'up' | 'down' }) {
-  const toasts = useXpToasts()
+// The "+N coins" toasts, floating up or down from whatever holds them.
+function CoinToasts({ direction }: { direction: 'up' | 'down' }) {
+  const toasts = useCoinToasts()
   return (
     <div className={[styles.toasts, direction === 'up' ? styles.up : styles.down].join(' ')} aria-live="polite">
       {toasts.map((t) => (
@@ -284,7 +307,7 @@ function XpToasts({ direction }: { direction: 'up' | 'down' }) {
           className={[styles.toast, LIGHT_ACCENTS.includes(t.color) && styles.toastInk].filter(Boolean).join(' ')}
           style={{ '--c': t.color, animationDuration: `${PLAY.toastMs}ms` } as CSSProperties}
         >
-          <b>+{t.xp} XP</b>
+          <b>+{t.coins} coins</b>
           <span>{t.label}</span>
         </div>
       ))}
@@ -292,41 +315,32 @@ function XpToasts({ direction }: { direction: 'up' | 'down' }) {
   )
 }
 
-// Study mode's level readout for the header: the badge, the rank and a thin
-// XP bar in one small pill, with the "+N XP" toasts floating under it (steps
-// earn XP). Play mode shows the full HUD on the stage instead.
-export function LevelPill({ className }: { className?: string }) {
-  const xp = useProgress((s) => s.xp)
-  const level = useProgress((s) => s.level)
-  const floor = xpForLevel(level)
-  const next = xpForLevel(level + 1)
-  const pct = Math.min(100, Math.max(0, ((xp - floor) / (next - floor)) * 100))
+// Study mode's balance for the header: a coin and the count in one small
+// pill, with the "+N coins" toasts floating under it (learning earns them).
+// Play mode shows the full HUD on the stage instead.
+export function CoinPill({ className }: { className?: string }) {
+  const coins = useProgress((s) => s.coins)
   return (
-    <div className={[styles.pill, className].filter(Boolean).join(' ')} role="group" aria-label={`Level ${level}, ${levelTitle(level)}: ${xp} of ${next} XP`}>
-      <div key={level} className={styles.badge} aria-hidden="true">
-        <span className={styles.badgeLv}>LV</span>
-        <span className={styles.badgeNum}>{level}</span>
-      </div>
-      <div className={styles.pillBody} aria-hidden="true">
-        <span className={styles.title}>{levelTitle(level)}</span>
-        <div className={styles.bar}>
-          <div className={styles.fill} style={{ width: `${pct}%` }} />
-        </div>
-      </div>
-      <XpToasts direction="down" />
+    <div className={[styles.pill, className].filter(Boolean).join(' ')} role="group" aria-label={`${coins} coins`}>
+      <span key={coins} className={styles.coinBadge} aria-hidden="true">
+        <CoinIcon />
+      </span>
+      <span className={styles.pillCoins} aria-hidden="true">
+        <b>{coins}</b> coins
+      </span>
+      <CoinToasts direction="down" />
     </div>
   )
 }
 
 interface Props {
-  toastDirection?: 'up' | 'down' // which way the "+N XP" toasts float
-  banner?: boolean // render the level-up banner here (fixed, centred)
+  toastDirection?: 'up' | 'down' // which way the "+N coins" toasts float
+  banner?: boolean // render the "Unlocked" banner here (fixed, centred)
   className?: string
   closeable?: boolean // an x on the strip hides the HUD for now (src/state/hidden.ts)
 }
 
 export function PlayHud({ toastDirection = 'down', banner = true, className, closeable = false }: Props) {
-  const level = useProgress((s) => s.level)
   const playing = useMode((m) => m.mode !== 'study')
   const hintSeen = usePlay((s) => s.tickleHintSeen)
 
@@ -342,7 +356,7 @@ export function PlayHud({ toastDirection = 'down', banner = true, className, clo
     >
       <div className={styles.strip}>
         {closeable && <CloseButton id="hud" label="play bar" />}
-        <XpMeter />
+        <CoinMeter />
         {playing && (
           <>
             <div className={styles.divider} aria-hidden="true" />
@@ -355,27 +369,26 @@ export function PlayHud({ toastDirection = 'down', banner = true, className, clo
                   label={a.label}
                   icon={a.icon}
                   color={a.color}
-                  xp={XP_REWARD[a.action]}
                   onPress={a.run}
                   className={a.ink ? styles.ink : undefined}
                 />
               ))}
-              <DanceButton level={level} />
-              <CapButton level={level} />
+              <DanceButton />
+              <CapButton />
             </div>
           </>
         )}
       </div>
 
       {playing && !hintSeen && (
-        <button type="button" className={styles.hint} onClick={() => poke()} aria-label={`Tickle Gemini Guy, plus ${XP_REWARD.poke} XP`}>
-          <span aria-hidden="true">👆</span> Tap <b>Gemini Guy</b> to tickle him <span className={styles.hintXp}>+{XP_REWARD.poke}</span>
+        <button type="button" className={styles.hint} onClick={() => poke()} aria-label="Tickle Gemini Guy">
+          <span aria-hidden="true">👆</span> Tap <b>Gemini Guy</b> to tickle him
         </button>
       )}
 
-      <XpToasts direction={toastDirection} />
+      <CoinToasts direction={toastDirection} />
 
-      {banner && <LevelUpBanner />}
+      {banner && <UnlockBanner />}
     </div>
   )
 }

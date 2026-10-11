@@ -5,6 +5,7 @@ import { useBoss } from './bossStore'
 import { bindFight, fightDom, isFightPhase, useFight } from './fight'
 import { useBossMastery } from './mastery'
 import { errorText } from '../ui/Drawers/docsClient'
+import { COIN_REWARD } from '../state/progress'
 import css from './Boss.module.css'
 
 // One overlay for the whole Beat the Boss flow. Mounted once (LessonPage);
@@ -306,7 +307,7 @@ function Battle() {
         <section className={css.endWon} data-testid="boss-won" data-arena-bottom>
           <span className={css.endTagWon}>BOSS BEATEN</span>
           <h2 className={css.endTitle}>{a.name} is down!</h2>
-          <span className={css.cardText}>{topic.title} mastered · +50 XP</span>
+          <span className={css.cardText}>{topic.title} mastered · +{COIN_REWARD.bossWin} coins</span>
           <span className={css.row}>
             <button type="button" className={css.primary} data-testid="boss-next" onClick={s.backToTopics}>
               Next boss

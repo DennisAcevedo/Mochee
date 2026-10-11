@@ -109,7 +109,7 @@ function Controls({ debug, setDebug }: { debug: boolean; setDebug: (v: boolean) 
   const setMode = useMode((s) => s.setMode)
   const state = usePlayBody((s) => s.state)
   const hoops = usePlayBody((s) => s.hoops)
-  const xp = useProgress((s) => s.xp)
+  const coins = useProgress((s) => s.coins)
   return (
     <div style={panel}>
       <span style={{ display: 'flex', gap: 4, padding: 3, borderRadius: 999, background: '#efedf7' }}>
@@ -129,7 +129,7 @@ function Controls({ debug, setDebug }: { debug: boolean; setDebug: (v: boolean) 
         colliders
       </Pill>
       <span data-testid="readout" style={{ marginLeft: 'auto', font: "800 14px 'Figtree', system-ui, sans-serif" }}>
-        <span style={{ color: PALETTE.violet }}>{state}</span> · hoops <span style={{ color: PALETTE.coral }}>{hoops}</span> · {xp} XP
+        <span style={{ color: PALETTE.violet }}>{state}</span> · hoops <span style={{ color: PALETTE.coral }}>{hoops}</span> · {coins} coins
       </span>
     </div>
   )

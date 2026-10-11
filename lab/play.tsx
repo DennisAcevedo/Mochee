@@ -6,7 +6,7 @@ import { StrictMode, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ACESFilmicToneMapping, Vector3, type Group, type Mesh } from 'three'
 import * as actions from '../src/play/actions'
-import { LevelWatcher } from '../src/play/LevelWatcher'
+import { UnlockWatcher } from '../src/play/UnlockWatcher'
 import { usePlay } from '../src/play/playStore'
 import { anchors } from '../src/scene/anchors'
 import { CapTint } from '../src/scene/fx/CapTint'
@@ -17,7 +17,7 @@ import { PokeTarget } from '../src/scene/fx/PokeTarget'
 import { FLOOR_Y, LESSON_CAMERA, PALETTE, ROOM, SPOTS, TUTOR_SCALE, WINDOW } from '../src/scene/layout3d'
 import { Lights } from '../src/scene/Lights'
 import { useDirector, type FxKind, type FxTarget, type OneShotClip } from '../src/state/director'
-import { levelForXp, useProgress, xpForLevel } from '../src/state/progress'
+import { useProgress } from '../src/state/progress'
 import '../src/styles/global.css'
 import { PlayHud } from '../src/ui/PlayHud/PlayHud'
 
@@ -195,28 +195,25 @@ function Room() {
   )
 }
 
-// Lab-only: jump straight to the next level, as award() would.
-function forceLevelUp() {
-  useProgress.setState((s) => {
-    const xp = xpForLevel(s.level + 1)
-    return { xp, level: levelForXp(xp), levelUpId: s.levelUpId + 1, levelFrom: s.level }
-  })
+// Lab-only: 100 coins through award(), toast and all, to try the shop.
+function addCoins() {
+  useProgress.getState().award('bossWin', 100)
 }
 
 const FX_KINDS: FxKind[] = ['confetti', 'sparkles', 'hearts', 'stars', 'ring', 'levelup']
 const TARGETS: FxTarget[] = ['tutor', 'notes', 'board']
 
 function DevPanel() {
-  const level = useProgress((s) => s.level)
-  const xp = useProgress((s) => s.xp)
+  const coins = useProgress((s) => s.coins)
+  const owned = useProgress((s) => s.owned.length)
   const props = usePlay((s) => s.props.length)
   return (
     <div style={{ position: 'fixed', left: 12, bottom: 12, display: 'flex', flexDirection: 'column', gap: 6, font: '600 12px Figtree, system-ui', zIndex: 20 }}>
       <div>
-        lab: level {level}, xp {xp}, props {props}
+        lab: {coins} coins, owns {owned}, props {props}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button id="force-level" onClick={forceLevelUp}>Force level-up</button>
+        <button id="add-coins" onClick={addCoins}>+100 coins</button>
         <button id="reset" onClick={() => useProgress.getState().resetProgress()}>Reset</button>
       </div>
       {TARGETS.map((t) => (
@@ -254,13 +251,13 @@ function Lab() {
       <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)' }}>
         <PlayHud />
       </div>
-      <LevelWatcher />
+      <UnlockWatcher />
       <DevPanel />
     </div>
   )
 }
 
-Object.assign(window, { __play: { actions, useProgress, useDirector, usePlay, forceLevelUp } })
+Object.assign(window, { __play: { actions, useProgress, useDirector, usePlay, addCoins } })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

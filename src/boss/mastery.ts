@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { safeStorage } from '../state/progress'
 
-// Topics whose boss has been beaten, by topic id. progress.ts only tracks XP,
-// so mastery lives here, persisted through the same never-throwing storage.
+// Topics whose boss has been beaten, by topic id. progress.ts only tracks coins
+// and purchases, so mastery lives here, persisted through the same never-throwing storage.
 
 interface MasteryState {
   mastered: Record<string, number> // topicId -> ms epoch first beaten

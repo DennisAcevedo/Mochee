@@ -4,7 +4,6 @@ import type { MoveKind } from '../../scene/hoops/config'
 import { useHoops } from '../../scene/hoops/hoopsStore'
 import { PALETTE } from '../../scene/layout3d'
 import { useMode } from '../../state/mode'
-import { XP_REWARD } from '../../state/progress'
 import styles from './PlayHud.module.css'
 
 // The Play tab's basketball buttons: "Shoot hoops" up front, the other ball
@@ -89,7 +88,7 @@ export function HoopsControls() {
           type="button"
           className={[styles.action, styles.hoopsMain, busy && styles.cooling, nope && styles.nope].filter(Boolean).join(' ')}
           style={{ '--c': ORANGE } as CSSProperties}
-          aria-label={`Shoot hoops, plus ${XP_REWARD.hoops} XP${busy ? ' (busy)' : ''}`}
+          aria-label={`Shoot hoops${busy ? ' (busy)' : ''}`}
           aria-disabled={busy}
           data-testid="hoops-shoot"
           onClick={() => {
@@ -100,9 +99,6 @@ export function HoopsControls() {
             🏀
           </span>
           <span className={styles.label}>Shoot hoops</span>
-          <span className={styles.xpTag} aria-hidden="true">
-            +{XP_REWARD.hoops}
-          </span>
         </button>
         <button
           type="button"
@@ -126,7 +122,7 @@ export function HoopsControls() {
                 role="menuitem"
                 className={styles.menuItem}
                 style={{ '--c': t.color } as CSSProperties}
-                aria-label={`${t.label}, plus ${XP_REWARD.trick} XP`}
+                aria-label={t.label}
                 data-testid={`hoops-${t.kind}`}
                 onClick={() => {
                   if (t.run()) setOpen(false)
@@ -137,7 +133,6 @@ export function HoopsControls() {
                   {t.icon}
                 </span>
                 <span className={styles.menuLabel}>{t.label}</span>
-                <span className={styles.menuXp}>+{XP_REWARD.trick}</span>
               </button>
             ))}
           </div>

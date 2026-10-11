@@ -142,7 +142,7 @@ export const useBoss = create<BossState>((set, get) => ({
           if (my !== session) return
           const topic = get().topic
           if (topic) useBossMastery.getState().master(topic.id)
-          useProgress.getState().award('quizCorrect')
+          useProgress.getState().award('bossWin')
           set({ phase: 'won' })
         })
       }

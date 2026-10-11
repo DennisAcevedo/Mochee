@@ -9,7 +9,7 @@ import { PROPS } from './config'
 // The things thrown to Gemini Guy: a beach ball that arcs into his hands (he
 // holds it, then tosses it back out of frame) and a doughnut that arcs into
 // his mouth and shrinks away. Timings come from PLAY, so the flight lands
-// exactly when actions.ts fires the catch / yum clip and the XP.
+// exactly when actions.ts fires the catch / yum clip and its burst.
 
 const from = new Vector3()
 const to = new Vector3()

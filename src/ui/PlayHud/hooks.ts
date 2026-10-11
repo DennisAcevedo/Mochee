@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react'
-import { PLAY, XP_COLOR, type PlayAction } from '../../play/config'
+import { COIN_COLOR, PLAY, type PlayAction } from '../../play/config'
 import { usePlay } from '../../play/playStore'
-import { XP_LABEL, useProgress } from '../../state/progress'
+import { COIN_LABEL, useProgress } from '../../state/progress'
 
 // Whether `action` is cooling down, re-rendering once when it is ready again.
 export function useCooldown(action: PlayAction) {
@@ -16,24 +16,24 @@ export function useCooldown(action: PlayAction) {
   return { cooling: left > 0, until, ms: PLAY.cooldownMs[action] }
 }
 
-export interface XpToast {
+export interface CoinToast {
   id: number
-  xp: number
+  coins: number
   label: string
   color: string
 }
 
 let toastSeq = 0
 
-// One floating "+N XP" toast per award, from any source (play or lesson).
-export function useXpToasts(): XpToast[] {
-  const [toasts, setToasts] = useState<XpToast[]>([])
+// One floating "+N coins" toast per award (the lesson, the drawer's quiz, the boss).
+export function useCoinToasts(): CoinToast[] {
+  const [toasts, setToasts] = useState<CoinToast[]>([])
   useEffect(() => {
     const timers = new Set<number>()
     const unsubscribe = useProgress.subscribe((s, prev) => {
       const a = s.lastAward
       if (!a || a.id === prev.lastAward?.id) return
-      const toast = { id: ++toastSeq, xp: a.xp, label: XP_LABEL[a.reason], color: XP_COLOR[a.reason] }
+      const toast = { id: ++toastSeq, coins: a.coins, label: COIN_LABEL[a.reason], color: COIN_COLOR[a.reason] }
       setToasts((list) => [...list.slice(-(PLAY.maxToasts - 1)), toast])
       const t = window.setTimeout(() => {
         timers.delete(t)

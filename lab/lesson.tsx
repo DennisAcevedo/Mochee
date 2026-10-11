@@ -277,7 +277,7 @@ function Json() {
     director: { spot: director.spot, focus: director.focus, loop: director.loop, gesture: director.gesture, notesTab: director.notesTab, highlight: director.highlight, boardReveal: director.boardReveal, caption: director.caption, fx: director.fx.map((f) => `${f.kind}@${f.at}`) },
     walkthrough: { index: run.index, step: run.steps[run.index]?.id, started: run.started, playing: run.playing, phase: run.phase, lineDone: run.lineDone, held: run.held, quizResult: run.quizResult, loopOverride: run.loopOverride, muted: run.muted, reached: run.reached },
     tutor: { phase: tutor.phase, mode: tutor.mode, mic: tutor.mic, answer: tutor.answer, awaitingReply: tutor.awaitingReply, lines: tutor.lines.length },
-    progress: { xp: progress.xp, level: progress.level, levelUpId: progress.levelUpId },
+    progress: { coins: progress.coins, owned: progress.owned, lastAward: progress.lastAward },
   }
   return (
     <pre data-testid="json" style={css.pre}>

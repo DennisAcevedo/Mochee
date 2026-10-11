@@ -56,7 +56,7 @@
   background: #eceaf2;
 }
 
-/* Level badge + XP bar */
+/* Coin balance: a coin badge, his name, the coins and the next thing to buy. */
 
 .meter {
   display: flex;
@@ -65,56 +65,27 @@
   min-width: calc(166 * var(--px));
 }
 
-.badge {
-  position: relative;
+/* The coin pops whenever the balance changes (keyed on it). */
+.coinBadge {
   flex: none;
   width: calc(40 * var(--px));
   height: calc(40 * var(--px));
-  border-radius: 50%;
   display: grid;
   place-items: center;
-  align-content: center;
   animation: badgePop 0.6s var(--spring);
 }
 
-/* Spinning rainbow ring, then the white face over it. */
-.badge::before,
-.badge::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
+.coinBadge .coinIcon {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 calc(2 * var(--px)) 0 rgba(176, 112, 0, 0.35));
 }
 
-.badge::before {
-  inset: 0;
-  background: conic-gradient(from 0deg, #12a4b4, #4cc76a, #ffc83d, #ff6b5b, #ff6fae, #7c5cf2, #12a4b4);
-  animation: spin 6s linear infinite;
-}
-
-.badge::after {
-  inset: calc(4 * var(--px));
-  background: #fff;
-  box-shadow: inset 0 calc(-2 * var(--px)) 0 rgba(29, 27, 36, 0.07);
-}
-
-.badgeLv,
-.badgeNum {
-  position: relative;
-  z-index: 1;
-  line-height: 1;
-}
-
-.badgeLv {
-  font-size: calc(7.5 * var(--px));
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  color: #7c5cf2;
-}
-
-.badgeNum {
-  font-size: calc(17 * var(--px));
-  font-weight: 900;
-  margin-top: calc(-1 * var(--px));
+/* Inline coin in prices and tags. */
+.coinIcon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
 }
 
 .meterBody {
@@ -125,12 +96,6 @@
   min-width: 0;
 }
 
-.meterTop {
-  display: flex;
-  align-items: baseline;
-  gap: calc(6 * var(--px));
-}
-
 .name {
   font-size: calc(12.5 * var(--px));
   font-weight: 900;
@@ -138,52 +103,20 @@
   white-space: nowrap;
 }
 
-.title {
-  font-size: calc(8.5 * var(--px));
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: calc(1.5 * var(--px)) calc(6 * var(--px));
-  border-radius: 999px;
-  color: #fff;
+.balance {
+  font-size: calc(10 * var(--px));
+  font-weight: 700;
+  color: #4a4754;
   white-space: nowrap;
-  background: linear-gradient(90deg, #7c5cf2, #ff6fae);
 }
 
-.bar {
-  position: relative;
-  height: calc(7 * var(--px));
-  border-radius: 999px;
-  background: #ecebf2;
-  box-shadow: inset 0 1px 2px rgba(29, 27, 36, 0.1);
-  overflow: hidden;
+.balance b {
+  font-size: calc(17 * var(--px));
+  font-weight: 900;
+  color: var(--ink);
 }
 
-.fill {
-  position: relative;
-  height: 100%;
-  min-width: calc(7 * var(--px));
-  border-radius: inherit;
-  background: var(--rainbow);
-  background-size: calc(166 * var(--px)) 100%; /* the rainbow is revealed left to right as XP fills */
-  transition: width 0.7s var(--spring);
-  overflow: hidden;
-}
-
-/* Moving highlight across the filled part. */
-.fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.75) 48%, transparent 66%);
-  background-size: 220% 100%;
-  animation: shimmer 2.2s ease-in-out infinite;
-}
-
-.meterFoot {
-  display: flex;
-  justify-content: space-between;
-  gap: calc(8 * var(--px));
+.goal {
   font-size: calc(8.5 * var(--px));
   font-weight: 700;
   color: #4a4754;
@@ -192,11 +125,6 @@
 
 .goal b {
   color: #7c5cf2;
-  font-weight: 900;
-}
-
-.xpText b {
-  color: var(--ink);
   font-weight: 900;
 }
 
@@ -290,19 +218,6 @@
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-.xpTag {
-  position: absolute;
-  top: calc(3 * var(--px));
-  right: calc(3 * var(--px));
-  padding: 0 calc(3.5 * var(--px));
-  border-radius: 999px;
-  font-size: calc(7.5 * var(--px));
-  font-weight: 900;
-  line-height: 1.35;
-  color: var(--c);
-  background: #fff;
-}
-
 /* Cooling down: a dark veil drains from full to empty. */
 .cooldown {
   position: absolute;
@@ -364,6 +279,15 @@
   line-height: 1.35;
   color: #fff;
   background: #1d1b24;
+}
+
+/* The cap's price sits in its corner tag, in the tag's own colours. */
+.lockTag .price {
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  box-shadow: none;
 }
 
 .lock {
@@ -474,16 +398,6 @@
   flex: 1;
 }
 
-.need {
-  white-space: nowrap;
-  font-size: 10.5px;
-  font-weight: 900;
-  padding: 2px 7px;
-  border-radius: 999px;
-  color: #fff;
-  background: var(--ink);
-}
-
 .menuItem.locked {
   background: #f1f0f4;
   color: #8a8696;
@@ -529,16 +443,7 @@
   transform: scale(1.05);
 }
 
-.hintXp {
-  padding: 0 calc(5 * var(--px));
-  border-radius: 999px;
-  font-size: calc(8.5 * var(--px));
-  font-weight: 900;
-  color: #fff;
-  background: #ff6fae;
-}
-
-/* Floating +XP toasts */
+/* Floating "+N coins" toasts */
 
 .toasts {
   position: absolute;
@@ -600,12 +505,6 @@
   text-shadow: 0 calc(1.5 * var(--px)) 0 rgba(255, 255, 255, 0.55);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @keyframes badgePop {
   0% {
     scale: 0.4;
@@ -615,15 +514,6 @@
   }
   100% {
     scale: 1;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 140% 0;
-  }
-  100% {
-    background-position: -60% 0;
   }
 }
 
@@ -719,8 +609,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .badge::before,
-  .fill::after,
+  .coinBadge,
   .hint,
   .actions {
     animation: none;
@@ -786,12 +675,6 @@
   box-shadow: inset 0 calc(-3 * var(--px)) 0 #b9601a;
 }
 
-.menuXp {
-  font-size: 11px;
-  font-weight: 900;
-  color: color-mix(in oklab, var(--c), #000 25%);
-}
-
 .score {
   display: flex;
   flex-direction: column;
@@ -853,12 +736,11 @@
   }
 }
 
-/* Study mode's header pill (LevelPill): the HUD's badge, rank and XP bar at
-   header size. Carries the HUD's variables so the shared parts draw the same. */
+/* Study mode's header pill (CoinPill): the HUD's coin and balance at header
+   size. Carries the HUD's variables so the shared parts draw the same. */
 .pill {
   --ink: #1d1b24;
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --rainbow: linear-gradient(90deg, #12a4b4, #4cc76a, #ffc83d, #ff6b5b, #ff6fae, #7c5cf2);
   --px: 0.82px;
   position: relative;
   display: inline-flex;
@@ -874,23 +756,73 @@
   color: var(--ink);
 }
 
-.pillBody {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  width: 92px;
-}
-
-.pillBody .bar {
-  width: 100%;
-  height: 5px;
-}
-
-.pill .fill {
-  background-size: 92px 100%;
-}
-
 .pill .toasts {
   z-index: 5;
+}
+
+.pill .coinBadge {
+  width: 30px;
+  height: 30px;
+}
+
+.pillCoins {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4a4754;
+  white-space: nowrap;
+}
+
+.pillCoins b {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+/* Shop prices: a gold tag he can afford, a grey "Need N more" one he cannot. */
+.price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 7px 2px 4px;
+  border-radius: 999px;
+  color: #7a4d00;
+  background: #fff1c2;
+  box-shadow: inset 0 0 0 1.5px #ffc83d;
+}
+
+.price[data-short] {
+  color: #6e6b78;
+  background: #ecebf2;
+  box-shadow: none;
+}
+
+/* Party lights for sale, at the foot of the dance menu. */
+.buyChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px 8px 7px 10px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  color: var(--ink);
+  background: #f6f2ff;
+  box-shadow: inset 0 0 0 1.5px #e2d9ff;
+  cursor: pointer;
+}
+
+.buyChip[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.buyChipLabel {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 900;
 }

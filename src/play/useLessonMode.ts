@@ -8,7 +8,7 @@ import { createLessonMode } from './lessonMode'
 
 // Wires lessonMode.ts to the stores: the stage mode drives it, the walkthrough
 // is what it pauses and resumes, the physics body tells it when he is home.
-// Mounted once on the lesson page (LevelWatcher calls it).
+// Mounted once on the lesson page (UnlockWatcher calls it).
 export function useLessonMode() {
   useEffect(() => {
     // The walkthrough as the student last saw it in Study. zustand sets the new mode before

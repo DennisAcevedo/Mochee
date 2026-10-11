@@ -5,8 +5,8 @@ import { script } from '../data/mockLesson'
 import { BUILTIN_TOPIC_REF, GROWTH, isExperimentRunning, skipExperiment, useExperimentRun } from '../growth'
 import { useDirector, type LoopClip, type Spot } from '../state/director'
 import { useGrowth } from '../state/growth'
-import { DANCE_UNLOCKS, useProgress, type XpReason } from '../state/progress'
-import { useTutorStore, type Mic, type Mode } from '../state/store'
+import { canCelebrate, useProgress, type CoinReason } from '../state/progress'
+import { selectSection, useTutorStore, type Mic, type Mode } from '../state/store'
 import { stripMarks } from './markup'
 import type { LatencyTrace } from './latency'
 import { openCelebrations, pickNoRepeat } from './roam'
@@ -32,8 +32,8 @@ const RUNNER = {
 // (waits are start minus arrival), pointed at from in front of the notes window.
 const QUIZ_HINT = { line: 'l4-wait', spot: 'left' as Spot, loop: 'point_left' as LoopClip } as const
 
-// One-time rewards besides the per-step ones (prefixed so they never clash with step ids).
-const REWARD_KEYS = { quiz: 'reward:quizCorrect', lesson: 'reward:lessonDone' } as const
+// One-time rewards per run; `section` takes the finished section's index after it.
+const REWARD_KEYS = { quiz: 'reward:quizCorrect', lesson: 'reward:lessonDone', section: 'reward:section:' } as const
 
 export type RunPhase = 'idle' | 'walking' | 'speaking' | 'gap' | 'waiting' | 'done'
 
@@ -46,7 +46,7 @@ export interface WalkthroughState {
   lineDone: boolean // the current step's line has been said in full
   held: boolean // paused for a student question; picks up after the answer
   quizResult: 'correct' | 'wrong' | null
-  reached: string[] // step ids already rewarded, plus REWARD_KEYS markers
+  reached: string[] // REWARD_KEYS markers already paid
   loopOverride: LoopClip | null // the loop the lesson wants right now; null = StageDirector's default
   muted: boolean
 
@@ -167,7 +167,7 @@ export function sayLine(text: string, onEnd?: () => void, extra?: { mode?: Mode;
   }, trace)
 }
 
-function rewardOnce(key: string, reason: XpReason) {
+function rewardOnce(key: string, reason: CoinReason) {
   const { reached } = useWalkthrough.getState()
   if (reached.includes(key)) return
   useWalkthrough.setState({ reached: [...reached, key] })
@@ -205,7 +205,6 @@ function apply(index: number) {
     quizResult: null,
     loopOverride: moving ? 'walk' : step.loop,
   })
-  rewardOnce(step.id, 'stepDone')
   // Reaching the closing step completes the lesson; its line is the send-off.
   if (index === s.steps.length - 1) rewardOnce(REWARD_KEYS.lesson, 'lessonDone')
   setStage(step)
@@ -270,11 +269,13 @@ export const presenting = (phase: RunPhase) => phase === 'walking' || phase === 
 
 // ---- Quick check
 
-// A right answer's celebration: random among the unlocked CELEBRATIONS, never
-// the same one twice in a row (the drawers' quiz uses it too, tutorCues.ts).
+// A right answer's celebration: random among the CELEBRATIONS he can do (the
+// non-dances, bounce and the dances bought), never the same one twice in a row
+// (the drawers' quiz uses it too, tutorCues.ts).
 let lastCelebration: Celebration | null = null
 export function nextCelebration(rng: () => number = Math.random): Celebration {
-  const open = openCelebrations(CELEBRATIONS, DANCE_UNLOCKS, useProgress.getState().level)
+  const { owned } = useProgress.getState()
+  const open = openCelebrations(CELEBRATIONS, (c) => canCelebrate(owned, c))
   lastCelebration = pickNoRepeat(open, lastCelebration, rng)
   return lastCelebration
 }
@@ -555,6 +556,10 @@ export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}
 
   const unsub = useTutorStore.subscribe((s, prev) => {
     if (s.phase !== prev.phase) maybeAutoStart()
+    // A section finished: the header's "Section N of M" moved on. Paid once per section per
+    // run (rewardOnce), so stepping back and forward over it pays nothing more.
+    const from = selectSection(prev)
+    if (selectSection(s) > from && useWalkthrough.getState().started) rewardOnce(`${REWARD_KEYS.section}${from}`, 'sectionDone')
     if (s.lines.length <= prev.lines.length) return
     const last = s.lines[s.lines.length - 1]
     if (!last || last.who !== 'tutor' || last.greeting || !last.text || last.text === expectLine) return

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { ANIM_STATES, CELEBRATIONS, CLIP_FALLBACK, defaultFace } from '../../src/character/blender/config.ts'
-import { DANCE_UNLOCKS, LEVEL_UNLOCKS, unlockedDances, type Dance } from '../../src/state/progress.ts'
+import { DANCES as SHOP_DANCES, FREE_DANCE, SHOP, ownedDances, type Dance, type UnlockId } from '../../src/state/progress.ts'
 
 // The dances the Play HUD can pick must exist as real one-shots in the built GLB,
 // not only as names that fall back to dance_bounce.
@@ -16,7 +16,7 @@ const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta
 const manifest: { clips: ClipInfo[] } = json('../../public/models/tutor.manifest.json')
 const source: { clips: ClipInfo[] } = json('../../BLENDER/tutor/clips.json')
 
-const DANCES = Object.keys(DANCE_UNLOCKS) as Dance[]
+const DANCES: Dance[] = [...SHOP_DANCES]
 const NEW_DANCES = ['dance_shuffle', 'dance_wave', 'dance_floss', 'dance_disco', 'dance_twist']
 // The Dance button's cooldown (PLAY.cooldownMs.dance in src/play/config.ts), pinned here
 // because that module pulls in the scene layout.
@@ -53,14 +53,16 @@ describe('dances', () => {
     }
   })
 
-  it('opens every dance by level 4, and lists each one after bounce as a level unlock', () => {
-    assert.deepEqual(unlockedDances(1), ['dance_bounce'])
-    assert.deepEqual(unlockedDances(4).sort(), [...DANCES].sort())
+  it('bounce is free and every other dance is for sale; owning one adds it to his dances', () => {
+    assert.equal(FREE_DANCE, 'dance_bounce')
+    assert.deepEqual(ownedDances([]), ['dance_bounce'])
     for (const d of DANCES) {
-      if (d === 'dance_bounce') continue
-      const u = LEVEL_UNLOCKS.find((x) => x.id === d)
-      assert.ok(u, `${d} has no LEVEL_UNLOCKS entry`)
-      assert.equal(u.level, DANCE_UNLOCKS[d])
+      if (d === FREE_DANCE) continue
+      const item = SHOP.find((x) => x.id === d)
+      assert.ok(item && item.price > 0, `${d} is not in the shop`)
     }
+    const all = DANCES.filter((d) => d !== FREE_DANCE) as UnlockId[]
+    assert.deepEqual(ownedDances(all), DANCES)
+    assert.deepEqual(ownedDances(['dance_disco', 'rainbow_cap']), ['dance_bounce', 'dance_disco'])
   })
 })

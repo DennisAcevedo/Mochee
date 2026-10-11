@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import { ANIM_STATES, CELEBRATIONS, CLIP_FALLBACK, fallbackOf } from '../../src/character/blender/config.ts'
 import { asideSpot, initialRoam, laneZ, openCelebrations, pickNoRepeat, ROAM, roamStep, roamTarget, type RoamAction, type RoamState } from '../../src/lesson/roam.ts'
 import { ONESHOT_CLIPS, type Clip } from '../../src/state/director.ts'
+import { canCelebrate, SHOP, type UnlockId } from '../../src/state/progress.ts'
 
 // Seeded uniform rng (mulberry32), so every property check is reproducible.
 function rngOf(seed: number) {
@@ -88,19 +89,16 @@ describe('CELEBRATIONS', () => {
     }
   })
 
-  it('locked dances stay out until their level (DANCE_UNLOCKS pinned: all open by 4)', () => {
-    const unlocks = {
-      dance_bounce: 1, dance_spin: 2, dance_shuffle: 2, dance_robot: 3,
-      dance_wave: 3, dance_floss: 3, dance_disco: 4, dance_twist: 4,
-    }
-    assert.deepEqual(openCelebrations(CELEBRATIONS, unlocks, 1), ['celebrate', 'dance_bounce', 'hop'])
-    assert.deepEqual(openCelebrations(CELEBRATIONS, unlocks, 2), ['celebrate', 'dance_bounce', 'dance_spin', 'dance_shuffle', 'hop'])
-    assert.deepEqual(openCelebrations(CELEBRATIONS, unlocks, 3), [
-      'celebrate', 'dance_bounce', 'dance_spin', 'dance_robot', 'dance_shuffle', 'dance_wave', 'dance_floss', 'hop',
-    ])
-    assert.deepEqual(openCelebrations(CELEBRATIONS, unlocks, 4), [...CELEBRATIONS])
-    // A new dance with no unlock level is open from the start.
-    assert.deepEqual(openCelebrations([...CELEBRATIONS, 'dance_conga'], unlocks, 1), ['celebrate', 'dance_bounce', 'hop', 'dance_conga'])
+  it('only the dances he owns join the celebrations; celebrate, hop and bounce always do', () => {
+    const open = (owned: UnlockId[]) => openCelebrations(CELEBRATIONS, (c) => canCelebrate(owned, c))
+    assert.deepEqual(open([]), ['celebrate', 'dance_bounce', 'hop'])
+    assert.deepEqual(open(['dance_disco', 'dance_spin', 'rainbow_cap']), ['celebrate', 'dance_bounce', 'dance_spin', 'dance_disco', 'hop'])
+    const all = SHOP.map((i) => i.id)
+    assert.deepEqual(open(all), [...CELEBRATIONS])
+    // A clip that is not a shop dance is open from the start.
+    assert.deepEqual(openCelebrations([...CELEBRATIONS, 'dance_conga'], (c) => canCelebrate([], c)), ['celebrate', 'dance_bounce', 'hop', 'dance_conga'])
+    // Nothing open falls back to the whole list rather than an empty pick.
+    assert.deepEqual(openCelebrations(CELEBRATIONS, () => false), [...CELEBRATIONS])
   })
 })
 

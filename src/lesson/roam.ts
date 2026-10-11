@@ -90,8 +90,8 @@ export function pickNoRepeat<T>(list: readonly T[], last: T | null, rng: Rng): T
 }
 
 // The celebrations the student has unlocked: an entry with no unlock level is always open.
-export function openCelebrations<T extends string>(list: readonly T[], unlocks: Readonly<Record<string, number>>, level: number): T[] {
-  const open = list.filter((c) => (unlocks[c] ?? 0) <= level)
+export function openCelebrations<T extends string>(list: readonly T[], isOpen: (c: T) => boolean): T[] {
+  const open = list.filter(isOpen)
   return open.length ? open : [...list]
 }
 

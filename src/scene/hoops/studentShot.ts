@@ -1,7 +1,6 @@
 import type { RapierRigidBody } from '@react-three/rapier'
 import { Vector3 } from 'three'
 import { useDirector } from '../../state/director'
-import { useProgress } from '../../state/progress'
 import { HOOP_BOARD, PHYSICS } from '../physics/config'
 import type { GrabMagnet } from '../physics/grab'
 import { usePlayBody } from '../physics/playBody'
@@ -14,8 +13,8 @@ import { vec, type Vec3 } from './shot'
 // arms the watch when the student lets go of the ball (and when shootBall pops
 // it), disarms it when they grab it again, and steps it after every physics
 // step; BallProp disarms it when one of his moves takes the ball. A make goes
-// on the SHOTS chip (useHoops.recordShot, mirrored into the gym's board), pays
-// HOOPS.basket.xp as a "+N" toast and confetti, and he celebrates; a miss off
+// on the SHOTS chip (useHoops.recordShot, mirrored into the gym's board) with
+// confetti, and he celebrates (shots pay no coins: only learning does); a miss off
 // the rim or the board counts as an attempt and he shrugs. A throw that never
 // reaches the hoop counts for nothing.
 
@@ -68,7 +67,6 @@ export function stepStudentShot(body: RapierRigidBody, dt: number): void {
   useHoops.getState().recordShot(outcome)
   const d = useDirector.getState()
   if (made) {
-    useProgress.getState().award('hoops', B.xp)
     usePlayBody.getState().scoreHoop()
     d.burst('confetti', 'tutor')
   }

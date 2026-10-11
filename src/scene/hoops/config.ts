@@ -34,7 +34,7 @@ export const HOOPS = {
   // an arc peaking this far above the higher end, plus a share of the distance, at most `maxLift`.
   gather: { lift: 0.3, liftPerUnit: 0.12, maxLift: 1.1 },
 
-  // The student's own shots (basket.ts, studentShot.ts). A make earns `xp` (the "+N" toast).
+  // The student's own shots (basket.ts, studentShot.ts).
   // Detector: rim / board contact slack, how far over the opening counts as reaching the hoop,
   // the margin for having left it, seconds on the rim before a ball is called out and nudged off
   // at `nudge` u/s, when an unreached throw is over (at rest, or `maxSeconds`).
@@ -44,7 +44,6 @@ export const HOOPS = {
   // `rate` (1/s; the grab's own is 16) so the ball is there the moment it looks it, and letting go
   // drops it from there keeping `keep` of the throw (src/scene/physics/grab.ts).
   basket: {
-    xp: 20,
     touch: 0.02,
     over: 0.45,
     leave: 0.12,
@@ -102,7 +101,7 @@ export const HOOPS = {
 
   // Seconds a phase may wait before the move gives up (he was grabbed, a clip went missing).
   // react: for the move's clip to end, then for the reaction to start; after: the whole
-  // reaction beat (a level-up that cuts in included) before the move hands the stage back.
+  // reaction beat (a one-shot that cuts in included) before the move hands the stage back.
   timeouts: { approach: 5, start: 3, clip: 8, react: 3, after: 6 },
   settleYaw: 0.14, // facing within this of the target counts as turned
   arriveEps: 0.06, // standing within this of the approach spot counts as arrived

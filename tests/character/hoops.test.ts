@@ -283,7 +283,6 @@ describe('staging: where a move starts, and the beat after it', () => {
     oneShot: null,
     queued: null,
     still: true,
-    levelUp: false,
     t: 0,
   }
   const step = (o: Partial<AfterState>) => afterStep({ ...base, ...o }, T)
@@ -295,16 +294,13 @@ describe('staging: where a move starts, and the beat after it', () => {
     assert.equal(step({ react: 'hop', still: false }), 'ask') // a reaction asked mid-turn waits in the queue for him
   })
 
-  it('a level-up from the move XP stands in for the reaction', () => {
+  it('a one-shot that outranks the reaction (a purchase\'s equip) stands in for it', () => {
     for (const react of ['celebrate', 'shrug', 'hop'] as const) {
-      assert.equal(step({ react, oneShot: 'levelup' }), 'skip')
-      assert.equal(step({ react, queued: 'levelup' }), 'skip')
-      assert.equal(step({ react, levelUp: true }), 'skip') // awarded, LevelWatcher's beat not up yet: no reaction flashing first
+      assert.equal(step({ react, oneShot: 'equip' }), 'skip')
+      assert.equal(step({ react, queued: 'equip' }), 'skip')
     }
-    // Skipped for one still on its way: wait for it (LevelWatcher asks a beat after the award), then for it to play out.
-    assert.equal(step({ react: null, levelUp: true, t: 0.5 }), 'wait')
-    assert.equal(step({ react: null, levelUp: true, oneShot: 'levelup', t: 3.5 }), 'wait')
-    assert.equal(step({ react: null, levelUp: true, t: 3.01 }), 'finish') // it never came
+    // Skipped for one that is playing: wait for it to play out.
+    assert.equal(step({ react: null, oneShot: 'equip', t: 0.5 }), 'wait')
   })
 
   it('holds the stage until the reaction has started and played out', () => {

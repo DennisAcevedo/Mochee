@@ -1,5 +1,5 @@
 """End-to-end check of the lesson stage: intro -> guided walkthrough -> quiz ->
-real Gemini answer -> play actions -> level-up, all in a real Chromium.
+real Gemini answer -> play actions -> a coin purchase, all in a real Chromium.
 
 Run against the dev server (npm run dev, http://localhost:5176):
     python tests/e2e/lesson_e2e.py [--base URL] [--out DIR] [--headed]
@@ -37,7 +37,7 @@ CONFIG = {
     "step_settle_s": 0.9,
     "gesture_timeout_s": 4,
     "play_timeout_s": 3,  # gesture asked -> the tutor's state machine actually starts the clip
-    "free_timeout_s": 8,  # a higher-priority one-shot (e.g. a queued level-up) finishes before we tickle
+    "free_timeout_s": 8,  # a higher-priority one-shot (e.g. a purchase's equip) finishes before we tickle
     "ask_timeout_s": 25,
     "ask_question": "What is the convoy effect?",
     "quiz_correct": 1,
@@ -48,7 +48,7 @@ CONFIG = {
     "required_clips": [
         "idle", "talk", "think", "listen", "point_left", "point_right", "walk", "sleep",
         "wave", "hop", "shrug", "celebrate", "dance_bounce", "dance_spin", "dance_robot",
-        "giggle", "highfive", "catch", "yum", "levelup", "wake",
+        "giggle", "highfive", "catch", "yum", "levelup", "equip", "wake",
     ],
     # Console noise that is not an app error (headless has no audio/voices).
     "console_allow": [r"speechSynthesis", r"AudioContext was not allowed", r"Download the React DevTools"],
@@ -64,7 +64,7 @@ STATE_JS = """() => {
     spot: d.spot, focus: d.focus, loop: d.loop, gesture: d.gesture, notesTab: d.notesTab,
     highlight: d.highlight, boardReveal: Number.isFinite(d.boardReveal) ? d.boardReveal : 'all',
     caption: d.caption, fx: (d.fx || []).map(f => f.kind),
-    xp: p.xp, level: p.level, levelUpId: p.levelUpId,
+    coins: p.coins, owned: [...(p.owned || [])], purchaseId: p.lastPurchase ? p.lastPurchase.id : 0,
     step: w.index, started: w.started, playing: w.playing,
     model: g.model ? { loaded: !!g.model.loaded, clips: [...(g.model.clips || [])] } : null,
   }
@@ -150,7 +150,7 @@ def check_played(r: "Run", page: Page, name: str, g, since_ms: float) -> None:
 
 def wait_free(page: Page, timeout_s: float) -> bool:
     """Until the tutor plays no one-shot and has none queued: a tickle (priority 50)
-    is rightly dropped while a level-up (80) plays or waits its turn."""
+    is rightly dropped while a purchase's equip (70) plays or waits its turn."""
     end = time.time() + timeout_s
     while time.time() < end:
         if page.evaluate("() => { const a = window.__gg && window.__gg.anim; return !a || (!a.oneShot && !a.queued) }"):
@@ -310,8 +310,8 @@ def run(base: str, out: Path, headed: bool) -> int:
             g = wait_gesture(page, gesture_id(s1), CONFIG["gesture_timeout_s"])
             r.check("right answer -> dance/celebrate", g and (g["clip"].startswith("dance_") or g["clip"] == "celebrate"), g)
             check_played(r, page, "right answer", g, t1)
-            s2 = wait_for(page, lambda s: s["xp"] >= s1["xp"] + 50, 3)
-            r.check("right answer awards quiz XP", s2["xp"] >= s1["xp"] + 50, f"{s1['xp']} -> {s2['xp']}")
+            s2 = wait_for(page, lambda s: s["coins"] >= s1["coins"] + 15, 3)
+            r.check("right answer pays 15 coins", s2["coins"] >= s1["coins"] + 15, f"{s1['coins']} -> {s2['coins']}")
             r.check("confetti burst", "confetti" in s2["fx"] or "confetti" in state(page)["fx"], s2["fx"])
             time.sleep(0.4)
             r.shot(page, "04_quiz_right")
@@ -324,8 +324,8 @@ def run(base: str, out: Path, headed: bool) -> int:
                 break
             page.evaluate("() => window.__gg.walkthrough.getState().next()")
             time.sleep(0.4)
-        s = wait_for(page, lambda s: s["xp"] >= s_before["xp"] + 100, 4)
-        r.check("lesson completion awards XP", s["xp"] >= s_before["xp"] + 100, f"{s_before['xp']} -> {s['xp']}")
+        s = wait_for(page, lambda s: s["coins"] >= s_before["coins"] + 50, 4)
+        r.check("lesson completion pays 50 coins", s["coins"] >= s_before["coins"] + 50, f"{s_before['coins']} -> {s['coins']}")
         r.shot(page, "05_done")
 
         # 7. Ask box -> server proxy -> real Gemini answer, spoken + captioned.
@@ -362,27 +362,31 @@ def run(base: str, out: Path, headed: bool) -> int:
             page.get_by_role("button", name=re.compile(label, re.I)).first.click()
             g = wait_gesture(page, gesture_id(s0), CONFIG["gesture_timeout_s"])
             good = g and (g["clip"] in expect if expect else g["clip"].startswith("dance_"))
-            s1 = wait_for(page, lambda s: s["xp"] > s0["xp"], 3)
-            r.check(f"HUD {label} -> {expect or 'dance_*'} + XP", good and s1["xp"] > s0["xp"], {"gesture": g, "xp": [s0["xp"], s1["xp"]]})
+            time.sleep(1.0)  # past the action's own beat (the catch lands, the snack is eaten)
+            s1 = state(page)
+            r.check(f"HUD {label} -> {expect or 'dance_*'}, no coins", good and s1["coins"] == s0["coins"], {"gesture": g, "coins": [s0["coins"], s1["coins"]]})
             check_played(r, page, f"HUD {label}", g, t0)
             time.sleep(0.5)
             if label == r"catch":
                 r.shot(page, "07_play_catch")
             time.sleep(1.6)
 
-        # 9. Level-up: award until the level bumps; banner + levelup clip.
+        # 9. A purchase: enough coins for the Disco dance (80), bought from the dance menu;
+        #    he owns it, plays 'equip' and the "Unlocked" banner shows.
+        page.evaluate("() => { const p = window.__gg.progress.getState(); if (p.coins < 80) p.award('bossWin', 80 - p.coins) }")
         s0, t0 = state(page), now_ms(page)
-        page.evaluate("() => { const p = window.__gg.progress.getState(); const l = p.level; for (let i = 0; i < 40 && window.__gg.progress.getState().level === l; i++) window.__gg.progress.getState().award('lessonDone') }")
-        s1 = wait_for(page, lambda s: s["levelUpId"] > s0["levelUpId"], 3)
-        r.check("level went up", s1["level"] > s0["level"], f"{s0['level']} -> {s1['level']}")
+        if "dance_disco" not in s0["owned"]:
+            page.get_by_role("button", name=re.compile(r"pick a dance", re.I)).first.click()
+            page.get_by_role("menuitem", name=re.compile(r"disco dance", re.I)).first.click()
+        s1 = wait_for(page, lambda s: s["purchaseId"] > s0["purchaseId"], 3)
+        r.check("bought the Disco dance", "dance_disco" in s1["owned"] and s1["coins"] == s0["coins"] - 80, {"owned": s1["owned"], "coins": [s0["coins"], s1["coins"]]})
         g = wait_gesture(page, gesture_id(s0), CONFIG["gesture_timeout_s"])
-        s2 = wait_for(page, lambda s: s["gesture"] and s["gesture"]["clip"] == "levelup", 3)
-        r.check("levelup clip plays", s2["gesture"] and s2["gesture"]["clip"] == "levelup", g)
-        check_played(r, page, "level-up", {"clip": "levelup"}, t0)
-        banner = page.get_by_text(re.compile(rf"level\s*{s1['level']}", re.I)).first
-        r.check("level-up banner visible", banner.is_visible())
+        r.check("equip clip plays", g and g["clip"] == "equip", g)
+        check_played(r, page, "purchase", {"clip": "equip"}, t0)
+        banner = page.get_by_text(re.compile(r"unlocked:\s*disco dance", re.I)).first
+        r.check("unlock banner visible", banner.is_visible())
         time.sleep(0.5)
-        r.shot(page, "08_levelup")
+        r.shot(page, "08_unlocked")
 
         # 10. The tutor spoke with the ElevenLabs voice (proxy served audio at least once).
         tts = [st for u, st in r.responses if u.split("?")[0].endswith("/api/tts")]

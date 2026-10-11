@@ -7,7 +7,7 @@ import { IntroDirector } from '../intro/IntroDirector'
 import { introRef } from '../intro/targets'
 import { PackDirector } from '../lesson/PackDirector'
 import { StageDirector } from '../lesson/StageDirector'
-import { LevelWatcher } from '../play/LevelWatcher'
+import { UnlockWatcher } from '../play/UnlockWatcher'
 import { LESSON_CAMERA } from '../scene/layout3d'
 import { Stage } from '../scene/Stage'
 import { CurrentTutorContext } from '../state/currentTutor'
@@ -24,8 +24,8 @@ import { useDocs } from '../ui/Drawers/docsStore'
 import { PANEL } from '../ui/Drawers/Panel'
 import { InputBar } from '../ui/InputBar/InputBar'
 import { ModeSwitch } from '../ui/ModeSwitch/ModeSwitch'
-import { LevelUpBanner } from '../ui/PlayHud/LevelUpBanner'
-import { LevelPill, PlayHud } from '../ui/PlayHud/PlayHud'
+import { UnlockBanner } from '../ui/PlayHud/UnlockBanner'
+import { CoinPill, PlayHud } from '../ui/PlayHud/PlayHud'
 import { SideTranscript } from '../ui/SideTranscript/SideTranscript'
 import { FocusRail, type RailItem } from '../ui/FocusRail/FocusRail'
 import { SkipButton } from '../ui/Start/SkipButton'
@@ -176,7 +176,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     [],
   )
 
-  // The level-up banner is page-level (fixed, centred), so the HUD's own copy is off.
+  // The "Unlocked" banner is page-level (fixed, centred), so the HUD's own copy is off.
   // Each live piece animates in as it mounts (LessonPage.module.css); the intro
   // animates the top bar and the dock itself. A closed card leaves a chip that reopens it.
   // The top of the stage: the step bar in study (closed, a chip brings it
@@ -193,7 +193,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     ) : (
       !folded('top') && (
         <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-          {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
+          {hudHidden ? <ReopenChip id="hud" label="Coins" /> : <PlayHud banner={false} closeable />}
         </div>
       )
     ))
@@ -222,7 +222,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             extra={
               live ? (
                 <div className={`${lesson.enter} ${lesson.headerTools}`} data-enter="down" style={{ '--enter-delay': '80ms' } as CSSProperties}>
-                  {study && <LevelPill />}
+                  {study && <CoinPill />}
                   <ModeSwitch />
                 </div>
               ) : null
@@ -267,13 +267,13 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
           </div>
         </div>
         {live && <Drawers />}
-        {live && <LevelUpBanner />}
+        {live && <UnlockBanner />}
         <StartScreen />
         <SkipButton />
         <Toast />
         <IntroDirector session={session} />
         <StageDirector />
-        <LevelWatcher />
+        <UnlockWatcher />
         <PackDirector />
         <BossLayer tutorId={tutor.id} />
       </div>
