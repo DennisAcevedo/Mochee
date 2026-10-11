@@ -3,7 +3,6 @@ import { ROAM_LOG_CAP, tutorActor, exposeDev } from '../character/blender/actor'
 import { tutorRig, tutorStatus } from '../character/blender/BlenderTutor'
 import { useFight } from '../boss/fight'
 import { performAction, setExpression } from '../character/controller'
-import { isExperimentRunning, useAbilityRun } from '../growth'
 import { presenting, useWalkthrough } from '../lesson/runner'
 import { asideSpot, initialRoam, ROAM, roamStep, type AsideFrom, type RoamAction, type RoamState } from '../lesson/roam'
 import { useDirector, type Focus } from '../state/director'
@@ -94,7 +93,6 @@ function useRoam() {
         t.phase === 'live' &&
         useMode.getState().mode === 'study' &&
         usePlayBody.getState().state === 'idle' &&
-        !isExperimentRunning() &&
         tutorStatus.loaded &&
         !tutorActor.classic
       const busy =
@@ -104,8 +102,7 @@ function useRoam() {
         w.held ||
         w.loopOverride !== null ||
         presenting(w.phase) ||
-        d.loop !== 'idle' ||
-        useAbilityRun.getState().run !== null
+        d.loop !== 'idle'
       const moving = tutorStatus.phase !== 'still' || !!anim?.oneShot || !!anim?.queued
       // A stage reset (restart, replay) drops the aside: let the scheduler issue it again.
       if (mem.aside && d.asideX === null) mem = { ...mem, aside: null }

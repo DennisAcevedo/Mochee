@@ -177,7 +177,7 @@ export function askTutor(question: string, fallback: string) {
     useTutorStore.setState({ awaitingReply: false })
     useWalkthrough.setState({ held: false })
   })
-  const mode = useMode.getState().mode === 'study' ? 'study' : 'play' // celebrate counts as play
+  const mode = useMode.getState().mode
   // A notebook's lesson describes itself; a class with no notes yet gets a
   // general tutor for its name; otherwise the built-in CS111 lesson.
   const notebook = packContext()

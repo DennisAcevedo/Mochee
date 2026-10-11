@@ -2,22 +2,19 @@ import { useRef, type CSSProperties, type KeyboardEvent } from 'react'
 import { useMode, type StageMode } from '../../state/mode'
 import s from './ModeSwitch.module.css'
 
-// Study / Play pill for the header. Celebrate only appears while the stage is
-// in celebrate mode (after a topic is mastered); the lesson page's
-// MasteryInvite carries the invite to play on. A radiogroup: arrow keys move
-// and select, Home/End jump, one tab stop.
+// Study / Play pill for the header. A radiogroup: arrow keys move and
+// select, Home/End jump, one tab stop.
 
 const OPTIONS: { id: StageMode; label: string; hint: string }[] = [
   { id: 'study', label: 'Study', hint: 'He walks you through the lesson' },
   { id: 'play', label: 'Play', hint: 'Drag, throw and bounce him' },
-  { id: 'celebrate', label: 'Celebrate', hint: 'Free play after a mastered topic' },
 ]
 
 export function ModeSwitch() {
   const mode = useMode((m) => m.mode)
   const setMode = useMode((m) => m.setMode)
   const refs = useRef<(HTMLButtonElement | null)[]>([])
-  const options = OPTIONS.filter((o) => o.id !== 'celebrate' || mode === 'celebrate')
+  const options = OPTIONS
   const index = Math.max(0, options.findIndex((o) => o.id === mode))
 
   const onKeyDown = (e: KeyboardEvent) => {

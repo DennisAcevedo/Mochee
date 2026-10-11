@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Navigate, useParams } from 'react-router'
 import { BossLayer } from '../boss'
 import { preloadBlenderTutor } from '../character/blender/BlenderTutor'
-import { MasteryInvite, refreshDocuments } from '../growth'
+import { refreshDocuments } from '../growth'
 import { IntroDirector } from '../intro/IntroDirector'
 import { introRef } from '../intro/targets'
 import { PackDirector } from '../lesson/PackDirector'
@@ -272,11 +272,6 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
                       <FocusRail study={study} peek={peek} onPeek={setPeek} />
                     </div>
                   )}
-                </div>
-              )}
-              {live && (
-                <div className={lesson.invite}>
-                  <MasteryInvite />
                 </div>
               )}
             </Stage>

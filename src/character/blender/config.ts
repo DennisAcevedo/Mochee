@@ -292,7 +292,7 @@ export const ANIM_STATES: Record<AnimState, AnimStateConfig> = {
 // Variety for the app's reactions: when a trigger asks for a key clip with
 // director.play(clip, { vary: true }), the controller plays this list in turn
 // instead (deterministic rotation, first entry first), so the same trigger reads
-// differently each time. Choreography (ability beats, lesson steps) plays
+// differently each time. Choreography (lesson steps) plays
 // without `vary` and gets the exact clip. Every entry has the key's priority.
 export const CLIP_VARIANTS: Partial<Record<OneShotClip, readonly OneShotClip[]>> = {
   giggle: ['giggle', 'emote_laugh', 'emote_shy'], // tickle (src/play/actions.ts poke)

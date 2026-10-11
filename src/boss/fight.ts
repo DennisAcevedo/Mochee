@@ -148,8 +148,8 @@ function start(s: BossState) {
     take.focus = n.focus
     n.setFocus('none')
   })
-  // Whatever plays a step while the fight is up (the lesson's auto-start, a toy or an
-  // experiment handing the lesson back) is paused again once the step has been set up,
+  // Whatever plays a step while the fight is up (the lesson's auto-start or a toy
+  // handing the lesson back) is paused again once the step has been set up,
   // so no line is said under the fight; the end of the fight resumes it.
   take.offRun = useWalkthrough.subscribe((n, prev) => {
     if (!take || !presenting(n.phase) || presenting(prev.phase)) return

@@ -6,12 +6,12 @@ import type { StageMode } from '../state/mode.ts'
 // useLessonMode.ts wires it to the real stores.
 //
 // Rules:
-// (a) Play (and celebrate) shut the lesson: entering stops his line at once
+// (a) Play shuts the lesson: entering stops his line at once
 //     and pauses the walkthrough, and while shut the runner says no step.
 //     Whatever asks the lesson to play meanwhile (a toy or the boss handing
 //     it back, the auto-start) only leaves it owed. A chat answer the student
-//     asked for may still finish: the hush skips a held lesson. Switching
-//     between play and celebrate keeps it shut and cuts any step line that
+//     asked for may still finish: the hush skips a held lesson. Going back
+//     to Play before he is home keeps it shut and cuts any step line that
 //     got through anyway.
 // (b) Back in Study the lesson opens again once he has glided back onto his
 //     spot (body on his feet, the gap to the spot small or no longer
@@ -82,7 +82,7 @@ export function createLessonMode(deps: LessonModeDeps): LessonMode {
   function enter() {
     cancelReturn()
     if (shut) {
-      // play <-> celebrate: already shut. A step line that got through anyway is
+      // Back to Play before the way home finished: already shut. A step line that got through anyway is
       // cut the moment the mode changes, and stays owed.
       const r = deps.run()
       if (deps.presenting(r.phase)) {

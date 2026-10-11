@@ -17,7 +17,7 @@ import { TumbleJudge } from './tumbleCause'
 // up (he dangles on a spring under the pointer, playing the 'dragged' loop),
 // letting go flings him as a whole-body dynamic capsule that tumbles and
 // bounces around the room, and once he settles he pops back upright with a
-// 'recover' one-shot and a burst of stars. In play / celebrate mode he stands
+// 'recover' one-shot and a burst of stars. In play mode he stands
 // where he landed; in study mode he walks back to the lesson's spot (the Blender
 // tutor's own walk: he turns toward it, waddles over, turns back). A quick
 // tap is passed to onTap (the existing tickle / poke).

@@ -23,7 +23,7 @@
   background: #f3f1ec;
 }
 
-.page[data-shop-active] :is(.header, .overlay, .below, .dock, .invite),
+.page[data-shop-active] :is(.header, .overlay, .below, .dock),
 body:has(.page[data-shop-active]) .cornerTools {
   opacity: 0;
   pointer-events: none;
@@ -195,20 +195,6 @@ body:has(.cornerTools [aria-label='Show Transcript']) .header {
   transform: none;
 }
 
-/* New-ability invite: top left inside the stage, under the HUD. */
-.invite {
-  position: absolute;
-  top: 17%;
-  left: 2.4%;
-  width: min(340px, 40%);
-  z-index: 4;
-}
-
-.invite > * {
-  top: 0;
-  left: 0;
-  right: auto;
-}
 
 /* Walkthrough bar and ask box. Stacked by default; side by side on wide
    screens, where the stage gains the height a second row would cost. */

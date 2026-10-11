@@ -67,9 +67,8 @@ Each item below is asserted by an e2e check. The checks read what the tutor actu
 
 **Study and play** (`study_play_e2e.py`)
 - A Study/Play mode switch. In Play he can be dragged, flung and tumbled, he recovers on landing and stays inside the room, and a ball and hoop come out (a basket gives confetti and XP).
-- Mastery: getting a topic right on the first try teaches him an ability (`queue_juggle`). He says so, invites the student to play, and performs it on request with props.
+- Mastery: getting a topic right on the first try masters it. He cheers ("I mastered …!") and a trophy for it appears on the shelf.
 - The room grows from what was learned: a book per uploaded document and a trophy per mastered topic.
-- On a return visit the next calendar day (`?return=1` to preview) he shows off an ability he learned from a topic mastered last time ("While you were away I practised my …"). The lesson waits for it to finish, and a seen experiment never repeats.
 - Documents: PDF upload (topics extracted), page-cited chat answers (each chip opens the page with the quote highlighted), honest abstaining on off-topic questions, and a quiz whose answers stay on the server until submitted, with idempotent resubmits.
 - No-key demo mode is labelled in the UI. The e2e checks the label with a mocked response; `test:server` covers the demo answers themselves.
 
@@ -97,12 +96,10 @@ Both e2e files also assert no failed requests, no page errors and no console err
 - Each `study_play_e2e.py` run uploads another copy of its fixture PDF, so `.data/` grows until a delete route exists.
 - In a slow headless browser a queued level-up clip can start after its banner is already showing.
 - The server reads the API keys in three places (`server/keys.ts` plus the two proxies); they should share one reader.
-- Upstream's `Board`, `Sidebar` and `QuizCard` components are unused but kept, so `git merge origin/main` stays clean.
 
 ## Deferred
 
-- Server-side XP economy and quest database. XP, levels, mastery and learned abilities persist in the browser (localStorage) for now.
-- Return events stored on the server. Return experiments are scheduled client-side (eligible from the next calendar day, `?return=1` to preview).
+- Server-side XP economy and quest database. XP, levels and mastery persist in the browser (localStorage) for now.
 - A mascot redesign. Mochee keeps his original look.
 - Accounts, document ownership and a delete-document route. All data access sits in `server/docs/store.ts` so auth can be added there.
 - OCR for scanned PDFs (a PDF without a text layer is rejected with `no-text`).

@@ -8,7 +8,7 @@ import { StudyWorld } from './StudyWorld'
 import { WORLD, type HoopDraw, type WorldId } from './worldConfig'
 
 // The full-screen backdrop of the lesson stage: the Study classroom in study
-// mode, the Play gym in play and celebrate mode, cross-faded (fade.ts) over
+// mode, the Play gym in play mode, cross-faded (fade.ts) over
 // WORLD.fade.ms when the mode flips. Flipping back mid-fade reverses it from
 // where it is.
 

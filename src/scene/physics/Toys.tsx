@@ -13,7 +13,7 @@ import { playHandlers, usePlayBody } from './playBody'
 
 // Play-mode toys: a basketball you can hold, carry, throw or drop, a hoop high
 // on the right wall that counts the student's own baskets (hoops/studentShot.ts).
-// Mounted only in play / celebrate mode; each toy starts fresh.
+// Mounted only in play mode; each toy starts fresh.
 
 const KINEMATIC = 2 as RigidBodyType // RigidBodyType.KinematicPositionBased
 const DYNAMIC = 0 as RigidBodyType // RigidBodyType.Dynamic
@@ -285,7 +285,7 @@ function HoopArt() {
   )
 }
 
-// Every toy, live only in play / celebrate mode.
+// Every toy, live only in play mode.
 export function Toys() {
   const playing = useMode((s) => s.mode !== 'study')
   if (!playing) return null

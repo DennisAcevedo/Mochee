@@ -141,7 +141,7 @@ describe('roamTarget', () => {
 })
 
 describe('roamStep', () => {
-  it('does nothing while disabled (intro, Play mode, held, experiment)', () => {
+  it('does nothing while disabled (intro, Play mode, held)', () => {
     const s = { ...free(0), enabled: false }
     const { log } = run(0, 60, s, rngOf(1))
     assert.deepEqual(log, [])

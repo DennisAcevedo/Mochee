@@ -6,25 +6,10 @@ import { GROWTH } from './config'
 // Where topics come from: the built-in CS111 lesson plus the student's own
 // documents (GET /api/documents). The documents backend lands in parallel, so
 // every fetch tolerates 404s, bad JSON and network errors by keeping what it
-// had. The room (books) and ability matching read this store.
+// had. The room's books read this store.
 
-// The built-in lesson's topic (mockLesson / shared/lessonNotes: FCFS, P1 24 / P2 3 / P3 3).
-export const BUILTIN_TOPIC: { id: string; title: string; keywords: string[] } = {
-  id: 'cs111-fcfs',
-  title: 'First-come, first-served',
-  keywords: ['FCFS', 'Convoy effect', 'Arrival order'],
-}
-
-// What the built-in quiz passes to recordAnswer.
-export const BUILTIN_TOPIC_REF: TopicRef = { id: BUILTIN_TOPIC.id, title: BUILTIN_TOPIC.title, documentId: null }
-
-// A topic as the room and matcher see it (built-in or from a document).
-export interface RoomTopic {
-  id: string
-  title: string
-  keywords: string[]
-  documentId: string | null
-}
+// The built-in lesson's topic (mockLesson / shared/lessonNotes: FCFS), as its quiz passes it to recordAnswer.
+export const BUILTIN_TOPIC_REF: TopicRef = { id: 'cs111-fcfs', title: 'First-come, first-served', documentId: null }
 
 export type DocsStatus = 'idle' | 'loading' | 'ok' | 'unavailable'
 
@@ -92,54 +77,4 @@ export function refreshDocuments(): Promise<void> {
 export function allDocuments(s: Pick<DocsState, 'documents' | 'local'>): DocumentInfo[] {
   const seen = new Set(s.documents.map((d) => d.id))
   return [...s.documents, ...s.local.filter((d) => !seen.has(d.id))]
-}
-
-// Every topic the room knows: the built-in one first, then each document's.
-export function allTopics(s: Pick<DocsState, 'documents' | 'local'>): RoomTopic[] {
-  const out: RoomTopic[] = [{ ...BUILTIN_TOPIC, documentId: null }]
-  const seen = new Set([BUILTIN_TOPIC.id])
-  for (const d of allDocuments(s)) {
-    for (const t of d.topics) {
-      if (seen.has(t.id)) continue
-      seen.add(t.id)
-      out.push({ id: t.id, title: t.title, keywords: t.keywords, documentId: d.id })
-    }
-  }
-  return out
-}
-
-// Keywords for a topic id, from the built-in lesson or a known document.
-export function keywordsFor(topicId: string): string[] {
-  return allTopics(useRoomDocs.getState()).find((t) => t.id === topicId)?.keywords ?? []
-}
-
-// A document built from the built-in lesson's data, for the lab and offline
-// demos: the scheduling cheat sheet with its SJF and round-robin topics.
-export function sampleDocument(n: number): DocumentInfo {
-  const samples: { title: string; topics: Omit<TopicInfo, 'documentId'>[] }[] = [
-    {
-      title: 'Scheduling cheat sheet',
-      topics: [{ id: 'sched-sjf', title: 'Shortest job first', keywords: ['SJF', 'Burst time', 'Avg wait 3 ms'], firstPage: 1 }],
-    },
-    {
-      title: 'CS111 Lecture 5',
-      topics: [{ id: 'sched-rr', title: 'Round robin', keywords: ['Quantum', 'Time slice', 'Preempt'], firstPage: 2 }],
-    },
-    {
-      title: 'CS111 Lecture 3',
-      topics: [{ id: 'proc-states', title: 'Process states', keywords: ['Ready', 'Running', 'Waiting'], firstPage: 4 }],
-    },
-  ]
-  const pick = samples[n % samples.length]
-  const id = `local-${n}`
-  return {
-    id,
-    title: pick.title,
-    pageCount: 2,
-    createdAt: new Date(0).toISOString(),
-    tutorId: 'cs111', // DEFAULT_TUTOR_ID in shared/lessonPack.ts: the sample CS111 class
-    original: 'pdf',
-    kind: 'class',
-    topics: pick.topics.map((t) => ({ ...t, id: n < samples.length ? t.id : `${t.id}-${n}`, documentId: id })),
-  }
 }

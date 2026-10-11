@@ -43,7 +43,7 @@ export interface BallHandle {
   show: (shown: boolean) => void
 }
 
-// Toss the tutor into the air (play / celebrate mode only).
+// Toss the tutor into the air (play mode only).
 export function tossTutor(): boolean {
   return playHandlers.toss?.() ?? false
 }

@@ -6,7 +6,6 @@ import { tutorStatus } from '../character/blender/BlenderTutor'
 import { TUTOR_ASSETS } from '../character/blender/config'
 import { probeModel } from '../character/blender/manifest'
 import { mapClipNames } from '../character/blender/motion'
-import { useExperimentRun } from '../growth'
 import { useWalkthrough } from '../lesson/runner'
 import { RESOLVED_STEPS } from '../lesson/walkthrough'
 import { anchors } from '../scene/anchors'
@@ -34,7 +33,6 @@ interface GG {
   mode: typeof useMode
   drawers: typeof useDrawers
   growth: typeof useGrowth
-  experiment: typeof useExperimentRun
   playBody: typeof usePlayBody
   play: { toss: typeof tossTutor; shoot: typeof shootBall; room: typeof ROOM_BOX }
   steps: typeof RESOLVED_STEPS
@@ -146,7 +144,6 @@ export function GGHooks() {
       mode: useMode,
       drawers: useDrawers,
       growth: useGrowth,
-      experiment: useExperimentRun,
       playBody: usePlayBody,
       play: { toss: tossTutor, shoot: shootBall, room: ROOM_BOX },
       steps: RESOLVED_STEPS,

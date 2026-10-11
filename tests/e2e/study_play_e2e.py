@@ -1,7 +1,6 @@
 """End-to-end check of wave B on the lesson stage, in a real Chromium: the
 Study / Play switch, physics play (drag and fling him, the ball and hoop),
-topic mastery and the ability it teaches, the room that grows with it, the
-return experiment, and the Learning drawer's study hub cards (upload,
+topic mastery, the room that grows with it, and the Learning drawer's study hub cards (upload,
 grounded chat with citations, abstain, quiz). There is no Quest drawer.
 
 Run against the dev server (npm run dev, http://localhost:5176):
@@ -9,11 +8,11 @@ Run against the dev server (npm run dev, http://localhost:5176):
 
 Same harness as lesson_e2e.py (fresh profile, mocked HMR socket, real
 requests) and the same dev-only `window.__gg` hooks, plus the wave B ones:
-    mode / drawers / growth / experiment / playBody   zustand stores
+    mode / drawers / growth / playBody                zustand stores
     play { toss, shoot, room }                        physics actions + the room's inner box
     loops                                             base loops the tutor switched to
 Named 3D objects: tutor, physics-ball, physics-hoop, evo-book-<docId>,
-evo-trophy-<topicId>, evo-ability-<abilityId>.
+evo-trophy-<topicId>.
 
 The voice is muted for the whole run: grounded answers vary, so speaking them
 would bill new ElevenLabs characters on every run. Each run uploads the fixture
@@ -31,7 +30,7 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
-from lesson_e2e import Run, canvas_has_content, gesture_id, now_ms, screen_of, state, wait_for, wait_free, wait_gesture
+from lesson_e2e import Run, canvas_has_content, now_ms, screen_of, state, wait_for
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -42,9 +41,6 @@ CONFIG = {
     "report": "study_play_report.json",
     "viewport": {"width": 1440, "height": 900},
     "phase_timeout_s": 40,
-    "gesture_timeout_s": 4,
-    "free_timeout_s": 8,  # a higher-priority one-shot finishes before we ask for another
-    "quiet_s": 1.5,  # ...and nothing new starts for this long (a level-up lands 650 ms after its XP)
     # Drag: press on him, hold past the pick-up delay, sweep up-right, let go.
     "drag": {"hold_s": 0.25, "dx": 180, "dy": -175, "steps": 10, "move_s": 0.5},
     # Release -> back on his feet. ~6 s at 60 fps; headless swiftshader draws 4-6 fps and
@@ -54,11 +50,7 @@ CONFIG = {
     "hoop_xp": 15,
     "mastery_timeout_s": 25,  # the feedback line ends, then the mastery beat
     "topic": "cs111-fcfs",
-    "ability": "queue_juggle",
     "quiz_correct": 1,
-    "experiment_start_s": 8,
-    "experiment_end_s": 40,
-    "no_rerun_watch_s": 5,
     "fixture": ROOT / "tmp" / "fixtures" / "cs111-fcfs.pdf",
     "upload_timeout_s": 90,
     "chat_timeout_s": 45,
@@ -94,56 +86,6 @@ def hub(page: Page, card: str) -> None:
     if back.count() and back.is_visible():
         back.click()
     page.get_by_test_id(f"hub-card-{card}").click()
-
-
-def wait_quiet(page: Page, hold_s: float, timeout_s: float) -> bool:
-    """Until the tutor has played no one-shot (and queued none) for hold_s in a row."""
-    end, since = time.time() + timeout_s, None
-    while time.time() < end:
-        free = wait_free(page, 0.2)
-        since = (since or time.time()) if free else None
-        if since and time.time() - since >= hold_s:
-            return True
-        time.sleep(0.1)
-    return False
-
-
-class Tap:
-    """Pass-through route that keeps each docs API reply. The request still goes
-    to the live server (route.fetch); the body is read off that fetch, because
-    Chromium's inspector cache evicts response bodies once the GLB has loaded."""
-
-    def __init__(self, page: Page, globs: list[str], timeout_s: float):
-        self.calls: list[dict] = []
-        self.timeout_ms = timeout_s * 1000
-        for g in globs:
-            page.route(g, self._handle)
-
-    def _handle(self, route) -> None:
-        req = route.request
-        try:
-            resp = route.fetch(timeout=self.timeout_ms)
-        except Exception:  # the page closed mid-request
-            return
-        call = {"method": req.method, "path": req.url.split("?")[0], "status": resp.status, "json": None, "post": None}
-        try:
-            call["json"] = resp.json()
-        except Exception:
-            pass
-        try:
-            call["post"] = req.post_data_json
-        except Exception:
-            pass
-        self.calls.append(call)
-        route.fulfill(response=resp)
-
-    def next(self, page: Page, since: int, test, timeout_s: float):
-        """First call after index `since` that passes test(call), or None."""
-        def hit():
-            page.evaluate("() => 0")  # lets Playwright run the route handlers
-            return next((c for c in self.calls[since:] if test(c)), None)
-        return poll(hit, timeout_s, 0.2)
-
 
 def go_live(page: Page, r: Run, url: str, label: str) -> bool:
     page.goto(url, wait_until="domcontentloaded")
@@ -199,7 +141,7 @@ def run(base: str, out: Path, headed: bool) -> int:
 
         if not go_live(page, r, url, "first visit"):
             return finish(r, browser)
-        hooks = gg(page, "['mode','drawers','growth','experiment','playBody','play','loops'].filter(k => !(k in g))")
+        hooks = gg(page, "['mode','drawers','growth','playBody','play','loops'].filter(k => !(k in g))")
         if not r.check("wave B hooks on window.__gg", not hooks, f"missing={hooks}"):
             return finish(r, browser)
         # Hold the guided lesson so the director doesn't walk him mid-drag.
@@ -290,38 +232,17 @@ def run(base: str, out: Path, headed: bool) -> int:
 
             def mastered():
                 c = gg(page, "g.director.getState().caption") or ""
-                if "learned" in c.lower():
+                if "mastered" in c.lower():
                     seen["caption"] = c
-                g = gg(page, "({ t: g.growth.getState().topics[a], ab: g.growth.getState().abilities.map(x => x.id) })", CONFIG["topic"])
-                return seen["caption"] and g["t"] and g["t"]["mastered"] and CONFIG["ability"] in g["ab"]
+                g = gg(page, "g.growth.getState().topics[a]", CONFIG["topic"])
+                return seen["caption"] and g and g["mastered"]
 
             poll(mastered, CONFIG["mastery_timeout_s"], 0.1)
-            g = gg(page, "({ t: g.growth.getState().topics[a], ab: g.growth.getState().abilities.map(x => x.id) })", CONFIG["topic"])
-            r.check(f"topic {CONFIG['topic']} mastered on the first try", g["t"] and g["t"]["mastered"] and g["t"]["attempts"] == 1, g["t"])
-            r.check(f"ability {CONFIG['ability']} learned", CONFIG["ability"] in g["ab"], g["ab"])
-            r.check("caption says he learned it", seen["caption"], seen["caption"])
-            r.check("mastery invites play (celebrate + invite card)", gg(page, "g.mode.getState().mode") == "celebrate"
-                    and page.get_by_test_id("mastery-invite").is_visible(), gg(page, "g.mode.getState().mode"))
+            g = gg(page, "g.growth.getState().topics[a]", CONFIG["topic"])
+            r.check(f"topic {CONFIG['topic']} mastered on the first try", g and g["mastered"] and g["attempts"] == 1, g)
+            r.check("caption says he mastered it", seen["caption"], seen["caption"])
+            r.check("mastery keeps him in Study (no invite to play)", gg(page, "g.mode.getState().mode") == "study", gg(page, "g.mode.getState().mode"))
             r.shot(page, "sp_06_mastery")
-
-            # The new move, from the mastery invite's 'Show me'.
-            show_me = page.get_by_test_id("mastery-invite").get_by_role("button", name=re.compile(r"^show me$", re.I))
-            show_me.wait_for(state="visible", timeout=5000)
-            gg(page, "g.walkthrough.getState().pause()")  # he stays put: one-shots wait while he walks
-            # The mastery celebrate (60) and the level-up that finishing the lesson earns
-            # (80, after PLAY.levelUpDelayMs) both rightly outrank a hop (50): let them play out.
-            wait_quiet(page, CONFIG["quiet_s"], CONFIG["free_timeout_s"] * 2)
-            s0, t0 = state(page), now_ms(page)
-            show_me.click()
-            props = poll(lambda: has_object(page, f"evo-ability-{CONFIG['ability']}"), 3)
-            cap = poll(lambda: "juggle" in (gg(page, "g.director.getState().caption") or "").lower() and gg(page, "g.director.getState().caption"), 3)
-            g1 = wait_gesture(page, gesture_id(s0), CONFIG["gesture_timeout_s"])
-            hop = poll(lambda: gg(page, "g.played.find(x => x.clip === 'hop' && x.t >= a)", t0), 4)
-            r.check("'Show me' performs the ability: props + caption + clip", props and cap and g1 and hop,
-                    {"props": props, "caption": cap, "gesture": g1, "played": bool(hop),
-                     "drops": gg(page, "g.drops.filter(x => x.t >= a)", t0), "anim": gg(page, "g.anim")})
-            time.sleep(0.6)
-            r.shot(page, "sp_07_ability")
             # The handle stays clickable beside the open panel (not under the canvas).
             page.get_by_role("button", name=re.compile(r"^open learning", re.I)).click(timeout=5000)
             opened = poll(lambda: gg(page, "g.drawers.getState().learningOpen") is True, 3)
@@ -333,30 +254,9 @@ def run(base: str, out: Path, headed: bool) -> int:
         names = [f"evo-trophy-{CONFIG['topic']}"]
         present = {n: has_object(page, n) for n in names}
         r.check("room evolution: trophy", all(present.values()), present)
-        page.get_by_role("button", name=re.compile(r"keep studying", re.I)).first.click()
         r.shot(page, "sp_08_room")
 
-        # 6. Return experiment: back the next "day" (?return=1), same profile.
-        if go_live(page, r, url + "?return=1", "return visit"):
-            began = poll(lambda: "while you were away" in (gg(page, "g.director.getState().caption") or "").lower(), CONFIG["experiment_start_s"], 0.1)
-            # Held back, or paused if it got going first.
-            waiting = gg(page, "!!g.experiment.getState().run && !(g.walkthrough.getState().started && g.walkthrough.getState().playing)")
-            r.check("return experiment: 'while you were away' caption", began, gg(page, "g.director.getState().caption"))
-            r.check("lesson waits while the experiment runs", waiting)
-            time.sleep(3.0)
-            r.shot(page, "sp_09_experiment")
-            ended = poll(lambda: gg(page, "!g.experiment.getState().run"), CONFIG["experiment_end_s"], 0.3)
-            exp = gg(page, "g.growth.getState().experiments.find(e => e.topicId === a) || null", CONFIG["topic"])
-            r.check("experiment runs to the end and is marked seen", ended and exp and exp["seenAt"], exp)
-            r.check("lesson plays once the experiment ends", poll(lambda: gg(page, "g.walkthrough.getState().started && g.walkthrough.getState().playing"), 5))
-
-        if go_live(page, r, url + "?return=1", "second return visit"):
-            rerun = poll(lambda: gg(page, "!!g.experiment.getState().run") or "while you were away" in (gg(page, "g.director.getState().caption") or "").lower(),
-                         CONFIG["no_rerun_watch_s"], 0.1)
-            r.check("a seen experiment does not run again", not rerun)
-            page.evaluate("() => { const w = window.__gg.walkthrough.getState(); if (!w.started) w.start(); w.pause() }")
-
-        # 7. Docs, in a fresh tab of the same profile: after three loads of the
+        # 6. Docs, in a fresh tab of the same profile: after three loads of the
         # GLB, Chromium's inspector cache starts evicting response bodies.
         page.close()
         page = open_page()

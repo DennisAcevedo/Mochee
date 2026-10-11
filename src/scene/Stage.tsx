@@ -19,7 +19,7 @@ import { CapTint } from './fx/CapTint'
 import { FxLayer } from './fx/FxLayer'
 import { PartyLights } from './fx/PartyLights'
 import { PlayProps } from './fx/PlayProps'
-import { AbilityProps, ReturnExperiment, RoomEvolution } from './evolution'
+import { RoomEvolution } from './evolution'
 import { IntroTutor } from './IntroTutor'
 import { Lights } from './Lights'
 import { PhysicsRoom, PhysicsTutor, Toys } from './physics'
@@ -119,8 +119,6 @@ export function Stage({ children }: Props) {
               <CapTint />
               <PartyLights />
               <PlayProps />
-              <AbilityProps />
-              <ReturnExperiment />
               <BossArena />
             </>
           ) : room ? null : (

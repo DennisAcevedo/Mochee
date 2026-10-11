@@ -112,7 +112,7 @@ export interface Gesture {
   urgent?: boolean
   // Asks for variety: the tutor plays the clip's next CLIP_VARIANTS entry
   // (src/character/blender/config.ts) instead of the same clip every time.
-  // Choreography (ability beats, lesson steps) leaves it off and gets the exact clip.
+  // Choreography (lesson steps) leaves it off and gets the exact clip.
   vary?: boolean
 }
 

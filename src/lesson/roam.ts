@@ -5,8 +5,7 @@
 // timer and turns its actions into director calls.
 //
 // Rules:
-// - Only while enabled (live lesson, study mode, not held, no return
-//   experiment) and free (not speaking, pointing, thinking or performing a step).
+// - Only while enabled (live lesson, study mode, not held) and free (not speaking, pointing, thinking or performing a step).
 // - Every 4 to 9 s he paces to the other side of the lane or wanders to a
 //   random spot in it, always a real step away from where he stands.
 // - The maximized window wins over all of it: he steps aside to the right,
@@ -37,7 +36,7 @@ export type AsideFrom = 'notes'
 
 export interface RoamState {
   // The world, refreshed by the caller every tick.
-  enabled: boolean // live lesson, study mode, not held, no return experiment, tutor loaded
+  enabled: boolean // live lesson, study mode, not held, tutor loaded
   busy: boolean // speaking, pointing, thinking, a step in progress, a question pending
   moving: boolean // walking, settling or playing a one-shot (his own, so the idle clock keeps running)
   x: number // where he stands (world x)

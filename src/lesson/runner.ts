@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { notesTabs } from '../../shared/lessonNotes'
 import { CELEBRATIONS, type Celebration } from '../character/blender/config'
 import { script } from '../data/mockLesson'
-import { BUILTIN_TOPIC_REF, GROWTH, isExperimentRunning, skipExperiment, useExperimentRun } from '../growth'
+import { BUILTIN_TOPIC_REF, GROWTH } from '../growth'
 import { useDirector, type LoopClip, type Spot } from '../state/director'
 import { useGrowth } from '../state/growth'
 import { canCelebrate, useProgress, type CoinReason } from '../state/progress'
@@ -19,8 +19,7 @@ import { RESOLVED_STEPS, type ResolvedStep } from './walkthrough'
 // store: walk to the step's spot, set the stage, gesture, then say the line
 // (transcript + voice + caption) and move on after a short gap while playing.
 // The quick-check step waits for the answer. A student question holds the
-// lesson and picks it back up once the answer has been said. A return
-// experiment (src/growth) owns the stage while it runs: the lesson waits.
+// lesson and picks it back up once the answer has been said.
 // Play mode shuts the lesson (the gate below, driven by src/play/lessonMode.ts).
 
 // TEMPORARY: lessons start with the voice off (saves ElevenLabs credits); the
@@ -91,11 +90,9 @@ function later(ms: number, fn: () => void) {
   timers.add(t)
 }
 
-// Cancelling can shut the play-mode gate (below) itself: it records a pending
-// quiz answer, which can master the topic, and the mastery invite (mode
-// 'celebrate') shuts the lesson. Callers that go on to speak check the gate
-// again afterwards. The student's press that got here is then not a request to
-// leave the invite: whatever it asked for stays owed.
+// Cancelling records a pending quiz answer (which can master the topic).
+// Callers that go on to speak check the play-mode gate again afterwards; a
+// gate shut during the cancel keeps whatever the student's press asked for owed.
 function cancelAll() {
   const open = gate === null
   timers.forEach(clearTimeout)
@@ -389,16 +386,16 @@ function endHint() {
 }
 
 // The built-in quiz's answer counts toward topic mastery once its feedback
-// line is over (or cut short), so a newly learned ability gets its own beat
-// instead of talking over the feedback. True when this answer taught him one.
+// line is over (or cut short), so mastering the topic gets its own beat
+// instead of talking over the feedback. True when this answer mastered it.
 let pendingAnswer: boolean | null = null
 function recordQuiz(): boolean {
   if (pendingAnswer === null) return false
   const correct = pendingAnswer
   pendingAnswer = null
-  const learned = useGrowth.getState().learnedId
+  const was = useGrowth.getState().topics[BUILTIN_TOPIC_REF.id]?.mastered ?? false
   useGrowth.getState().recordAnswer(BUILTIN_TOPIC_REF, correct)
-  return useGrowth.getState().learnedId !== learned
+  return !was && (useGrowth.getState().topics[BUILTIN_TOPIC_REF.id]?.mastered ?? false)
 }
 
 // A pick on the Quick check (store.pick()): checked by quickCheck.ts, then
@@ -423,7 +420,7 @@ function onQuizAnswer(correct: boolean, text: string, revealed = false) {
   if (!onQuizStep && presenting(w.phase)) w.pause()
   cancelAll()
   // The built-in topic's mastery counts once, when the whole Quick check is done (all right
-  // on the first try = mastered): mastery mid-check would switch to Celebrate and hide the board.
+  // on the first try = mastered): mastery mid-check would talk over the questions.
   const qc = useQuickCheck.getState()
   pendingAnswer = qc.documentId === null && (correct || revealed) && isLastQuestion(qc) ? qc.score === qc.questions.length : null
   useTutorStore.setState({ mic: 'speaking' })
@@ -437,7 +434,7 @@ function onQuizAnswer(correct: boolean, text: string, revealed = false) {
   if (onQuizStep) useWalkthrough.setState({ quizResult: correct ? 'correct' : 'wrong', phase: 'speaking', loopOverride: null })
   speak(text, () => {
     micIdle()
-    const learned = recordQuiz()
+    const mastered = recordQuiz()
     // The hint has been said. He stays by the notes (the lane never covers the
     // quick-check keys): a walk back here would hold a right answer's dance
     // until he arrived, since one-shots wait out a walk.
@@ -471,8 +468,8 @@ function onQuizAnswer(correct: boolean, text: string, revealed = false) {
       useWalkthrough.setState({ quizResult: 'correct' })
       sayLine(quickCheckRecap(), () => {
         useWalkthrough.setState({ lineDone: true })
-        // He shows off what he just learned before the lesson moves on.
-        if (learned) later(GROWTH.celebrate.captionMs, advanceOrFinish)
+        // His "I mastered …!" cheer gets its moment before the lesson moves on.
+        if (mastered) later(GROWTH.celebrate.captionMs, advanceOrFinish)
         else advanceOrFinish()
       })
     } else useWalkthrough.setState({ phase: 'waiting' })
@@ -526,7 +523,7 @@ function startOver() {
   const shutBefore = gate !== null
   cancelAll()
   micIdle()
-  // Unless the cancel just opened the mastery invite (cancelAll): its celebration has the stage.
+  // Unless the cancel just shut the play-mode gate (cancelAll): Play has the stage.
   if (shutBefore || !gate) useDirector.getState().resetStage()
   performed.clear()
   useWalkthrough.setState({ ...initialRun(), started: true, playing: true })
@@ -541,12 +538,9 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
 
   start: () => asStudent(begin),
 
-  // Moving through the lesson during a return experiment skips it. The index
-  // is read first: ending the run can resume the lesson synchronously.
   next: () =>
     asStudent(() => {
       const { index, steps, started } = get()
-      if (isExperimentRunning()) skipExperiment()
       if (!started) return begin()
       if (index < steps.length - 1) apply(index + 1)
     }),
@@ -554,14 +548,12 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
   back: () =>
     asStudent(() => {
       const { index, started } = get()
-      if (isExperimentRunning()) skipExperiment()
       if (started && index > 0) apply(index - 1)
     }),
 
   // Jumping to a step (progress track) plays on from there.
   goTo: (index) =>
     asStudent(() => {
-      if (isExperimentRunning()) skipExperiment()
       set({ started: true, playing: true })
       apply(Math.max(0, Math.min(index, get().steps.length - 1)))
     }),
@@ -580,8 +572,6 @@ export const useWalkthrough = create<WalkthroughState>((set, get) => ({
     const s = get()
     // Play mode: nothing is said; the gate keeps the request for the way back.
     if (gate && s.started && s.phase !== 'done') return gate.owe('play', byStudent)
-    // Asked to play during a return experiment: carry on once it ends (connectLesson).
-    if (isExperimentRunning()) return set({ playing: true })
     if (!s.started) return begin()
     if (s.phase === 'done') return startOver()
     set({ playing: true })
@@ -658,26 +648,10 @@ export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}
     if (useTutorStore.getState().phase !== 'live') return
     autoTimer = setTimeout(() => {
       autoTimer = undefined
-      if (isExperimentRunning()) return // starts when the experiment ends (below)
       // Not the student's own press: in play mode it waits for Study instead of pulling him there.
       if (!useWalkthrough.getState().started && useTutorStore.getState().phase === 'live') begin()
     }, RUNNER.autoStartMs)
   }
-
-  // A return experiment pauses a playing lesson; when it ends the lesson
-  // carries on, or starts if it was still waiting to.
-  let pausedForRun = false
-  const unsubRun = useExperimentRun.subscribe((s, prev) => {
-    const w = useWalkthrough.getState()
-    if (s.run && !prev.run && w.started && w.playing && w.phase !== 'done') {
-      pausedForRun = true
-      w.pause()
-    } else if (!s.run && prev.run) {
-      if (pausedForRun || w.playing) w.resume()
-      else maybeAutoStart()
-      pausedForRun = false
-    }
-  })
 
   const unsub = useTutorStore.subscribe((s, prev) => {
     if (s.phase !== prev.phase) maybeAutoStart()
@@ -695,7 +669,6 @@ export function connectLesson({ autoStart = true }: { autoStart?: boolean } = {}
   return () => {
     setPickHandler(null)
     unsub()
-    unsubRun()
     clearTimeout(autoTimer)
     useWalkthrough.getState().stop()
   }

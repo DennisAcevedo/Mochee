@@ -14,7 +14,7 @@ export function usePlayGreeting() {
     const off = useMode.subscribe((s, prev) => {
       if (s.mode === prev.mode) return
       window.clearTimeout(timer)
-      if (s.mode !== 'play') return // celebrate has its own invite; Study has the lesson
+      if (s.mode !== 'play') return // Study has the lesson
       timer = window.setTimeout(() => {
         // Still in play, live, and not already answering a question.
         if (useMode.getState().mode !== 'play') return

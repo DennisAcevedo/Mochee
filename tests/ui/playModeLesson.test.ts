@@ -36,8 +36,7 @@ function setup(run: Partial<Fake['run']> = {}) {
   }
   const log: string[] = []
   // runner.ts in miniature: apply() goes through the gate first, cancels the
-  // current beat, then checks the gate again (the cancel can shut it, and the
-  // student's press is then no reason to leave the mastery invite).
+  // current beat, then checks the gate again (the cancel can shut it).
   const apply = (index: number, byStudent: boolean) => {
     const owe = (student: boolean) => {
       const what: Owed = f.run.playing ? 'play' : 'step'
@@ -88,7 +87,7 @@ function setup(run: Partial<Fake['run']> = {}) {
     now: () => f.t,
     tuning: TUNING,
   })
-  const setMode = (mode: 'study' | 'play' | 'celebrate') => {
+  const setMode = (mode: 'study' | 'play') => {
     f.mode = mode
     ctl.onMode(mode)
   }
@@ -125,66 +124,17 @@ describe('play mode shuts the lesson (rule a)', () => {
     assert.deepEqual(ctl.view(), { shut: true, owed: 'play', returning: false })
   })
 
-  it('celebrate shuts it the same way, and play <-> celebrate keeps it shut', () => {
-    const { f, ctl, log, setMode } = setup()
-    setMode('celebrate')
-    setMode('play')
-    assert.deepEqual(log, ['hush', 'pause'])
-    assert.ok(f.gate)
-    assert.equal(ctl.view().owed, 'play')
-  })
-
-  it('play <-> celebrate cuts a step line that got through anyway, and keeps it owed', () => {
-    const { f, ctl, log, setMode, wait } = setup({ playing: false, phase: 'idle' })
-    setMode('celebrate')
-    assert.equal(ctl.view().owed, null, 'paused by the student: nothing owed yet')
-    Object.assign(f.run, { index: 3, phase: 'speaking', lineDone: false }) // a step line leaked out while shut
-    setMode('play')
-    assert.deepEqual(log, ['hush', 'pause', 'hush', 'pause'])
-    assert.equal(f.run.phase, 'idle')
-    assert.equal(ctl.view().owed, 'step')
-    setMode('study')
-    wait(500)
-    assert.deepEqual(f.said, ['line:3'], 'said once, from its start, once he is home')
-    assert.equal(f.run.playing, false)
-  })
-
-  it('play <-> celebrate cuts a line after the step was said without owing the step again', () => {
-    const { f, ctl, log, setMode } = setup({ playing: false, phase: 'idle', lineDone: true })
-    setMode('celebrate')
-    f.run.phase = 'speaking' // quick-check feedback after the step's own line
-    setMode('play')
-    assert.deepEqual(log, ['hush', 'pause', 'hush', 'pause'])
-    assert.equal(ctl.view().owed, null)
-  })
-
-  it("a press whose cancel opens the mastery invite leaves its step owed and the invite up", () => {
-    const { f, ctl, setMode, wait, student } = setup() // the quick-check praise is playing
-    f.onCancel = () => setMode('celebrate') // cutting the praise records the answer: topic mastered
-    student.next()
-    assert.deepEqual(f.said, [], 'not a word in celebrate')
-    assert.equal(f.mode, 'celebrate', 'the invite stays up')
-    assert.equal(f.run.index, 3)
-    assert.equal(ctl.view().owed, 'play')
-    setMode('play') // the invite's Play
-    assert.deepEqual(f.said, [])
-    setMode('study')
-    wait(500)
-    assert.deepEqual(f.said, ['line:3'])
-    assert.equal(f.run.playing, true)
-  })
-
   it('a chat answer in flight (lesson held) is not cut off', () => {
     const { log, setMode } = setup({ held: true, phase: 'idle' })
     setMode('play')
     assert.deepEqual(log, ['pause'])
   })
 
-  it('nothing un-pauses it in play: hoops, the boss end, an experiment, the auto-start', () => {
+  it('nothing un-pauses it in play: hoops, the boss end, the auto-start', () => {
     const { f, ctl, setMode, resume } = setup({ playing: false, phase: 'idle' })
     setMode('play')
     assert.equal(ctl.view().owed, null, 'paused by the student before play: nothing owed')
-    resume() // BallProp finish / fight stop / experiment end, all non-student
+    resume() // BallProp finish / fight stop, all non-student
     resume()
     assert.deepEqual(f.said, [])
     assert.equal(f.run.playing, false)
