@@ -25,11 +25,20 @@ export function CloseButton({ id, label, inset = false }: { id: PanelId; label: 
   )
 }
 
-// What a closed card leaves behind: a small chip that brings it back.
-export function ReopenChip({ id, label, icon, className }: { id: PanelId; label: string; icon?: string; className?: string }) {
+// What a closed card leaves behind: a small chip that brings it back. A card
+// in src/state/hidden.ts passes its `id`; anything else passes `onOpen`.
+type ReopenProps = { label: string; icon?: string; className?: string } & ({ id: PanelId; onOpen?: never } | { id?: never; onOpen: () => void })
+
+export function ReopenChip({ id, onOpen, label, icon, className }: ReopenProps) {
   const show = useHidden((s) => s.show)
   return (
-    <button type="button" className={`${styles.chip} ${className ?? ''}`} onClick={() => show(id)} aria-label={`Show ${label}`} title={`Show ${label}`}>
+    <button
+      type="button"
+      className={`${styles.chip} ${className ?? ''}`}
+      onClick={() => (onOpen ? onOpen() : id && show(id))}
+      aria-label={`Show ${label}`}
+      title={`Show ${label}`}
+    >
       {icon && <span aria-hidden="true">{icon}</span>}
       {label}
     </button>

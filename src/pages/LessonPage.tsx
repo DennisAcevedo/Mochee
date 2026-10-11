@@ -14,6 +14,7 @@ import { CurrentTutorContext } from '../state/currentTutor'
 import { useDrawers } from '../state/drawers'
 import { useIsHidden } from '../state/hidden'
 import { useMode } from '../state/mode'
+import { useWindows } from '../state/windows'
 import { useLibrary, useTutor, type LessonStep, type Tutor } from '../state/library'
 import { useTutorStore } from '../state/store'
 import { Caption } from '../ui/Caption/Caption'
@@ -130,6 +131,8 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // Study: the step bar takes the top of the stage and the level shrinks to a
   // pill in the header. Play: the full play HUD up there, the step bar in the dock.
   const study = useMode((m) => m.mode === 'study')
+  // The red light closes the browser window with no chip of its own: this one brings it back.
+  const browserClosed = useWindows((s) => s.closed)
   const greeting = steps?.[0]?.say ?? fallbackGreeting(tutor)
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
@@ -179,6 +182,11 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         {hudHidden ? <ReopenChip id="hud" label="Levels" /> : <PlayHud banner={false} closeable />}
       </div>
     ))
+  const browserChip = live && browserClosed && (
+    <div className={lesson.browserChip}>
+      <ReopenChip label="Browser" onOpen={() => useWindows.getState().restore('notes')} />
+    </div>
+  )
   const caption = live && (
     <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
       {captionHidden ? <ReopenChip id="caption" label="Captions" icon="💬" /> : <Caption className={lesson.bubble} closeable />}
@@ -203,10 +211,11 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <div ref={rowRef} className={lesson.row}>
           <div ref={frameRef} className={lesson.frame} data-gg-part="stage">
             <Stage>
-              {!narrow && (hud || caption) && (
+              {!narrow && (hud || caption || browserChip) && (
                 <div className={lesson.overlay}>
                   {hud}
                   {caption}
+                  {browserChip}
                 </div>
               )}
               {live && (
@@ -217,10 +226,11 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             </Stage>
           </div>
         </div>
-        {narrow && (hud || caption) && (
+        {narrow && (hud || caption || browserChip) && (
           <div className={lesson.below}>
             {hud}
             {caption}
+            {browserChip}
           </div>
         )}
         <div ref={introRef('dock')} className={lesson.dock} data-live={live || undefined}>

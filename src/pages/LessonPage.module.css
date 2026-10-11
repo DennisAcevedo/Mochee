@@ -98,6 +98,19 @@
   gap: 12px;
 }
 
+/* The closed browser window's way back: bottom left of the stage, beside the caption. */
+.browserChip {
+  position: absolute;
+  left: 2.4%;
+  bottom: 2.4%;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.below .browserChip {
+  position: static;
+}
+
 /* Caption, inside the bottom of the stage, below the tutor's feet. */
 .caption {
   position: absolute;
