@@ -1,0 +1,123 @@
+/* The side transcript: a white card like the step bar and the caption, its
+   lines scrolling inside. Gemini Guy's lines run down the left; the learner's
+   sit right in violet bubbles. */
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 14px 6px 10px 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 0 0 1px rgba(29, 27, 36, 0.06),
+    0 18px 40px -22px rgba(29, 27, 36, 0.45);
+  font-family: 'Figtree', var(--font-ui, system-ui), sans-serif;
+  color: var(--ink, #1d1b24);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 10px 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #12a4b4;
+  box-shadow: 0 0 0 3px rgba(18, 164, 180, 0.18);
+}
+
+.count {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f1eff6;
+  color: #6e6b78;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 10px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #d9d6e3 transparent;
+}
+
+.empty {
+  margin: auto 0;
+  padding: 0 6px 0 0;
+  color: #8a8794;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.meta {
+  font-size: 10.5px;
+  color: #8a8794;
+  letter-spacing: 0.01em;
+}
+
+.meta b {
+  color: #4a4754;
+  font-weight: 800;
+}
+
+.tutor,
+.student {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.student {
+  align-items: flex-end;
+}
+
+.tutorText {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #4a4754;
+  text-wrap: pretty;
+}
+
+/* The line he is saying now. */
+.tutor[data-live] .tutorText {
+  color: var(--ink, #1d1b24);
+  font-weight: 600;
+}
+
+.tutor[data-live] .meta b {
+  color: #12a4b4;
+}
+
+.bubble {
+  margin: 0;
+  max-width: 88%;
+  padding: 7px 12px;
+  border-radius: 16px 16px 4px 16px;
+  background: #7c5cf2;
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.4;
+  font-weight: 600;
+  text-wrap: pretty;
+}

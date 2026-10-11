@@ -98,6 +98,41 @@
   gap: 12px;
 }
 
+/* The transcript, down the right edge of the stage: below the step bar (or
+   the play HUD) and above the caption, clear of both. Under the HUD in the
+   stacking order, so the HUD's open Dance menu can drop over it. */
+.side {
+  position: absolute;
+  z-index: 0;
+  top: 21%;
+  bottom: 17%;
+  right: 2.4%;
+  width: 24%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.side > * {
+  pointer-events: auto;
+}
+
+.sidePanel {
+  width: 100%;
+  height: 100%;
+}
+
+.below .side {
+  position: static;
+  width: 100%;
+  height: 280px;
+}
+
+.enter[data-enter='side'] {
+  --enter-from: 18px 0;
+}
+
 /* The closed browser window's way back: bottom left of the stage, beside the caption. */
 .browserChip {
   position: absolute;

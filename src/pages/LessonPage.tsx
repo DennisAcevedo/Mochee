@@ -26,6 +26,7 @@ import { InputBar } from '../ui/InputBar/InputBar'
 import { ModeSwitch } from '../ui/ModeSwitch/ModeSwitch'
 import { LevelUpBanner } from '../ui/PlayHud/LevelUpBanner'
 import { LevelPill, PlayHud } from '../ui/PlayHud/PlayHud'
+import { SideTranscript } from '../ui/SideTranscript/SideTranscript'
 import { SkipButton } from '../ui/Start/SkipButton'
 import { StartScreen } from '../ui/Start/StartScreen'
 import { Toast } from '../ui/Toast/Toast'
@@ -133,6 +134,9 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   const study = useMode((m) => m.mode === 'study')
   // The red light closes the browser window with no chip of its own: this one brings it back.
   const browserClosed = useWindows((s) => s.closed)
+  const transcriptHidden = useIsHidden('transcript')
+  // A maximized window sends him to wait in the gap on its right, where the transcript sits.
+  const maximized = useWindows((s) => s.maximized !== null)
   const greeting = steps?.[0]?.say ?? fallbackGreeting(tutor)
   const sectionCount = tutor.outline.length
   const session = useMemo(() => ({ greeting, sectionCount }), [greeting, sectionCount])
@@ -187,6 +191,12 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
       <ReopenChip label="Browser" onOpen={() => useWindows.getState().restore('notes')} />
     </div>
   )
+  // The conversation so far, down the right side of the stage (closed: a chip in its corner).
+  const transcript = live && !maximized && (
+    <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" style={{ '--enter-delay': '300ms' } as CSSProperties}>
+      {transcriptHidden ? <ReopenChip id="transcript" label="Transcript" /> : <SideTranscript className={lesson.sidePanel} closeable />}
+    </div>
+  )
   const caption = live && (
     <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
       {captionHidden ? <ReopenChip id="caption" label="Captions" icon="💬" /> : <Caption className={lesson.bubble} closeable />}
@@ -211,9 +221,10 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <div ref={rowRef} className={lesson.row}>
           <div ref={frameRef} className={lesson.frame} data-gg-part="stage">
             <Stage>
-              {!narrow && (hud || caption || browserChip) && (
+              {!narrow && (hud || caption || browserChip || transcript) && (
                 <div className={lesson.overlay}>
                   {hud}
+                  {transcript}
                   {caption}
                   {browserChip}
                 </div>
@@ -226,10 +237,11 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
             </Stage>
           </div>
         </div>
-        {narrow && (hud || caption || browserChip) && (
+        {narrow && (hud || caption || browserChip || transcript) && (
           <div className={lesson.below}>
             {hud}
             {caption}
+            {transcript}
             {browserChip}
           </div>
         )}
