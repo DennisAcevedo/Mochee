@@ -62,10 +62,11 @@ const rankOf = (c: LessonContent): number => (c.kind === 'notes' ? c.note : AFTE
 
 // ---- Construction
 
+// No Quick check tab up front: opening on it before any lesson is confusing.
+// ensureLessonTab adds it when the walkthrough reaches the Quick check.
 const lessonTabs = (): Tab[] => [
   ...notesTabs.map((_, i): Tab => ({ id: `n${i}`, kind: 'notes', note: i })),
   { id: 'b0', kind: 'board' },
-  { id: 'q0', kind: 'quiz' },
 ]
 
 export function initialTabs(): TabsState {
@@ -136,6 +137,16 @@ export function openNewTab(s: TabsState): TabsState {
 export function closeTab(s: TabsState, id: string): TabsState {
   const index = s.notes.tabs.findIndex((t) => t.id === id)
   return index < 0 ? s : removeAt(s, index)
+}
+
+// A fresh run of the lesson: the Quick check tab goes until the walkthrough
+// gets there again. If it was the one showing, the first notes tab is.
+export function withoutQuiz(s: TabsState): TabsState {
+  const index = s.notes.tabs.findIndex((t) => t.kind === 'quiz')
+  if (index < 0) return s
+  const next = removeAt(s, index)
+  const first = next.notes.tabs.find((t) => t.kind === 'notes')
+  return s.notes.active === s.notes.tabs[index].id && first ? activateTab(next, first.id) : next
 }
 
 export function activateTab(s: TabsState, id: string): TabsState {

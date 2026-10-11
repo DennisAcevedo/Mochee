@@ -107,7 +107,7 @@ const fresh = () => {
   return useWindows.getState()
 }
 const kinds = () => useWindows.getState().tabs.notes.tabs.map((t) => (t.kind === 'notes' ? `notes${t.note}` : t.kind))
-const LESSON = ['notes0', 'notes1', 'notes2', 'board', 'quiz']
+const LESSON = ['notes0', 'notes1', 'notes2', 'board'] // fresh: the Quick check tab comes when the lesson gets there
 
 describe('minimize and close state', () => {
   it('minimize folds the window; twice is a no-op (same object)', () => {
@@ -188,7 +188,7 @@ describe('the windows store: close vs minimize', () => {
 
   it('an unreadable v1 save is removed and the window starts fresh', () => {
     const { s, left } = brokenV1
-    assert.deepEqual(s.tabs.notes.tabs.map((t) => t.kind), ['notes', 'notes', 'notes', 'board', 'quiz'])
+    assert.deepEqual(s.tabs.notes.tabs.map((t) => t.kind), ['notes', 'notes', 'notes', 'board'])
     assert.deepEqual(Object.keys(left), [])
   })
 
@@ -276,7 +276,7 @@ describe('the windows store: close vs minimize', () => {
     const off = useWindows.subscribe((n, p) => seen.push([n.closed, n.tabs.notes.tabs.map((t) => t.kind), p.tabs === old]))
     s.close('notes')
     off()
-    assert.deepEqual(seen, [[true, ['notes', 'notes', 'notes', 'board', 'quiz'], true]])
+    assert.deepEqual(seen, [[true, ['notes', 'notes', 'notes', 'board'], true]])
   })
   it('closing while maximized un-maximizes; closing a minimized window drops its chip', () => {
     const s = fresh()
@@ -336,7 +336,7 @@ describe('the windows store: close vs minimize', () => {
     const s = fresh()
     s.close('notes')
     trimAfterClose(2)
-    assert.deepEqual(kinds(), ['notes0', 'notes1', 'board', 'quiz'])
+    assert.deepEqual(kinds(), ['notes0', 'notes1', 'board'])
     const same = useWindows.getState().tabs
     trimAfterClose(2)
     assert.equal(useWindows.getState().tabs, same, 'no update when nothing to trim')
@@ -361,7 +361,7 @@ describe('lessonSync handlers', () => {
     useWindows.getState().close('notes')
     off()
     assert.equal(useWindows.getState().closed, true)
-    assert.deepEqual(kinds(), ['notes0', 'notes1', 'board', 'quiz'])
+    assert.deepEqual(kinds(), ['notes0', 'notes1', 'board'])
   })
 
   it('a pack start trims notes tabs past its sections and republishes the strip', () => {
@@ -371,7 +371,7 @@ describe('lessonSync handlers', () => {
     assert.notEqual(useWindows.getState().tabs, before, 'republished even with nothing to trim')
     assert.deepEqual(kinds(), LESSON)
     onPack(1)
-    assert.deepEqual(kinds(), ['notes0', 'board', 'quiz'])
+    assert.deepEqual(kinds(), ['notes0', 'board'])
   })
 
   it('a board reveal that shows more reopens a closed window on the Board tab, in lecture mode only', () => {

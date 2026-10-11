@@ -6,7 +6,7 @@ import { useTutorStore } from '../../state/store'
 import { useWindows } from '../../state/windows'
 import { asStudent, onDirector, onMode, onPack, onStep, onWindows, stepApplied, type LessonCtx } from './lessonNeed'
 import { lessonNotes } from './tabInfo'
-import { WIN, type Tab } from './tabModel'
+import { WIN, withoutQuiz, type Tab } from './tabModel'
 
 // Keeps the guided lesson working whatever the student did to the window.
 //
@@ -41,10 +41,21 @@ const ctx = (): LessonCtx => ({
   noteOfLine: (id) => lessonNotes().findIndex((t) => t.lines.some((l) => l.id === id)),
 })
 
+// The Quick check tab only shows once the lesson has got there: a saved
+// window from last time, a lesson starting and a restart all drop it.
+function dropQuiz() {
+  const s = useWindows.getState()
+  const tabs = withoutQuiz(s.tabs)
+  if (tabs !== s.tabs) useWindows.setState({ tabs })
+}
+
 function connect(): () => void {
+  dropQuiz()
   const offDirector = useDirector.subscribe((s, p) => onDirector(s, p, ctx()))
   const offTutor = useTutorStore.subscribe(onMode)
   const offWalk = useWalkthrough.subscribe((s, p) => {
+    const fresh = s.started && (!p.started || (s.index === 0 && p.index !== 0))
+    if (fresh && s.steps[0]?.wait !== 'quiz') dropQuiz()
     if (stepApplied(s, p) && s.started) onStep(s.steps[s.index], ctx())
   })
   const offPack = useLessonPack.subscribe((s, p) => {

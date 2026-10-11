@@ -14,6 +14,7 @@ import {
   turnInto,
   validateTabs,
   WIN,
+  withoutQuiz,
   type Tab,
   type TabsState,
 } from '../../src/scene/windows/tabModel.ts'
@@ -23,7 +24,13 @@ import { WINDOW } from '../../src/scene/layout3d.ts'
 
 const ids = (s: TabsState) => s.notes.tabs.map((t) => t.id)
 const kinds = (s: TabsState) => s.notes.tabs.map((t) => (t.kind === 'notes' ? `notes${t.note}` : t.kind))
-const LESSON = ['notes0', 'notes1', 'notes2', 'board', 'quiz']
+const START = ['notes0', 'notes1', 'notes2', 'board'] // no Quick check until the lesson gets there
+const LESSON = [...START, 'quiz']
+// The strip once the walkthrough has reached the Quick check (ensureLessonTab added it).
+const withQuiz = (): TabsState => {
+  const s = initialTabs()
+  return { ...s, notes: { ...s.notes, tabs: [...s.notes.tabs, { id: 'q0', kind: 'quiz' }] } }
+}
 
 describe('tab model', () => {
   it('is one window, keyed by the old left window id', () => {
@@ -31,15 +38,15 @@ describe('tab model', () => {
     assert.deepEqual(Object.keys(initialTabs()).sort(), ['notes', 'seq'])
   })
 
-  it('starts with every lesson tab in one strip: three notes tabs, then board + Quick check', () => {
+  it('starts with the notes tabs and the board in one strip; the Quick check waits for the lesson', () => {
     const s = initialTabs()
-    assert.deepEqual(kinds(s), LESSON)
+    assert.deepEqual(kinds(s), START)
     assert.equal(s.notes.active, 'n0')
     assert.equal(activeTab(s).id, 'n0')
   })
 
   it('+ opens a New tab at the end and activates it, with a fresh id', () => {
-    const s0 = initialTabs()
+    const s0 = withQuiz()
     const s1 = openNewTab(s0)
     assert.equal(s1.notes.tabs.length, 6)
     const added = s1.notes.tabs[5]
@@ -51,13 +58,13 @@ describe('tab model', () => {
   })
 
   it('caps the tabs', () => {
-    let s = initialTabs()
+    let s = withQuiz()
     for (let i = 0; i < 40; i++) s = openNewTab(s)
     assert.equal(s.notes.tabs.length, WINDOW_UI.tabs.maxPerWindow)
   })
 
   it('closing the active tab activates the right neighbour, or the left one if it was last', () => {
-    const s = initialTabs()
+    const s = withQuiz()
     const mid = closeTab(activateTab(s, 'n1'), 'n1')
     assert.equal(mid.notes.active, 'n2')
     const last = closeTab(activateTab(s, 'q0'), 'q0')
@@ -67,7 +74,7 @@ describe('tab model', () => {
   })
 
   it('closing the last tab leaves a New tab, so the window is never empty', () => {
-    let s = initialTabs()
+    let s = withQuiz()
     for (const id of ['n0', 'n1', 'n2', 'b0', 'q0']) s = closeTab(s, id)
     assert.equal(s.notes.tabs.length, 1)
     assert.equal(s.notes.tabs[0].kind, 'newtab')
@@ -75,7 +82,7 @@ describe('tab model', () => {
   })
 
   it('returns the same object when nothing changes', () => {
-    const s = initialTabs()
+    const s = withQuiz()
     assert.equal(closeTab(s, 'nope'), s)
     assert.equal(activateTab(s, 'n0'), s)
     assert.equal(activateTab(s, 'nope'), s)
@@ -84,7 +91,7 @@ describe('tab model', () => {
   })
 
   it('reorders within the strip, clamped to it', () => {
-    const s = initialTabs()
+    const s = withQuiz()
     assert.deepEqual(ids(reorderTab(s, 'n0', 2)), ['n1', 'n2', 'n0', 'b0', 'q0'])
     assert.deepEqual(ids(reorderTab(s, 'q0', 0)), ['q0', 'n0', 'n1', 'n2', 'b0'])
     assert.deepEqual(ids(reorderTab(s, 'n0', 99)), ['n1', 'n2', 'b0', 'q0', 'n0'])
@@ -92,7 +99,7 @@ describe('tab model', () => {
   })
 
   it('a New tab pick turns the tab into the content and keeps lesson tabs unique', () => {
-    let s = openNewTab(initialTabs())
+    let s = openNewTab(withQuiz())
     const nt = s.notes.active
     s = turnInto(s, nt, { kind: 'scratch' })
     assert.equal(s.notes.tabs.find((t) => t.id === nt)?.kind, 'scratch')
@@ -111,7 +118,7 @@ describe('tab model', () => {
   })
 
   it('ensureLessonTab reopens a closed lesson tab in its lesson slot', () => {
-    let s = closeTab(initialTabs(), 'n1')
+    let s = closeTab(withQuiz(), 'n1')
     s = activateTab(s, 'n2')
     s = ensureLessonTab(s, { kind: 'notes', note: 1 })
     assert.deepEqual(kinds(s), LESSON)
@@ -119,7 +126,7 @@ describe('tab model', () => {
   })
 
   it('ensureLessonTab puts the board after the notes and before the Quick check, among other tabs', () => {
-    let s = openNewTab(closeTab(closeTab(initialTabs(), 'b0'), 'q0')) // notes x3 + a New tab
+    let s = openNewTab(closeTab(closeTab(withQuiz(), 'b0'), 'q0')) // notes x3 + a New tab
     s = ensureLessonTab(s, { kind: 'quiz' })
     s = ensureLessonTab(s, { kind: 'board' })
     assert.deepEqual(kinds(s), ['notes0', 'notes1', 'notes2', 'board', 'quiz', 'newtab'])
@@ -128,7 +135,7 @@ describe('tab model', () => {
 
   it('ensureLessonTab on a full strip turns a spare tab into the lesson content, never past the cap', () => {
     const cap = WINDOW_UI.tabs.maxPerWindow
-    let s = closeTab(initialTabs(), 'q0')
+    let s = closeTab(withQuiz(), 'q0')
     s = openNewTab(s)
     s = turnInto(s, s.notes.active, { kind: 'pdf', docId: 'd1', page: 1, title: 'a.pdf' })
     s = openNewTab(s)
@@ -153,7 +160,7 @@ describe('tab model', () => {
 
   it('a full strip gives up a tab not on screen first: New tabs, then the oldest PDF page, the active tab last', () => {
     const cap = WINDOW_UI.tabs.maxPerWindow
-    const lesson = initialTabs().notes.tabs.filter((t) => t.kind !== 'quiz')
+    const lesson = withQuiz().notes.tabs.filter((t) => t.kind !== 'quiz')
     const pdf = (id: string): Tab => ({ id, kind: 'pdf', docId: 'd', page: 1, title: 'p.pdf' })
     // Lesson tabs pad the strip to the cap (they are never given up).
     const full = (own: Tab[], active: string): TabsState => {
@@ -176,7 +183,7 @@ describe('tab model', () => {
   })
 
   it('ensureLessonTab just activates a tab that is open, wherever it was dragged', () => {
-    const moved = reorderTab(initialTabs(), 'q0', 0)
+    const moved = reorderTab(withQuiz(), 'q0', 0)
     const s = ensureLessonTab(moved, { kind: 'quiz' })
     assert.deepEqual(ids(s), ids(moved), 'no move back')
     assert.equal(s.notes.active, 'q0')
@@ -185,7 +192,7 @@ describe('tab model', () => {
 
 describe('lesson pack notes tabs (notes tab N = section N)', () => {
   it('opens a section past the hand-written notes in the notes run, before the board and the Quick check', () => {
-    let s = ensureLessonTab(initialTabs(), { kind: 'notes', note: 4 })
+    let s = ensureLessonTab(withQuiz(), { kind: 'notes', note: 4 })
     s = ensureLessonTab(s, { kind: 'notes', note: 3 })
     s = ensureLessonTab(s, { kind: 'notes', note: 5 })
     assert.deepEqual(kinds(s), ['notes0', 'notes1', 'notes2', 'notes3', 'notes4', 'notes5', 'board', 'quiz'])
@@ -193,35 +200,51 @@ describe('lesson pack notes tabs (notes tab N = section N)', () => {
   })
 
   it('a later section lands after the board when the earlier notes tabs were closed, never after it', () => {
-    let s = closeTab(closeTab(closeTab(initialTabs(), 'n0'), 'n1'), 'n2')
+    let s = closeTab(closeTab(closeTab(withQuiz(), 'n0'), 'n1'), 'n2')
     s = ensureLessonTab(s, { kind: 'notes', note: 4 })
     assert.deepEqual(kinds(s), ['notes4', 'board', 'quiz'])
   })
 
   it('trimNotes drops notes tabs past the count and keeps every other tab', () => {
-    let s = openNewTab(ensureLessonTab(initialTabs(), { kind: 'notes', note: 4 }))
+    let s = openNewTab(ensureLessonTab(withQuiz(), { kind: 'notes', note: 4 }))
     const nt = s.notes.active
     s = activateTab(s, findLesson(s, 'notes:4')!.tab.id)
     const t = trimNotes(s, 2)
     assert.deepEqual(kinds(t), ['notes0', 'notes1', 'board', 'quiz', 'newtab'])
     assert.equal(t.notes.active, 'b0', 'the active section went: its right neighbour takes over')
     assert.ok(t.notes.tabs.some((x) => x.id === nt))
-    assert.equal(trimNotes(initialTabs(), 3).notes.tabs.length, 5)
-    const same = initialTabs()
+    assert.equal(trimNotes(withQuiz(), 3).notes.tabs.length, 5)
+    const same = withQuiz()
     assert.equal(trimNotes(same, 6), same, 'nothing past the count: the same state')
+  })
+})
+
+describe('the Quick check tab: withoutQuiz', () => {
+  it('drops it, and shows the first notes tab if it was the one showing', () => {
+    const s = activateTab(withQuiz(), 'q0')
+    const d = withoutQuiz(s)
+    assert.deepEqual(kinds(d), START)
+    assert.equal(d.notes.active, 'n0')
+    assert.equal(withoutQuiz(activateTab(withQuiz(), 'b0')).notes.active, 'b0', 'another active tab stays')
+    assert.equal(withoutQuiz(initialTabs()).notes.tabs.length, initialTabs().notes.tabs.length)
+  })
+
+  it('returns the same object when there is no Quick check tab', () => {
+    const s = initialTabs()
+    assert.equal(withoutQuiz(s), s)
   })
 })
 
 describe('red light: closedTabs', () => {
   it('drops the window\'s own tabs and rebuilds the lesson tabs fresh', () => {
-    let s = openNewTab(initialTabs())
+    let s = openNewTab(withQuiz())
     const nt = s.notes.active
     s = turnInto(s, nt, { kind: 'pdf', docId: 'd1', page: 2, title: 'x.pdf' })
     s = openNewTab(s)
     s = turnInto(s, s.notes.active, { kind: 'scratch' })
     s = closeTab(reorderTab(s, 'q0', 0), 'n1')
     const c = closedTabs(s)
-    assert.deepEqual(kinds(c), LESSON)
+    assert.deepEqual(kinds(c), START, 'fresh as at the start: the Quick check comes back when the lesson asks for it')
     assert.deepEqual(ids(c), ids(initialTabs()))
     assert.equal(c.notes.active, 'n0')
     assert.ok(!c.notes.tabs.some((t) => t.kind === 'pdf' || t.kind === 'scratch' || t.kind === 'newtab'))
@@ -229,15 +252,15 @@ describe('red light: closedTabs', () => {
   })
 
   it('then fits a running pack with fewer sections (lessonSync trims after a close)', () => {
-    const c = trimNotes(closedTabs(openNewTab(initialTabs())), 2)
-    assert.deepEqual(ids(c), ['n0', 'n1', 'b0', 'q0'])
+    const c = trimNotes(closedTabs(openNewTab(withQuiz())), 2)
+    assert.deepEqual(ids(c), ['n0', 'n1', 'b0'])
     assert.equal(c.notes.active, 'n0')
   })
 })
 
 describe('stored state validation', () => {
   it('round-trips a real state', () => {
-    let s = openNewTab(reorderTab(initialTabs(), 'n2', 0))
+    let s = openNewTab(reorderTab(withQuiz(), 'n2', 0))
     s = turnInto(s, s.notes.active, { kind: 'pdf', docId: 'abc', page: 2, title: 'Notes.pdf' })
     assert.deepEqual(validateTabs(JSON.parse(JSON.stringify(s))), s)
   })
