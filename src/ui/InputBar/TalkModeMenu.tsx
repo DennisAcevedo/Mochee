@@ -7,6 +7,11 @@ import styles from './InputBar.module.css'
 
 type TalkMode = 'manual' | 'hands-free'
 
+const MENU = {
+  sideGap: 22, // px from the pill to the side menu (clears the bar's edge); keep in step with .talkMenu[data-side]
+  edge: 8, // px the side menu keeps from the window's left edge
+} as const
+
 const HAND = (
   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.2-2.3L4.6 15.4a1.5 1.5 0 0 1 2.4-1.8L9 15.5" />
@@ -41,7 +46,12 @@ export function TalkModeMenu({ handsFree, onChoose }: { handsFree: boolean; onCh
     return () => window.removeEventListener('pointerdown', away)
   }, [open])
 
+  // Out to the left of the talk bar, level with it, so it never covers the
+  // caption above; upward only when the bar is too close to the window's edge.
+  const [side, setSide] = useState(true)
   const show = () => {
+    const left = trigger.current?.getBoundingClientRect().left ?? 0
+    setSide(left >= (trigger.current?.offsetWidth ?? 0) + MENU.sideGap + MENU.edge)
     setActive(handsFree ? 1 : 0)
     setOpen(true)
   }
@@ -68,7 +78,7 @@ export function TalkModeMenu({ handsFree, onChoose }: { handsFree: boolean; onCh
   return (
     <div ref={root} className={styles.talkMode} onKeyDown={onKey}>
       {open && (
-        <ul className={styles.talkMenu} role="listbox" aria-label="Talk mode" aria-activedescendant={`talk-mode-${MODES[active].id}`}>
+        <ul className={styles.talkMenu} data-side={side || undefined} role="listbox" aria-label="Talk mode" aria-activedescendant={`talk-mode-${MODES[active].id}`}>
           {MODES.map((m, i) => (
             <li
               key={m.id}

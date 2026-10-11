@@ -260,6 +260,22 @@
   box-shadow: 1.5px 2.5px 0 var(--ink);
   animation: talkMenuIn 140ms ease-out;
 }
+/* Beside the talk bar (TalkModeMenu MENU.sideGap), centred on the pill. */
+.talkMenu[data-side] {
+  left: auto;
+  right: calc(100% + 22px);
+  bottom: auto;
+  top: 50%;
+  width: 100%;
+  translate: 0 -50%;
+  animation-name: talkMenuSide;
+}
+@keyframes talkMenuSide {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+}
 .talkOption {
   display: flex;
   align-items: center;
