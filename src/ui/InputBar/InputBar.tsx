@@ -1,10 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { introRef } from '../../intro/targets'
 import { selectListening, selectSpeaking, useTutorStore } from '../../state/store'
 import styles from './InputBar.module.css'
 import { MicButton } from './MicButton'
 
 const BAR_HEIGHTS = [8, 14, 10, 16, 9, 13, 7]
+// The waveform's pills, left to right: teal, violet, pink, coral, yellow, green, teal.
+const BAR_COLORS = ['#49a6b9', '#8b5cf6', '#f472b6', '#f87171', '#f7c623', '#4cc76a', '#49a6b9']
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -59,10 +61,13 @@ export function InputBar({ compact = false }: { compact?: boolean }) {
                 key={i}
                 className={styles.barLine}
                 data-listening={listening}
-                style={{
-                  height: h + 2,
-                  animation: `mBar ${0.7 + (i % 3) * 0.18}s ease-in-out ${i * 0.09}s infinite`,
-                }}
+                style={
+                  {
+                    '--c': BAR_COLORS[i % BAR_COLORS.length],
+                    height: h + 2,
+                    animation: `mBar ${0.7 + (i % 3) * 0.18}s ease-in-out ${i * 0.09}s infinite`,
+                  } as CSSProperties
+                }
               />
             ))}
           </div>
