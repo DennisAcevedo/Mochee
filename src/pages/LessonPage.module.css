@@ -89,7 +89,7 @@ body:has(.cornerTools [aria-label='Show Transcript']) .header {
 .hud {
   position: absolute;
   z-index: 1;
-  top: 2.4%;
+  top: 0.8%; /* high enough to clear the browser window's tab strip */
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
@@ -103,7 +103,7 @@ body:has(.cornerTools [aria-label='Show Transcript']) .header {
    Closed, the bar stays mounted (display: none) so its arrow keys still step
    the lesson, and its chip sits where it was. */
 .steps {
-  width: min(820px, 74%);
+  width: max(calc(var(--row-w) / 2), min(100%, 560px)); /* as wide as the talk bar */
   display: flex;
   justify-content: center;
 }
