@@ -6,13 +6,14 @@ import { notesTabs } from '../../shared/lessonNotes'
 import { useDirector } from '../state/director'
 import { useTutorStore } from '../state/store'
 import { useMode } from '../state/mode'
-import { askGemini, mockReply, type AskSource } from './askGemini'
+import { askGeminiStream, mockReply, type AskSource } from './askGemini'
+import type { AskStart } from '../../shared/askStream'
 import { ASK_LIMITS, ASK_LINES, type AskLesson, type AskReply, type AskTurn } from '../../shared/askTypes'
 import { packBoard, packBoardShows, packNotes, packStepSection, useLessonPack } from './packSession'
 import { isLoopGesture, isOneShotGesture } from './askGestures'
 import { stripMarks } from './markup'
 import { startLatency, type LatencyTrace } from './latency'
-import { sayLine, useWalkthrough } from './runner'
+import { sayLine, sayLineStreamed, useWalkthrough } from './runner'
 import { startLoop } from '../scene/windows/pointGate'
 import { isRecognizing, startRecognition, stopRecognition, stopSpeaking } from './speech'
 
@@ -113,6 +114,18 @@ function recentHistory(): AskTurn[] {
 
 // Walk, focus, highlight, gesture, then say the answer; the lesson resumes after.
 function deliver(reply: AskReply, trace: LatencyTrace) {
+  stage(reply)
+  sayLine(reply.answer, afterAnswer, undefined, trace)
+}
+
+// The answer is over: his loop goes back to the lesson's, and the lesson resumes.
+function afterAnswer() {
+  useWalkthrough.getState().setLoopOverride(null)
+  useWalkthrough.getState().release()
+}
+
+// Walk, focus, highlight and gesture for an answer (all but saying it).
+function stage(reply: Pick<AskReply, 'gesture' | 'focus' | 'highlight'>) {
   const d = useDirector.getState()
   const line = reply.highlight ? ASK_LINES.find((l) => l.id === reply.highlight) : undefined
   const focus = line ? 'notes' : reply.focus
@@ -136,10 +149,6 @@ function deliver(reply: AskReply, trace: LatencyTrace) {
   // then), and with no window focused he talks instead (pointGate.ts).
   const my = seq
   startLoop(loop, (l) => useWalkthrough.getState().setLoopOverride(l), () => my === seq && useWalkthrough.getState().loopOverride === 'talk')
-  sayLine(reply.answer, () => {
-    useWalkthrough.getState().setLoopOverride(null)
-    useWalkthrough.getState().release()
-  }, undefined, trace)
 }
 
 // Called by store.ask() after the student's line is in the transcript.
@@ -172,11 +181,33 @@ export function askTutor(question: string, fallback: string) {
   // A notebook's lesson describes itself; otherwise the built-in CS111 one.
   const notebook = packContext()
   const request = notebook ? { context: notebook.context, lesson: notebook.lesson } : { context: lessonContext() }
-  void askGemini({ question, ...request, history: recentHistory(), mode }, abort.signal).then((reply) => {
+  // Streamed: he starts talking at the answer's first sentence, and the rest
+  // follows as it arrives (sayLineStreamed).
+  let started = false
+  let settleRest: (r: { full: string; rest: string } | null) => void = () => {}
+  const rest = new Promise<{ full: string; rest: string } | null>((resolve) => (settleRest = resolve))
+  const onStart = (start: AskStart) => {
+    if (my !== seq || abort.signal.aborted || !useTutorStore.getState().awaitingReply) return
+    started = true
+    // He is answering now: saying the line ends awaitingReply, which must not cancel the stream.
+    unsubscribe()
+    unsubscribeMode()
+    trace.mark('answerReady')
+    useAskStatus.setState({ pending: false, source: 'gemini', model: null })
+    stage(start)
+    sayLineStreamed(start.first, rest, afterAnswer, () => my === seq, trace)
+  }
+  void askGeminiStream({ question, ...request, history: recentHistory(), mode }, onStart, abort.signal).then((result) => {
+    if (pendingAnswer === abort) pendingAnswer = null
+    if (started) {
+      settleRest(result && { full: result.reply.answer, rest: result.rest })
+      if (result && my === seq) useAskStatus.setState({ model: result.reply.model ?? null })
+      return
+    }
+    const reply = result?.reply ?? null
     unsubscribe()
     unsubscribeMode()
     if (my !== seq || abort.signal.aborted) { trace.finish('cancelled'); return }
-    pendingAnswer = null
     trace.mark('answerReady')
     // Something else took the floor while he thought (a quiz pick, a mode
     // switch, a reset): drop the answer, but free the chat and the lesson.

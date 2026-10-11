@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join } from 'node:path'
 import type { Connect, Plugin } from 'vite'
 import { ASK_FOCUS, ASK_GESTURES, ASK_LIMITS, ASK_LINES, sanitizeReply, type AskTurn, type AskLesson } from '../shared/askTypes.ts'
+import { firstSentence, partialString, restAfter, type AskStreamEvent } from '../shared/askStream.ts'
 import { refuseCrossSite } from './requestGuard.ts'
 
 // Server-side Gemini proxy for the ask box: POST /api/ask on the dev and
@@ -64,16 +65,18 @@ export const PLAY_INSTRUCTION = [
   'focus = none and highlight = "none" always.',
 ].join('\n')
 
+// The short fields come first, so a streamed reply knows how he moves before
+// the answer's first sentence arrives (shared/askStream.ts).
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    answer: { type: 'STRING' },
     gesture: { type: 'STRING', enum: [...ASK_GESTURES] },
     focus: { type: 'STRING', enum: [...ASK_FOCUS] },
     highlight: { type: 'STRING', enum: [...ASK_LINES.map((l) => l.id), 'none'] },
+    answer: { type: 'STRING' },
   },
-  required: ['answer', 'gesture', 'focus', 'highlight'],
-  propertyOrdering: ['answer', 'gesture', 'focus', 'highlight'],
+  required: ['gesture', 'focus', 'highlight', 'answer'],
+  propertyOrdering: ['gesture', 'focus', 'highlight', 'answer'],
 }
 
 // The key file may hold just the key, or labelled lines ("API Key" then the key).
@@ -193,9 +196,11 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
   res.once('finish', () => res.off('close', onClose))
   if (res.destroyed) return
 
+  const stream = payload.stream === true
+  const method = stream ? 'streamGenerateContent?alt=sse' : 'generateContent'
   let upstream: Response
   try {
-    upstream = await fetch(`${CONFIG.endpoint}/${encodeURIComponent(model)}:generateContent`, {
+    upstream = await fetch(`${CONFIG.endpoint}/${encodeURIComponent(model)}:${method}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
@@ -220,6 +225,7 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
     void upstream.body?.cancel()
     return send(res, 502, { error: 'upstream', status: upstream.status })
   }
+  if (stream) return relayStream(upstream, res, model, disconnected.signal)
 
   try {
     const data = (await upstream.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
@@ -232,6 +238,67 @@ async function handleAsk(root: string, req: IncomingMessage, res: ServerResponse
   } catch {
     return send(res, 502, { error: 'parse' })
   }
+}
+
+type GeminiChunk = { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] }
+
+// Streamed reply: Gemini's SSE chunks build up the JSON reply; as soon as the
+// short fields and the answer's first sentence are in, `start` goes out so the
+// browser can begin speaking, then `done` once the whole reply has parsed.
+async function relayStream(upstream: Response, res: ServerResponse, model: string, gone: AbortSignal) {
+  res.statusCode = 200
+  res.setHeader('content-type', 'application/x-ndjson; charset=utf-8')
+  res.setHeader('cache-control', 'no-store')
+  res.setHeader('x-accel-buffering', 'no')
+  const emit = (event: AskStreamEvent) => { if (!res.destroyed) res.write(JSON.stringify(event) + '\n') }
+
+  let text = ''
+  let first: string | null = null
+  try {
+    const reader = upstream.body!.pipeThrough(new TextDecoderStream()).getReader()
+    let buffer = ''
+    const take = (line: string) => {
+      if (!line.startsWith('data:')) return
+      const chunk = JSON.parse(line.slice(5)) as GeminiChunk
+      for (const part of chunk.candidates?.[0]?.content?.parts ?? []) if (!part.thought) text += part.text ?? ''
+    }
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += value
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      lines.forEach(take)
+      if (first === null) first = startOf(text, model, emit)
+    }
+    take(buffer.trim())
+  } catch {
+    if (gone.aborted) return
+    emit({ type: 'error', error: 'network' })
+    return res.end()
+  }
+
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>
+    const reply = sanitizeReply({ ...parsed, highlight: parsed.highlight === 'none' ? null : parsed.highlight, model })
+    if (!reply) emit({ type: 'error', error: 'empty' })
+    else emit({ type: 'done', reply, rest: first === null ? reply.answer : restAfter(reply.answer, first) })
+  } catch {
+    emit({ type: 'error', error: 'parse' })
+  }
+  res.end()
+}
+
+// Sends `start` once the short fields and a whole first sentence are in; returns that sentence, or null.
+function startOf(text: string, model: string, emit: (event: AskStreamEvent) => void): string | null {
+  const answer = partialString(text, 'answer')
+  const first = answer && firstSentence(answer.value)
+  if (!first) return null
+  const field = (key: string) => partialString(text, key)?.value
+  const meta = sanitizeReply({ answer: first, gesture: field('gesture'), focus: field('focus'), highlight: field('highlight'), model })
+  if (!meta) return null
+  emit({ type: 'start', gesture: meta.gesture, focus: meta.focus, highlight: meta.highlight, first })
+  return first
 }
 
 function middleware(getRoot: () => string): Connect.NextHandleFunction {

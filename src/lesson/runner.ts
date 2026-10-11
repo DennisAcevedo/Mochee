@@ -178,6 +178,54 @@ export function sayLine(text: string, onEnd?: () => void, extra?: { mode?: Mode;
   }, trace)
 }
 
+// A streamed answer (askFlow.ts): he starts on `first` while the rest is still
+// coming. `rest` resolves with the whole answer and what follows `first` (null
+// if the stream failed: he stops after `first`). The transcript and caption
+// show one line that grows to the whole answer; `alive` says whether a newer
+// question has taken over.
+export function sayLineStreamed(
+  first: string,
+  rest: Promise<{ full: string; rest: string } | null>,
+  onEnd: () => void,
+  alive: () => boolean,
+  trace?: LatencyTrace,
+) {
+  const plain = stripMarks(first)
+  expectLine = plain
+  useTutorStore.getState().tutorSays(plain, undefined, first)
+  expectLine = null
+  useDirector.getState().setCaption(first)
+  const end = () => {
+    micIdle()
+    onEnd()
+  }
+  let after: string | null | undefined // undefined: not here yet
+  void rest.then((r) => {
+    after = r?.rest ?? ''
+    if (!r || !alive()) return
+    // Our line is still the newest: it becomes the whole answer.
+    const full = stripMarks(r.full)
+    useTutorStore.setState((s) => {
+      const last = s.lines[s.lines.length - 1]
+      if (!last || last.who !== 'tutor' || last.text !== plain) return {}
+      expectLine = full
+      return { lines: [...s.lines.slice(0, -1), { ...last, text: full, ...(r.full !== full ? { marked: r.full } : {}) }] }
+    })
+    expectLine = null
+    useDirector.getState().setCaption(r.full)
+    if (r.rest) prefetchSpeech(r.rest)
+  })
+  const sayRest = () => {
+    if (!alive()) return
+    if (after) speak(after, end)
+    else end()
+  }
+  speak(first, () => {
+    if (after !== undefined) sayRest()
+    else void rest.then(sayRest)
+  }, trace)
+}
+
 function rewardOnce(key: string, reason: CoinReason) {
   const { reached } = useWalkthrough.getState()
   if (reached.includes(key)) return
