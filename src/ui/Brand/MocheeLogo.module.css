@@ -32,3 +32,16 @@
   font: 700 calc(var(--tile) * 0.72) / 1 'Fredoka', var(--font-ui, system-ui), sans-serif;
   letter-spacing: -0.01em;
 }
+
+/* Inline wordmark: bigger letters, the mochi sitting on the baseline as the "o". */
+.inline .word {
+  display: inline-flex;
+  align-items: flex-end;
+  font-size: calc(var(--tile) * 1.05);
+  letter-spacing: -0.02em;
+}
+.o {
+  width: 0.78em;
+  height: auto;
+  margin: 0 0.02em 0.06em;
+}
