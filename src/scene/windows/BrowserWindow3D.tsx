@@ -22,7 +22,7 @@ import { WINDOW_UI } from './windowConfig'
 import { bringBrowserForward, browserCutoutPad, placeBrowserAboveControls } from './windowStack'
 import { CONTENT_BG, WindowContent } from './WindowContent'
 import { controlParts, useWindowControls } from './WindowControls'
-import { clampOffset, maximizedPlace, yawAt } from './windowPlace'
+import { clampOffset, maximizedPlace, resizeWithin, yawAt } from './windowPlace'
 import { FONTS, WINDOW_STYLE as W } from './windowStyle'
 
 // The room's one mini Chrome window as a 3D object, driven by the windows
@@ -275,9 +275,12 @@ export function BrowserWindow3D() {
       if (sizeTrack.dragging && pointerOnPlane(sizeTrack.x, sizeTrack.y, state.camera, state.gl.domElement, sizePlane, hitPoint)) {
         const p = hitPoint.applyMatrix4(sizeInv)
         clampSize(r.cx * (p.x + r.dx) + r.w0 / 2, r.cy * (p.y + r.dy) + r.h0 / 2, sized)
+        // The opposite corner stays put; the grabbed one stops at the walls, the floor and the stage edge.
+        const at = (w: number, h: number): [number, number] => [r.ox + r.cx * ((w - r.w0) / 2) * r.sx, r.oy + r.cy * ((h - r.h0) / 2) * r.sy]
+        resizeWithin(r.w0, r.h0, sized[0], sized[1], at, sized)
         if (sized[0] !== cw || sized[1] !== ch) {
           st.setSize(WIN, [sized[0], sized[1]])
-          st.setOffset(WIN, [r.ox + r.cx * ((sized[0] - r.w0) / 2) * r.sx, r.oy + r.cy * ((sized[1] - r.h0) / 2) * r.sy])
+          st.setOffset(WIN, at(sized[0], sized[1]))
         }
       }
       if (sizeTrack.up) {

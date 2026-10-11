@@ -132,6 +132,45 @@ export function clampOffset(ox: number, oy: number, w: number, h: number, out: [
   out[1] = MathUtils.clamp(y, -U.offsetLimit[1], U.offsetLimit[1])
   return out
 }
+// ---- Resizing: the largest size toward a request whose frame still fits
+// (walls, floor, the stage box), so a corner drag stops at the wall instead
+// of stretching through it and sliding back on release. `at` gives the
+// offset a w x h window has while the opposite corner stays put. Width is
+// limited first at the starting height, then height at that width, so
+// meeting a side wall never stops the window growing taller.
+
+const probe: [number, number] = [0, 0]
+const step = U.sizeStep
+
+function fitsAt2(w: number, h: number, at: (w: number, h: number) => [number, number]): boolean {
+  const [ox, oy] = at(w, h)
+  clampOffset(ox, oy, w, h, probe)
+  return Math.abs(probe[0] - ox) < 1e-3 && Math.abs(probe[1] - oy) < 1e-3
+}
+
+// From a fitting `from` toward `to` along one dimension: the farthest that fits.
+function reach(from: number, to: number, fits: (v: number) => boolean): number {
+  if (fits(to)) return to
+  let lo = from
+  let hi = to
+  for (let i = 0; i < 14; i++) {
+    const mid = (lo + hi) / 2
+    if (fits(mid)) lo = mid
+    else hi = mid
+  }
+  // Snap back toward `from` onto the size step, so it never rounds past the edge.
+  return to > from ? Math.floor(lo / step + 1e-6) * step : Math.ceil(lo / step - 1e-6) * step
+}
+
+export function resizeWithin(w0: number, h0: number, w: number, h: number, at: (w: number, h: number) => [number, number], out: [number, number]): [number, number] {
+  out[0] = w
+  out[1] = h
+  if (fitsAt2(w, h, at) || !fitsAt2(w0, h0, at)) return out // nothing to stop, or no fitting start to grow from
+  out[0] = reach(w0, w, (v) => fitsAt2(v, h0, at))
+  out[1] = reach(h0, h, (v) => fitsAt2(out[0], v, at))
+  return out
+}
+
 // ---- Maximized: centre, scale and own size of a maximized window, filling
 // WINDOW_UI.maximize.box of the resting lesson frame on the plane z = M.z.
 
