@@ -35,17 +35,22 @@ export function Caption({ className, closeable = false }: Props) {
   return (
     <div className={`${styles.wrap} ${className ?? ''}`} style={paletteVars()} aria-live="polite">
       {/* Keyed by the text so each new line pops in. */}
-      <div key={caption} className={styles.bubble} data-closeable={closeable || undefined}>
-        {closeable && <CloseButton id="caption" label="captions" inset />}
-        <div className={styles.who}>
-          <span className={styles.name}>Gemini Guy</span>
-          <span className={styles.dots} data-speaking={speaking} aria-hidden>
-            <i />
-            <i />
-            <i />
-          </span>
+      <div key={caption} className={styles.row}>
+        <div className={styles.avatar} aria-hidden>
+          GG
         </div>
-        <p className={styles.text}>{spans}</p>
+        <div className={styles.bubble} data-closeable={closeable || undefined}>
+          {closeable && <CloseButton id="caption" label="captions" inset />}
+          <div className={styles.who}>
+            <span className={styles.name}>Gemini Guy</span>
+            <span className={styles.dots} data-speaking={speaking} aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+          <p className={styles.text}>{spans}</p>
+        </div>
       </div>
     </div>
   )

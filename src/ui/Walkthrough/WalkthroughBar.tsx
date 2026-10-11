@@ -1,5 +1,6 @@
 import '@fontsource/figtree/700.css'
 import '@fontsource/figtree/800.css'
+import '@fontsource/fredoka/700.css'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { INK_ON, paletteVars } from '../../lesson/accents'
@@ -158,7 +159,6 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
         <div className={styles.chip} data-waiting={waiting} data-testid="walk-step-label">
           {s.started ? (
             <>
-              {packTitle ? `${packTitle} · ` : 'Step '}
               <b>{s.index + 1}</b> of {s.steps.length}
             </>
           ) : (
@@ -167,13 +167,33 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
         </div>
 
         <div className={styles.copy}>
-          <div key={s.started ? step.id : 'intro'} className={styles.title}>
-            {s.started ? step.title : 'First-come, first-served'}
+          <div className={styles.head}>
+            <div key={s.started ? step.id : 'intro'} className={styles.title} title={packTitle ?? undefined}>
+              {s.started ? step.title : 'First-come, first-served'}
+            </div>
+            <div className={styles.status} aria-live="polite">
+              {status}
+            </div>
           </div>
-          <div className={styles.status} aria-live="polite">
-            <span className={styles.statusDot} data-phase={s.held ? 'held' : s.phase} />
-            {status}
-          </div>
+          <ol className={styles.track} aria-label="Lesson steps">
+            {s.steps.map((st, i) => {
+              const state = !s.started ? 'todo' : i < s.index || (i === s.index && done) ? 'done' : i === s.index ? 'now' : 'todo'
+              return (
+                <li key={st.id} className={styles.segWrap}>
+                  <button
+                    type="button"
+                    className={styles.seg}
+                    data-state={state}
+                    style={paletteVars({ '--seg': PALETTE[st.color] })}
+                    onClick={() => actions.goTo(i)}
+                    aria-label={`Go to step ${i + 1}: ${st.title}`}
+                    aria-current={state === 'now' ? 'step' : undefined}
+                    title={`${i + 1}. ${st.title}`}
+                  />
+                </li>
+              )
+            })}
+          </ol>
         </div>
 
         <div className={styles.controls}>
@@ -232,25 +252,6 @@ export function WalkthroughBar({ className, closeable = false }: Props) {
         </div>
       </div>
 
-      <ol className={styles.track} aria-label="Lesson steps">
-        {s.steps.map((st, i) => {
-          const state = !s.started ? 'todo' : i < s.index || (i === s.index && done) ? 'done' : i === s.index ? 'now' : 'todo'
-          return (
-            <li key={st.id} className={styles.segWrap}>
-              <button
-                type="button"
-                className={styles.seg}
-                data-state={state}
-                style={paletteVars({ '--seg': PALETTE[st.color] })}
-                onClick={() => actions.goTo(i)}
-                aria-label={`Go to step ${i + 1}: ${st.title}`}
-                aria-current={state === 'now' ? 'step' : undefined}
-                title={`${i + 1}. ${st.title}`}
-              />
-            </li>
-          )
-        })}
-      </ol>
     </div>
   )
 }

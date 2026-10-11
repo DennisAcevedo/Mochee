@@ -15,95 +15,143 @@
   z-index: 6;
 }
 
-.bubble {
-  position: relative;
+/* "Chunky toy": a tilted violet sticker avatar beside a cream speech bubble,
+   both with a thick ink outline and a hard offset shadow. */
+.row {
+  --ink: #1d1b24;
   width: 100%;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: calc(14 * var(--px));
-  padding: calc(9 * var(--px)) calc(15 * var(--px)) calc(10 * var(--px));
-  box-shadow:
-    0 calc(9 * var(--px)) calc(26 * var(--px)) rgba(60, 70, 130, 0.16),
-    0 0 0 1px rgba(29, 27, 36, 0.05);
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: calc(18 * var(--px));
   animation: capPop 280ms cubic-bezier(0.2, 1.35, 0.4, 1) both;
 }
 
-/* Room for the close x in the corner. */
-.bubble[data-closeable] {
-  padding-right: 46px;
+.avatar {
+  flex: none;
+  width: calc(46 * var(--px));
+  height: calc(46 * var(--px));
+  display: grid;
+  place-items: center;
+  border: calc(3 * var(--px)) solid var(--ink);
+  border-radius: calc(12 * var(--px));
+  background: #8b5cf6;
+  color: #fff;
+  font: 800 calc(17 * var(--px)) / 1 'Figtree', var(--font-ui), sans-serif;
+  letter-spacing: 0.02em;
+  box-shadow: calc(3 * var(--px)) calc(3 * var(--px)) 0 var(--ink);
+  transform: rotate(-6deg);
 }
 
-/* Multicolour strip along the top edge. */
+.bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: #fffdf8;
+  border: calc(3 * var(--px)) solid var(--ink);
+  border-radius: calc(22 * var(--px));
+  padding: calc(9 * var(--px)) calc(18 * var(--px)) calc(11 * var(--px));
+  box-shadow: calc(4 * var(--px)) calc(4 * var(--px)) 0 var(--ink);
+}
+
+/* Tail pointing back at the avatar. */
 .bubble::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto 0;
-  height: calc(3.5 * var(--px));
-  background: linear-gradient(90deg, var(--teal), var(--violet), var(--pink), var(--coral), var(--sun));
+  top: 50%;
+  left: calc(-9 * var(--px));
+  width: calc(14 * var(--px));
+  height: calc(14 * var(--px));
+  background: #fffdf8;
+  border-left: calc(3 * var(--px)) solid var(--ink);
+  border-bottom: calc(3 * var(--px)) solid var(--ink);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* Room for the close x on the right. */
+.bubble[data-closeable] {
+  padding-right: calc(64 * var(--px));
+}
+
+/* The close x: a coral disc with the same outline and shadow. */
+.bubble > button[data-inset] {
+  top: 50%;
+  right: calc(14 * var(--px));
+  width: calc(32 * var(--px));
+  height: calc(32 * var(--px));
+  background: #f28b7a;
+  color: var(--ink);
+  border: calc(3 * var(--px)) solid var(--ink);
+  box-shadow: calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--ink);
+  opacity: 1;
+  transform: translateY(-50%);
+}
+.bubble > button[data-inset]:hover {
+  color: var(--ink);
+  transform: translateY(-50%) scale(1.08);
 }
 
 .who {
   display: flex;
   align-items: center;
-  gap: calc(7 * var(--px));
-  margin: calc(2 * var(--px)) 0 calc(4 * var(--px));
+  gap: calc(8 * var(--px));
+  margin: 0 0 calc(3 * var(--px));
 }
 
 .name {
   font-family: 'Figtree', var(--font-ui);
   font-weight: 800;
-  font-size: calc(8.5 * var(--px));
+  font-size: calc(10 * var(--px));
   line-height: 1.3;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #fff;
-  background: #3d5ad6;
-  padding: calc(1.5 * var(--px)) calc(7 * var(--px));
-  border-radius: 999px;
+  color: #8b5cf6;
 }
 
 .dots {
   display: inline-flex;
   gap: calc(3 * var(--px));
-  opacity: 0;
-  transition: opacity 160ms;
-}
-.dots[data-speaking='true'] {
   opacity: 1;
 }
 .dots i {
-  width: calc(5 * var(--px));
-  height: calc(5 * var(--px));
+  width: calc(6 * var(--px));
+  height: calc(6 * var(--px));
   border-radius: 50%;
   background: var(--teal);
-  animation: capDot 0.9s ease-in-out infinite;
 }
 .dots i:nth-child(2) {
   background: var(--coral);
-  animation-delay: 0.12s;
 }
 .dots i:nth-child(3) {
-  background: var(--violet);
+  background: var(--sun);
+}
+.dots[data-speaking='true'] i {
+  animation: capDot 0.9s ease-in-out infinite;
+}
+.dots[data-speaking='true'] i:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.dots[data-speaking='true'] i:nth-child(3) {
   animation-delay: 0.24s;
 }
 
 .text {
   margin: 0;
   font-family: 'Figtree', var(--font-ui);
-  font-weight: 700;
-  font-size: calc(15 * var(--px));
+  font-weight: 800;
+  font-size: calc(16 * var(--px));
   line-height: 1.36;
   color: var(--ink);
   text-wrap: pretty;
 }
 
-/* Key term: extra-bold, darkened accent text over a marker swipe of the accent. */
+/* Key term: darkened accent text with a thick accent underline. */
 .key {
   font-weight: 800;
   color: color-mix(in srgb, var(--accent) 68%, #1d1b24);
-  background: linear-gradient(transparent 58%, color-mix(in srgb, var(--accent) 30%, transparent) 58%);
-  padding: 0 calc(2 * var(--px));
-  border-radius: 3px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-decoration-thickness: calc(3 * var(--px));
+  text-underline-offset: calc(3 * var(--px));
 }
 
 @keyframes capPop {
@@ -128,7 +176,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bubble,
+  .row,
   .dots i {
     animation: none;
   }

@@ -188,30 +188,30 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
     live &&
     (study ? (
       <div ref={registerLessonControls} className={`${lesson.hud} ${lesson.steps} ${lesson.enter}`} data-enter="drop" onPointerDownCapture={bringLessonControlsForward} onFocusCapture={bringLessonControlsForward} style={{ '--enter-delay': '160ms' } as CSSProperties}>
-        {walkHidden && !folded('top') && <ReopenChip id="walkthrough" label="Lesson controls" icon="▶" />}
+        {walkHidden && !folded('top') && <ReopenChip id="walkthrough" label="Lesson controls" icon="steps" />}
         <WalkthroughBar className={`${lesson.stepBar} ${walkHidden || folded('top') ? lesson.gone : ''}`} closeable />
       </div>
     ) : (
       !folded('top') && (
         <div className={`${lesson.hud} ${lesson.enter}`} data-enter="drop" style={{ '--enter-delay': '160ms' } as CSSProperties}>
-          {hudHidden ? <ReopenChip id="hud" label="Coins" /> : <PlayHud banner={false} closeable />}
+          {hudHidden ? <ReopenChip id="hud" label="Coins" icon="coins" /> : <PlayHud banner={false} closeable />}
         </div>
       )
     ))
   const browserChip = live && browserClosed && (
     <div className={lesson.browserChip}>
-      <ReopenChip label="Browser" onOpen={() => useWindows.getState().restore('notes')} />
+      <ReopenChip label="Browser" icon="browser" onOpen={() => useWindows.getState().restore('notes')} />
     </div>
   )
   // The conversation so far, down the right side of the stage (closed: a chip in its corner).
   const transcript = live && !folded('transcript') && (
     <div className={`${lesson.side} ${lesson.enter}`} data-enter="side" style={{ '--enter-delay': '300ms' } as CSSProperties}>
-      {transcriptHidden ? <ReopenChip id="transcript" label="Transcript" /> : <SideTranscript className={lesson.sidePanel} closeable />}
+      {transcriptHidden ? <ReopenChip id="transcript" label="Transcript" icon="transcript" /> : <SideTranscript className={lesson.sidePanel} closeable />}
     </div>
   )
   const caption = live && !folded('caption') && (
-    <div className={`${lesson.caption} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
-      {captionHidden ? <ReopenChip id="caption" label="Captions" icon="💬" /> : <Caption className={lesson.bubble} closeable />}
+    <div className={`${lesson.caption} ${browserChip ? lesson.captionAside : ''} ${lesson.enter}`} data-gg-part="caption" data-enter="up" style={{ '--enter-delay': '420ms' } as CSSProperties}>
+      {captionHidden ? <ReopenChip id="caption" label="Captions" icon="caption" /> : <Caption className={lesson.bubble} closeable />}
     </div>
   )
 

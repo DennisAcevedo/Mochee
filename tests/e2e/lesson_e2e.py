@@ -148,6 +148,22 @@ def check_played(r: "Run", page: Page, name: str, g, since_ms: float) -> None:
     r.check(f"{name}: tutor plays it", hit, detail)
 
 
+def shop_pick(page: Page, name: str):
+    """Opens the animation shop (if shut), scrolls it to the item whose name matches
+    `name` and returns its action button ("Play it" or "Buy")."""
+    shop = page.get_by_role("dialog", name="Animations")
+    if not shop.count():
+        page.get_by_role("button", name=re.compile(r"^show animations$", re.I)).click()
+        shop.wait_for(timeout=5000)
+    current = shop.get_by_test_id("shop-current")
+    for _ in range(24):
+        if re.fullmatch(name, current.inner_text().strip(), re.I):
+            break
+        page.keyboard.press("ArrowDown")
+        time.sleep(0.12)
+    return shop.get_by_test_id("shop-act")
+
+
 def wait_free(page: Page, timeout_s: float) -> bool:
     """Until the tutor plays no one-shot and has none queued: a tickle (priority 50)
     is rightly dropped while a purchase's equip (70) plays or waits its turn."""
@@ -359,7 +375,7 @@ def run(base: str, out: Path, headed: bool) -> int:
             time.sleep(1.2)
         for label, expect in ((r"high.?five", {"highfive"}), (r"catch", {"catch"}), (r"snack", {"yum"}), (r"dance", None)):
             s0, t0 = state(page), now_ms(page)
-            page.get_by_role("button", name=re.compile(label, re.I)).first.click()
+            shop_pick(page, label).click()
             g = wait_gesture(page, gesture_id(s0), CONFIG["gesture_timeout_s"])
             good = g and (g["clip"] in expect if expect else g["clip"].startswith("dance_"))
             time.sleep(1.0)  # past the action's own beat (the catch lands, the snack is eaten)
@@ -371,13 +387,12 @@ def run(base: str, out: Path, headed: bool) -> int:
                 r.shot(page, "07_play_catch")
             time.sleep(1.6)
 
-        # 9. A purchase: enough coins for the Disco dance (80), bought from the dance menu;
+        # 9. A purchase: enough coins for the Disco dance (80), bought in the animation shop;
         #    he owns it, plays 'equip' and the "Unlocked" banner shows.
         page.evaluate("() => { const p = window.__gg.progress.getState(); if (p.coins < 80) p.award('bossWin', 80 - p.coins) }")
         s0, t0 = state(page), now_ms(page)
         if "dance_disco" not in s0["owned"]:
-            page.get_by_role("button", name=re.compile(r"pick a dance", re.I)).first.click()
-            page.get_by_role("menuitem", name=re.compile(r"disco dance", re.I)).first.click()
+            shop_pick(page, r"disco dance").click()
         s1 = wait_for(page, lambda s: s["purchaseId"] > s0["purchaseId"], 3)
         r.check("bought the Disco dance", "dance_disco" in s1["owned"] and s1["coins"] == s0["coins"] - 80, {"owned": s1["owned"], "coins": [s0["coins"], s1["coins"]]})
         g = wait_gesture(page, gesture_id(s0), CONFIG["gesture_timeout_s"])

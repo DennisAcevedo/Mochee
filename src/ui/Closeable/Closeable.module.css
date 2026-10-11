@@ -48,31 +48,59 @@
   stroke-linecap: round;
 }
 
+/* "Chunky toy" pill: cream fill, thick ink outline, hard offset shadow, and a
+   teal disc carrying the icon. Pressing sinks it into its shadow. */
 .chip {
+  --ink: #1d1b24;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 14px 0 11px;
-  border: none;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--text);
-  font: 700 13px/1 'Figtree', var(--font-ui, system-ui), sans-serif;
-  box-shadow:
-    0 0 0 1px rgba(29, 27, 36, 0.08),
-    0 8px 20px -10px rgba(29, 27, 36, 0.4);
+  gap: 12px;
+  height: 52px;
+  padding: 0 22px 0 6px;
+  border: 3px solid var(--ink);
+  border-radius: 26px;
+  background: #fffdf8;
+  color: var(--ink);
+  font: 800 19px/1 'Figtree', var(--font-ui, system-ui), sans-serif;
+  white-space: nowrap;
+  box-shadow: 4px 4px 0 var(--ink);
   cursor: pointer;
   pointer-events: auto;
   animation: chipIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
 }
 .chip:hover {
-  transform: translateY(-2px);
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.chip:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--ink);
 }
 .chip:focus-visible {
-  outline: 2px solid var(--accent-bright, #12a4b4);
-  outline-offset: 2px;
+  outline: 3px solid #ffc83d;
+  outline-offset: 3px;
+}
+.chipIcon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: #4aa8be;
+}
+.chipIcon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @keyframes chipIn {

@@ -169,6 +169,15 @@
   pointer-events: none;
 }
 
+/* With the Browser chip down in the corner, the caption (or its chip) starts
+   after it instead of centring under it. */
+.captionAside {
+  left: calc(2.4% + 200px);
+  right: 2.4%;
+  width: auto;
+  transform: none;
+}
+
 /* Caption's own wrapper, placed by .caption instead of by itself. */
 .caption > .bubble {
   position: static;
