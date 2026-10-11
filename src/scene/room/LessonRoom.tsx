@@ -18,9 +18,12 @@ export function LessonRoom() {
   return (
     <>
       <WhiteBoxRoom />
-      <BuildIn part="props" style="rise" distance={2.4}>
-        <WallShop />
-      </BuildIn>
+      {/* The wooden wall shop is Play's: Study has no shop. */}
+      {!study && (
+        <BuildIn part="props" style="rise" distance={2.4}>
+          <WallShop />
+        </BuildIn>
+      )}
       <Suspense fallback={null}>
         <BuildIn part="props" style="rise" distance={2.4}>
           <RoomProps />

@@ -142,6 +142,10 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
   // Study: the step bar takes the top of the stage and the level shrinks to a
   // pill in the header. Play: the full play HUD up there, the step bar in the dock.
   const study = useMode((m) => m.mode === 'study')
+  // Study has no shop: back to Study closes one that was open.
+  useEffect(() => {
+    if (study) useShop.getState().reset()
+  }, [study])
   // The red light closes the browser window with no chip of its own: this one brings it back.
   const browserClosed = useWindows((s) => s.closed)
   const transcriptHidden = useIsHidden('transcript')
@@ -312,7 +316,7 @@ function Lesson({ tutor, steps }: { tutor: Tutor; steps: LessonStep[] | undefine
         <PackDirector />
         <BossLayer tutorId={tutor.id} />
       </div>
-      {live && <ShopVisit />}
+      {live && !study && <ShopVisit />}
     </CurrentTutorContext.Provider>
   )
 }
