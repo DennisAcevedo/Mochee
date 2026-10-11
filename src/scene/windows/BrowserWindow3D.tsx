@@ -326,11 +326,14 @@ export function BrowserWindow3D() {
   const contentTop = top - S.height - T.height
   const contentH = contentTop + height / 2
   const z = W.z
-  // Pages are laid out for the default size: a smaller window scales them
-  // down to fit, a bigger one gives them more room.
+  // Pages zoom with the window: laid out for the default size, scaled by the
+  // tighter of how much wider and how much taller the window is, times the
+  // page zoom. The page gets whatever room is left in the other direction.
   const refH = place.height - S.height - T.height
-  const contentScale = Math.min(1, width / place.width, contentH / refH)
+  const contentScale = WINDOW_UI.window.contentZoom * Math.min(width / place.width, contentH / refH)
   const box = { w: width / contentScale, h: contentH / contentScale }
+  // Maximized, the strip shows only the tab being read (the others come back on restore).
+  const stripTabs = useMemo(() => (isMax ? { ...wt, tabs: [tab] } : wt), [isMax, wt, tab])
 
   const ring = W.focus.ring
   const omniW = width - T.omnibox.x - T.omnibox.right
@@ -371,7 +374,7 @@ export function BrowserWindow3D() {
               <meshBasicMaterial color={c} toneMapped={false} />
             </mesh>
           ))}
-          <TabStrip wt={wt} width={width} top={top} z={z} pivot={pivot} onEmptyPress={(e) => startMove(e, true)} />
+          <TabStrip wt={stripTabs} width={width} top={top} z={z} pivot={pivot} onEmptyPress={(e) => startMove(e, true)} />
 
           {/* Toolbar: back, forward, reload, omnibox (also a drag handle), maximize. */}
           <Flat w={width} h={T.height} color={T.color} position={[0, toolY, z]} />

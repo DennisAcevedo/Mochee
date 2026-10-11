@@ -32,6 +32,12 @@ export const WINDOW_UI = {
   },
 
   window: {
+    // Pages zoom with the window (BrowserWindow3D): laid out for the default
+    // size, then scaled by how much bigger or smaller the window is (the
+    // tighter of width and height), times this, so the text reads bigger
+    // even at the default size. The board's fixed rows set the ceiling: past
+    // ~1.1 its heading wraps onto the timeline and the footnote leaves the page.
+    contentZoom: 1.1,
     minSize: [1.9, 1.7] as [number, number],
     maxSize: [4.4, 3.3] as [number, number],
     sizeStep: 0.01, // live resize updates in these steps
@@ -69,8 +75,11 @@ export const WINDOW_UI = {
     // the caption along the bottom. It sits at world z, in front of the tutor.
     // The 0.4 NDC left either side is where the tutor steps aside and waits:
     // hand to hand he spans ~0.38 NDC, so a wider box would hide half of him.
-    box: [-0.6, -0.72, 0.6, 0.6] as [number, number, number, number],
+    box: [-0.64, -0.72, 0.64, 0.6] as [number, number, number, number],
     z: 2.3, // the tutor's spots reach z 1 and his body ~0.6 past that
+    // No extra page zoom while maximized (the board's rows would leave the page):
+    // the bigger box makes it bigger. While maximized only the active tab shows; the rest shrink out of the
+    // strip and come back on restore (the tabs themselves are kept).
     height: 2.5, // = WINDOW.height in layout3d.ts (tests/ui/windowPlace.test.ts pins it)
     rate: 9,
   },
