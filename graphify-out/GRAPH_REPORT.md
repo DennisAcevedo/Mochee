@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-10-10)
 
 ## Corpus Check
-- 317 files · ~476,879 words
+- 317 files · ~477,060 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -1026,11 +1026,11 @@ Nodes (1): Rest-pose height (floor to cap top) in model units, from evaluated me
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `MIN()` connect `Community 2` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 16`, `Community 18`, `Community 19`, `Community 20`, `Community 21`, `Community 22`, `Community 24`?**
-  _High betweenness centrality (0.225) - this node is a cross-community bridge._
+  _High betweenness centrality (0.218) - this node is a cross-community bridge._
 - **Why does `add()` connect `Community 6` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 7`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 18`, `Community 19`, `Community 23`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Why does `join()` connect `Community 0` to `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 8`, `Community 10`, `Community 11`, `Community 12`, `Community 16`, `Community 17`?**
-  _High betweenness centrality (0.056) - this node is a cross-community bridge._
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Why does `range()` connect `Community 4` to `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 12`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **Are the 95 inferred relationships involving `MIN()` (e.g. with `check_window_walls()` and `_overlap()`) actually correct?**
   _`MIN()` has 95 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 53 inferred relationships involving `range()` (e.g. with `tube()` and `circle()`) actually correct?**

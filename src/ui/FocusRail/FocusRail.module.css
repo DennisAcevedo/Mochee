@@ -1,56 +1,91 @@
-/* A slim column of round buttons, white like the other cards; the one whose
-   card is peeked out turns teal. */
+/* "Chunky toy": a cream pill with a thick ink outline and a hard offset
+   shadow, holding chunky round buttons in the stage's accent colours. The
+   button whose card is peeked out is pressed in (down into its shadow). */
 .rail {
+  --ink: #1d1b24;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 6px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 3px solid var(--ink);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 0 0 1px rgba(29, 27, 36, 0.06),
-    0 12px 26px -14px rgba(29, 27, 36, 0.45);
+  background: #fdfaf2;
+  box-shadow: 5px 5px 0 var(--ink);
   animation: railIn 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
 .btn {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: #f3f2f7;
-  color: #4a4754;
+  --c: #4aa8be;
+  height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 2.5px solid var(--ink);
+  border-radius: 22px;
+  background: var(--c);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
   cursor: pointer;
   transition:
-    background 160ms ease,
-    color 160ms ease,
-    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.btn:nth-child(2) {
+  --c: #a98bfa;
+}
+
+.btn:nth-child(3) {
+  --c: #f28b7a;
 }
 
 .btn:hover {
-  transform: scale(1.08);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.btn:active,
+.btn[data-open] {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
 }
 
 .btn:focus-visible {
-  outline: 2px solid #12a4b4;
-  outline-offset: 2px;
+  outline: 3px solid #ffc83d;
+  outline-offset: 3px;
 }
 
-.btn[data-open] {
-  background: #12a4b4;
-  color: #fff;
+/* The name beside each icon: folded to nothing, it slides out while the
+   rail is hovered or holds keyboard focus, and while it first appears. */
+.label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  font: 800 13px/1 'Figtree', var(--font-ui, system-ui), sans-serif;
+  transition:
+    max-width 260ms cubic-bezier(0.34, 1.2, 0.64, 1),
+    margin 260ms ease,
+    opacity 180ms ease;
+}
+
+.rail:hover .label,
+.rail:focus-within .label,
+.rail[data-intro] .label {
+  max-width: 130px;
+  margin: 0 5px 0 7px;
+  opacity: 1;
 }
 
 .btn svg {
+  flex: none;
   width: 20px;
   height: 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -65,5 +100,9 @@
 @media (prefers-reduced-motion: reduce) {
   .rail {
     animation: none;
+  }
+  .label,
+  .btn {
+    transition: none;
   }
 }

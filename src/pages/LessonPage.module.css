@@ -141,6 +141,7 @@
   left: 0.8%;
   top: 50%;
   translate: 0 -50%;
+  pointer-events: auto; /* the overlay passes clicks to the canvas; the rail takes its own */
 }
 
 /* The closed browser window's way back: bottom left of the stage, beside the caption. */
