@@ -18,8 +18,8 @@ const CONFIG = {
   keyFile: 'ElevenLabsAPI.txt',
   endpoint: 'https://api.elevenlabs.io/v1/text-to-speech',
   // One voice for every tutor (shared/voices.ts); ELEVENLABS_VOICE_ID overrides it.
-  // Turbo v2.5: natural and low latency; override with ELEVENLABS_MODEL.
-  defaultModel: 'eleven_turbo_v2_5',
+  // Flash v2.5: ElevenLabs' fastest model (~75 ms to first audio); override with ELEVENLABS_MODEL.
+  defaultModel: 'eleven_flash_v2_5',
   outputFormat: 'mp3_44100_128',
   voiceSettings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 1.04 },
   cacheDir: 'tmp/tts-cache',

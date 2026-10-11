@@ -19,7 +19,7 @@ const CONFIG = {
   maxBodyBytes: 16_384,
   temperature: 0.7,
   maxOutputTokens: 512,
-  thinkingLevel: 'low', // Gemini 3.x: keeps answers fast; 2.5 models get thinkingBudget 0 instead
+  thinkingLevel: 'low', // Gemini 3.x: keeps answers fast (3.8 Flash rejects 'minimal'); 2.5 models get thinkingBudget 0 instead
 } as const
 
 // Exported for tests/server/askPrompt.test.ts.
