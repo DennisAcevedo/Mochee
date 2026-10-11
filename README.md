@@ -75,6 +75,8 @@ Each item below is asserted by an e2e check. The checks read what the tutor actu
 
 Both e2e files also assert no failed requests, no page errors and no console errors.
 
+**Hands-free Q&A:** The talk bar's left dropdown switches between **Tap to talk** (hold Space or tap the mic) and **Hands-free**. Hands-free pauses the lesson and enables Mochee's voice for conversation. Speak a question and pause for about 1.8 seconds to send it; listening stops while he thinks and answers, then resumes. Tap the mic to pause/resume hands-free. Typing, playing a lesson, Play mode, teach-back, and a hidden tab suspend listening. Leaving the page stops it. Requires browser SpeechRecognition support and microphone permission; unsupported browsers and permission errors retain typed Q&A. Silent takes never submit a demo question. `/lab/hands-free.html` verifies the talk bar with a synthetic recognizer.
+
 **Teach-back**
 - In the study tools, choose **Teach it back**, pick uploaded material and a topic, and explain it to Mochee. **Speak** is the default: tap **Start speaking**, then **Finish & get feedback**. **Type instead** keeps the text version (60–3,000 characters).
 - The microphone has a live level meter and optional browser captions. Takes are capped at two minutes; finishing turns off the mic and sends the audio for verbatim Gemini transcription before grading. **Pause & review transcript** lets you edit or continue. Audio is held only in memory and is not saved as a library document. Leaving the tool cancels capture; failed transcription can be retried during the visit.

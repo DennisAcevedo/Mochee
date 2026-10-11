@@ -182,6 +182,7 @@
 /* Text field */
 .field {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -191,6 +192,13 @@
   border-radius: 9px;
   padding: 0 3.5px 0 12px;
 }
+
+.voiceControls { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.talkMode { max-width: 102px; border: 1.5px solid var(--ink); border-radius: 7px; background: #efece6; color: var(--ink); font: inherit; font-size: 10px; font-weight: 800; padding: 6px 2px; cursor: pointer; }
+.talkMode:focus-visible { outline: 2px solid #49a6b9; outline-offset: 2px; }
+.voiceError { position: absolute; bottom: calc(100% + 10px); left: 0; right: 0; padding: 10px 14px; border: 2px solid var(--ink); border-radius: 10px; background: #fff3e7; color: #773d20; font-size: 12px; box-shadow: 2px 2px 0 var(--ink); }
+.bar[data-compact] .talkMode { font-size: 9px; padding: 3px 1px; max-width: 86px; }
+@container (max-width: 480px) { .status { display: none; } }
 
 .input {
   flex: 1;
