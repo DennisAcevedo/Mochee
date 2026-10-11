@@ -1,3 +1,4 @@
+import '@fontsource/fredoka/700.css'
 import { playIntro } from '../../intro/intro'
 import { introRef } from '../../intro/targets'
 import { useCurrentTutor } from '../../state/currentTutor'
@@ -41,8 +42,8 @@ export function StartScreen() {
         <div className={styles.ring} data-late="true" />
         <button ref={introRef('startButton')} type="button" className={styles.button} onClick={playIntro} aria-label="Start lesson">
           <span className={styles.icon}>
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8 5.5v13l10.5-6.5z" fill="#ffffff" stroke="#ffffff" strokeWidth="3" strokeLinejoin="round" />
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5.5v13l10.5-6.5z" fill="#1d1b24" stroke="#1d1b24" strokeWidth="2" strokeLinejoin="round" />
             </svg>
           </span>
           Start lesson

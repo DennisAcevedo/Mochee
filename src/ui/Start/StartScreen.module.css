@@ -110,51 +110,59 @@
 }
 
 /* Hover lifts, press squishes, keyboard focus gets the double ring. */
+/* Start lesson: a chunky violet pill with an ink outline sitting on a darker
+   violet base (pressing sinks it), the play key in a white disc. */
 .button {
-  --btn-shadow: 0 10px 22px -10px oklch(0.45 0.1 202 / 0.7);
-  --btn-ring: 0 0 0 0 transparent;
+  --ink: #1d1b24;
+  --base: #6d4fd8;
   position: relative;
-  height: 64px;
-  padding: 0 30px 0 12px;
+  height: 62px;
+  padding: 0 28px 0 8px;
   display: flex;
   align-items: center;
   gap: 14px;
+  border: 3px solid var(--ink);
   border-radius: 999px;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  font-family: var(--font-ui);
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  background: #a98bfa;
+  color: var(--ink);
+  font: 700 22px/1 'Fredoka', var(--font-ui), sans-serif;
   cursor: pointer;
   outline: none;
   pointer-events: auto;
-  box-shadow: var(--btn-shadow), var(--btn-ring);
+  box-shadow:
+    0 6px 0 var(--base),
+    0 6px 0 3px var(--ink);
   transition:
-    transform 0.18s var(--ease),
-    box-shadow 0.2s ease;
+    transform 0.1s var(--ease),
+    box-shadow 0.1s var(--ease);
 }
 .button:hover {
-  --btn-shadow: 0 18px 36px -12px oklch(0.45 0.1 202 / 0.75);
   transform: translateY(-2px);
+  box-shadow:
+    0 8px 0 var(--base),
+    0 8px 0 3px var(--ink);
 }
 .button:active {
-  transform: scale(0.95);
+  transform: translateY(5px);
+  box-shadow:
+    0 1px 0 var(--base),
+    0 1px 0 3px var(--ink);
 }
 .button:focus-visible {
-  --btn-ring: 0 0 0 3px #fbfaf7, 0 0 0 6px var(--accent-bright);
+  outline: 3px solid #ffc83d;
+  outline-offset: 6px;
 }
 
 .icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding-left: 3px;
+  border: 3px solid var(--ink);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: 2px;
+  background: #fffdf8;
   transition: transform 0.18s var(--ease);
 }
 .button:hover .icon {
