@@ -3,6 +3,7 @@ import { useDirector, type LoopClip, type OneShotClip } from '../../state/direct
 import { useWindows } from '../../state/windows'
 import { anchors } from '../anchors'
 import { POINTING, SPOTS, WINDOW_TIGHT_POSES } from '../layout3d'
+import { pointSide } from './pointAt'
 import { pointReadyAt } from './pointReady'
 
 // Keeps his gestures out of the browser window on his left:
@@ -12,7 +13,7 @@ import { pointReadyAt } from './pointReady'
 // - clearCelebration: a right-answer dance that does not reach into the window
 //   from where he stands (WINDOW_TIGHT_POSES).
 
-export const pointReady = (): boolean => pointReadyAt(anchors.camera.x, useDirector.getState().focus, useWindows.getState().maximized)
+export const pointReady = (): boolean => pointReadyAt(anchors.camera.x, useDirector.getState().focus, useWindows.getState().maximized, pointSide())
 
 // Plays `loop` through `set`. A point_left waits for pointReady() with talk in
 // its place; `stillMine` (checked on each poll) says the caller's line is

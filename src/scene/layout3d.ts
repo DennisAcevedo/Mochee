@@ -126,14 +126,16 @@ export const LESSON_CAMERA = {
   focusShift: 0.9, // how far the camera pans toward the window when it has focus (x, world units)
 } as const
 
-// Where the lesson camera pans (x, world units): left toward the window
-// whenever the tutor focuses it (the notes, the board and the quiz all live
-// there now), but held centred while it is maximized, because the maximized
-// placement is fitted to the resting camera (a pan would slide it off centre).
-// CameraRig eases to this; the tutor's aside spot is worked out against it.
-export function cameraPan(focus: string | null, maximized: string | null): number {
+// Where the lesson camera pans (x, world units): toward the window whenever
+// the tutor focuses it (the notes, the board and the quiz all live there
+// now), on whichever side the student dragged it (`side`: -1 left, the
+// default, +1 right; windows/pointAt pointSide), but held centred while it
+// is maximized, because the maximized placement is fitted to the resting
+// camera (a pan would slide it off centre). CameraRig eases to this; the
+// tutor's aside spot is worked out against it.
+export function cameraPan(focus: string | null, maximized: string | null, side: -1 | 1 = -1): number {
   if (maximized) return 0
-  return focus && focus !== 'none' ? -LESSON_CAMERA.focusShift : 0
+  return focus && focus !== 'none' ? side * LESSON_CAMERA.focusShift : 0
 }
 
 // Bold accent palette for the stage, the windows and the effects.

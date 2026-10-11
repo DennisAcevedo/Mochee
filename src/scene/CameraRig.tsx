@@ -9,6 +9,7 @@ import { useWindows } from '../state/windows'
 import { cameraPan, LESSON_CAMERA } from './layout3d'
 import { usePlayBody } from './physics'
 import { sceneFrame, sceneRig } from './sceneRig'
+import { pointSide } from './windows/pointAt'
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
@@ -73,7 +74,7 @@ export function CameraRig() {
     const dt = Math.min(delta, LESSON_EASE.maxDt)
     lesson.t = live ? Math.max(sceneRig.roomT, MathUtils.damp(lesson.t, 1, LESSON_EASE.blend, dt)) : sceneRig.roomT
     if (lesson.t > 0.999) lesson.t = 1
-    const want = cameraPan(useDirector.getState().focus, useWindows.getState().maximized)
+    const want = cameraPan(useDirector.getState().focus, useWindows.getState().maximized, pointSide())
     // The pan holds still while he is held, so the drag plane under the pointer stays put.
     if (usePlayBody.getState().state !== 'held') lesson.shift = live ? MathUtils.damp(lesson.shift, want, LESSON_EASE.focus, dt) : 0
     const k = lesson.t

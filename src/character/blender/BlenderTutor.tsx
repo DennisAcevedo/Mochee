@@ -8,6 +8,7 @@ import { entrance, intro } from '../../animation/introState'
 import { laneZ } from '../../lesson/roam'
 import { anchors } from '../../scene/anchors'
 import { FLOOR_Y, SPOTS, TUTOR_SCALE } from '../../scene/layout3d'
+import { pointClip, pointStand } from '../../scene/windows/pointAt'
 import { useDirector, type FxKind, type Gesture, type LoopClip } from '../../state/director'
 import type { Accessory } from '../look'
 import { useTutorStore } from '../../state/store'
@@ -172,7 +173,7 @@ export function BlenderTutor({
   )
   // The intro spin layer and its scratch (no allocations in the frame loop).
   const spin = useMemo(
-    () => ({ layer: new IntroLayer(), touched: false, lagQ: new Quaternion(), capQ: new Quaternion(), q: new Quaternion(), fwd: new Vector3(), lane: { x: 0, z: 0 } }),
+    () => ({ layer: new IntroLayer(), touched: false, lagQ: new Quaternion(), capQ: new Quaternion(), q: new Quaternion(), fwd: new Vector3(), lane: { x: 0, z: 0 }, stand: { x: 0, z: 0 } }),
     [],
   )
 
@@ -253,9 +254,14 @@ export function BlenderTutor({
     const d = useDirector.getState()
     const c = controlRef.current
     // A card plays its own control at its origin. In the room: stepped aside >
-    // roaming > the lesson's spot. Roam targets ride the lane's depth.
-    const free = standalone ? null : (d.asideX ?? d.roamX)
-    const target = standalone ? ORIGIN : free === null ? SPOTS[d.spot] : spin.lane
+    // teaching at the window > roaming > the lesson's spot. "At the window" is a
+    // point loop or the 'left' spot: he stands beside the browser window
+    // wherever it was dragged and points the way it is (scene/windows/pointAt).
+    // Roam targets ride the lane's depth.
+    const point = !standalone && (d.loop === 'point_left' || d.loop === 'point_right')
+    const atWindow = !standalone && d.asideX === null && (point || (d.spot === 'left' && d.roamX === null))
+    const free = standalone || atWindow ? null : (d.asideX ?? d.roamX)
+    const target = standalone ? ORIGIN : atWindow ? pointStand(spin.stand) : free === null ? SPOTS[d.spot] : spin.lane
     if (free !== null) {
       spin.lane.x = free
       spin.lane.z = laneZ(free, SPOTS)
@@ -263,7 +269,7 @@ export function BlenderTutor({
     const faceYaw = standalone ? null : d.faceYaw
     anim.clock += Math.min(ANIM.maxDt, delta) // real seconds: cooldowns and clip ends match the mixer
     const out = anim.ctrl.sync(anim.clock, {
-      loop: c?.loop ?? useTumbles.getState().hold ?? d.loop, // a tumble outranks the lesson's loop
+      loop: c?.loop ?? useTumbles.getState().hold ?? (point ? pointClip() : d.loop), // a tumble outranks the lesson's loop
       speaking: !standalone && useTutorStore.getState().mic === 'speaking',
       gesture: c ? c.gesture : d.gesture,
       moving: motion.willMove(target, faceYaw),

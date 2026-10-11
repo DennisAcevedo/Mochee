@@ -1,12 +1,12 @@
 # Graph Report - .  (2026-10-10)
 
 ## Corpus Check
-- 314 files · ~474,003 words
+- 315 files · ~475,630 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2168 nodes · 4598 edges · 153 communities detected
-- Extraction: 68% EXTRACTED · 32% INFERRED · 0% AMBIGUOUS · INFERRED: 1460 edges (avg confidence: 0.8)
+- 2174 nodes · 4611 edges · 153 communities detected
+- Extraction: 68% EXTRACTED · 32% INFERRED · 0% AMBIGUOUS · INFERRED: 1463 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -165,7 +165,7 @@
 - [[_COMMUNITY_Community 152|Community 152]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `MIN()` - 98 edges
+1. `MIN()` - 99 edges
 2. `range()` - 60 edges
 3. `set()` - 56 edges
 4. `K()` - 53 edges
@@ -177,12 +177,12 @@
 10. `find()` - 35 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `show()` --calls--> `join()`  [INFERRED]
-  lab\voice-streaming.ts → BLENDER\rooms\build_study_room.py
-- `drawingParas()` --calls--> `join()`  [INFERRED]
-  tests\server\fixtureOffice.ts → BLENDER\rooms\build_study_room.py
-- `shallowEqual()` --calls--> `keys()`  [INFERRED]
-  design\study-play\claude-design\support.js → BLENDER\tutor\author_emotes.py
+- `join()` --calls--> `show()`  [INFERRED]
+  BLENDER\rooms\build_study_room.py → lab\voice-streaming.ts
+- `join()` --calls--> `drawingParas()`  [INFERRED]
+  BLENDER\rooms\build_study_room.py → tests\server\fixtureOffice.ts
+- `keys()` --calls--> `shallowEqual()`  [INFERRED]
+  BLENDER\tutor\author_emotes.py → design\study-play\claude-design\support.js
 - `hump()` --calls--> `MIN()`  [INFERRED]
   BLENDER\tutor\author_tumbles.py → tests\ui\windowPlace.test.ts
 - `render_previews()` --calls--> `empty()`  [INFERRED]
@@ -192,11 +192,11 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (136): build(), A room's props without its shell, for the app's white-box room.  The white box, _size(), join(), Joins prop parts into one named node mesh (a trophy the app may bounce).     ori, submit(), freshService(), freshService() (+128 more)
+Nodes (157): askGemini(), sanitizeReply(), build(), A room's props without its shell, for the app's white-box room.  The white box, _size(), join(), Joins prop parts into one named node mesh (a trophy the app may bounce).     ori, submit() (+149 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.03
-Nodes (134): abilityById(), after(), award(), capColor(), claim(), cycleCap(), danceParty(), director() (+126 more)
+Cohesion: 0.02
+Nodes (132): abilityById(), after(), award(), capColor(), claim(), cycleCap(), danceParty(), director() (+124 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
@@ -204,59 +204,59 @@ Nodes (143): body(), cap(), catch(), celebrate(), clip(), dance_bounce(), dance_
 
 ### Community 3 - "Community 3"
 Cohesion: 0.03
-Nodes (142): arc(), ball(), blocks(), circle(), court(), floor_strip(), hoop(), join() (+134 more)
+Nodes (77): abilityForTopic(), abilityToLearn(), escape(), hits(), rankAbilities(), topicText(), AnimationController, stateOfClip() (+69 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.03
-Nodes (69): abilityForTopic(), abilityToLearn(), escape(), hits(), rankAbilities(), topicText(), AnimationController, stateOfClip() (+61 more)
+Nodes (141): arc(), ball(), blocks(), circle(), court(), floor_strip(), hoop(), join() (+133 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.03
-Nodes (80): clamp01(), envelope(), routine(), rowX(), smooth(), sortedWidth(), tada(), BrowserWindow3D() (+72 more)
+Nodes (80): clamp01(), envelope(), routine(), rowX(), smooth(), sortedWidth(), tada(), clamp() (+72 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.03
-Nodes (57): step(), asStudent(), boardOrQuiz(), needNotes(), onDirector(), onMode(), onPack(), onStep() (+49 more)
+Nodes (70): step(), asStudent(), boardOrQuiz(), needNotes(), onDirector(), onMode(), onPack(), onStep() (+62 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (69): add(), blend(), _body_shape(), bonk(), _cap_frame(), _cap_shape(), _capsule(), dizzy() (+61 more)
+Cohesion: 0.03
+Nodes (66): findRig(), Move, armWatch(), boxDistance(), disarmWatch(), hdist(), newWatch(), segmentHitsBox() (+58 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.05
-Nodes (63): _expected(), main(), Opens a room GLB in lab/rooms.html (the app's camera, platform, window and tutor, A console error the check itself causes: the TTS route's 503., canvas_has_content(), check_played(), drops_since(), finish() (+55 more)
+Cohesion: 0.04
+Nodes (65): onKey(), _expected(), main(), Opens a room GLB in lab/rooms.html (the app's camera, platform, window and tutor, A console error the check itself causes: the TTS route's 503., canvas_has_content(), check_played(), drops_since() (+57 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.03
-Nodes (39): clamp(), lerp(), addFiles(), back(), next(), onDrop(), onPick(), playVoice() (+31 more)
+Cohesion: 0.04
+Nodes (70): add(), blend(), _body_shape(), bonk(), _cap_frame(), _cap_shape(), _capsule(), dizzy() (+62 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.05
-Nodes (71): add_box(), add_capsule(), add_cone(), add_cylinder(), add_plane(), add_slab(), add_sparkle(), add_sphere() (+63 more)
+Cohesion: 0.06
+Nodes (51): stamp(), boot(), cdnScriptFor(), collectProps(), compileAttr(), compileTemplate(), contentKey(), createComponentFactory() (+43 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.04
-Nodes (74): check_window(), check_window_walls(), check_zones(), _clip(), _overlap(), Build-time checks on a modelled room (before the bake): props in the keep-out (C, The floating window as the lesson camera sees it, at rest and focused     (camer, Warns (ROOM WARN lines) about: props inside the keep-out (CLEAR) or calm     (CA (+66 more)
+Cohesion: 0.06
+Nodes (57): Gate(), TutorBoundary, add_box(), add_capsule(), add_cone(), add_cylinder(), add_plane(), add_slab() (+49 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.04
-Nodes (57): findRig(), armWatch(), boxDistance(), disarmWatch(), hdist(), newWatch(), segmentHitsBox(), stepWatch() (+49 more)
+Nodes (31): Board(), addFiles(), back(), isAccepted(), next(), onDrop(), onPick(), startStudy() (+23 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.05
-Nodes (53): Gate(), TutorBoundary, stamp(), boot(), cdnScriptFor(), collectProps(), compileAttr(), compileTemplate() (+45 more)
+Cohesion: 0.06
+Nodes (56): arg(), _calm_boxes(), camera_basis(), flag(), from_blender(), hex_linear(), hex_srgb(), lerp3() (+48 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.08
-Nodes (34): buildContents(), clip(), handleAsk(), parseKeyFile(), readBody(), readKey(), send(), thinkingConfig() (+26 more)
+Cohesion: 0.05
+Nodes (25): lerp(), buildBoardGeometry(), buildSkullGeometry(), clamp(), radialTexture(), tint(), useIsHidden(), LessonPage() (+17 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.09
 Nodes (33): setRoomBuild(), call(), deck(), fake(), isPaperCall(), refuse(), section(), upload() (+25 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.06
-Nodes (22): askGemini(), sanitizeReply(), Board(), isAccepted(), useCurrentTutor(), typesOf(), uploadFormat(), computeLayout() (+14 more)
+Cohesion: 0.07
+Nodes (27): asideX(), CharacterDirector(), clock(), useChatThink(), useIntroBeats(), useRoam(), step(), at() (+19 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.09
@@ -267,32 +267,32 @@ Cohesion: 0.1
 Nodes (11): defaultFace(), fallbackOf(), hasLoop(), hasOneShot(), loopOr(), oneShotOr(), angleDiff(), dampAngle() (+3 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.09
-Nodes (16): loadBallClips(), Move, BlenderTutor(), flingHand(), manifestUrl(), parseClip(), parseFx(), parseManifest() (+8 more)
+Cohesion: 0.11
+Nodes (23): askDocument(), checkFile(), codeFrom(), errorText(), fetchLessonPack(), fetchPage(), fetchQuiz(), listDocuments() (+15 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.13
-Nodes (12): projectRect(), quadTransform(), chipPlace(), chipReveal(), closeScale(), maximizeWin(), minimizeEase(), toggleMaximizeWin() (+4 more)
+Nodes (15): loadBallClips(), BlenderTutor(), flingHand(), manifestUrl(), parseClip(), parseFx(), parseManifest(), clamp01() (+7 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.22
 Nodes (18): beatDone(), beatTime(), boltProgress(), bossBeatEnd(), bossIdle(), bossPose(), clamp01(), guyPose() (+10 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.16
-Nodes (19): askDocument(), checkFile(), codeFrom(), errorText(), fetchLessonPack(), fetchPage(), fetchQuiz(), isJson() (+11 more)
+Cohesion: 0.15
+Nodes (9): addDoc(), answer(), since(), refresh(), allDocuments(), allTopics(), keywordsFor(), refreshDocuments() (+1 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.11
-Nodes (10): onKey(), addDoc(), answer(), since(), refresh(), allDocuments(), allTopics(), keywordsFor() (+2 more)
+Cohesion: 0.41
+Nodes (11): canvas2d(), finish(), glassTexture(), hash(), plankTexture(), scoreboardFace(), shade(), shaftTexture() (+3 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.22
-Nodes (6): make(), beamFade(), gradientTexture(), poolTexture(), frame(), make()
+Cohesion: 0.21
+Nodes (5): selectAnsweredRight(), selectAnsweredWrong(), selectExpression(), selectPose(), selectSection()
 
 ### Community 25 - "Community 25"
-Cohesion: 0.33
-Nodes (6): cleanAbility(), cleanExperiment(), cleanTopic(), empty(), isNum(), isStr()
+Cohesion: 0.22
+Nodes (6): make(), beamFade(), gradientTexture(), poolTexture(), frame(), make()
 
 ### Community 26 - "Community 26"
 Cohesion: 0.29
@@ -1011,14 +1011,14 @@ Nodes (1): Rest-pose height (floor to cap top) in model units, from evaluated me
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `MIN()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 14`, `Community 16`, `Community 17`, `Community 18`, `Community 19`, `Community 20`, `Community 21`?**
-  _High betweenness centrality (0.202) - this node is a cross-community bridge._
-- **Why does `add()` connect `Community 7` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 10`, `Community 12`, `Community 13`, `Community 14`, `Community 17`, `Community 18`, `Community 23`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
-- **Why does `range()` connect `Community 3` to `Community 2`, `Community 4`, `Community 7`, `Community 8`, `Community 10`, `Community 11`?**
-  _High betweenness centrality (0.059) - this node is a cross-community bridge._
-- **Are the 93 inferred relationships involving `MIN()` (e.g. with `check_window_walls()` and `_overlap()`) actually correct?**
-  _`MIN()` has 93 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `MIN()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 16`, `Community 17`, `Community 18`, `Community 20`, `Community 21`, `Community 23`, `Community 24`?**
+  _High betweenness centrality (0.208) - this node is a cross-community bridge._
+- **Why does `join()` connect `Community 0` to `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 7`, `Community 8`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 15`?**
+  _High betweenness centrality (0.072) - this node is a cross-community bridge._
+- **Why does `add()` connect `Community 9` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 10`, `Community 11`, `Community 14`, `Community 17`, `Community 18`, `Community 22`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Are the 94 inferred relationships involving `MIN()` (e.g. with `check_window_walls()` and `_overlap()`) actually correct?**
+  _`MIN()` has 94 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 53 inferred relationships involving `range()` (e.g. with `tube()` and `circle()`) actually correct?**
   _`range()` has 53 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 52 inferred relationships involving `set()` (e.g. with `add_cylinder()` and `add_box()`) actually correct?**
